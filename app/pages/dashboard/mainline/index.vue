@@ -1,0 +1,413 @@
+﻿<script setup lang="ts">
+import {
+  AlertTriangle,
+  Building2,
+  ChevronRight,
+  ClipboardList,
+  LayoutGrid,
+  Package,
+  RefreshCw,
+  ShieldAlert,
+  Signal,
+  Sparkles,
+  Truck,
+  Wifi,
+} from 'lucide-vue-next'
+import type { TaskAction } from '~/types/task'
+
+definePageMeta({ layout: 'dashboard' })
+useHead({ title: 'Mainline — Misel' })
+
+const { user, hasPermission } = useAuth()
+const { items: productionLines, fetchProductionLines } = useProductionLines()
+const { items: productionLineAreas, fetchProductionLineAreas } = useProductionLineAreas()
+const { items: boxTypes, fetchBoxTypes } = useBoxTypes()
+const { releaseTask } = useTasks()
+const toast = useToast()
+
+const workingAreaId = ref<string | null>(null)
+const selectedBoxTypeId = ref('')
+const showBoxTypeModal = ref(false)
+const taskAction = ref<TaskAction>('AMBIL_FG')
+const releasing = ref(false)
+const lastReleasedTask = ref<{ taskId: string; status: string } | null>(null)
+const lastUpdatedAt = ref(new Date())
+
+const lastUpdatedLabel = computed(() =>
+  lastUpdatedAt.value.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+)
+
+onMounted(async () => {
+  await Promise.all([
+    fetchProductionLines({ limit: 100 }),
+    fetchProductionLineAreas({ limit: 100 }),
+    fetchBoxTypes({ limit: 100 }),
+  ])
+  if (!workingAreaId.value && myAreas.value[0]) {
+    workingAreaId.value = myAreas.value[0].id
+  }
+  if (!selectedBoxTypeId.value && boxTypes.value[0]) {
+    selectedBoxTypeId.value = boxTypes.value[0].id
+  }
+})
+
+// Super Admin can act on any production line; everyone else is restricted to
+// the line(s) they operate.
+const myLines = computed(() =>
+  user.value?.role === 'Super Admin'
+    ? productionLines.value
+    : productionLines.value.filter((line) => line.operatorId === user.value?.id),
+)
+const myLineIds = computed(() => new Set(myLines.value.map((line) => line.id)))
+const myAreas = computed(() =>
+  productionLineAreas.value.filter((area) => myLineIds.value.has(area.productionLineId)),
+)
+
+const workingArea = computed(
+  () => myAreas.value.find((area) => area.id === workingAreaId.value) ?? null,
+)
+const workingLine = computed(
+  () => myLines.value.find((line) => line.id === workingArea.value?.productionLineId) ?? null,
+)
+
+function setWorkingArea(id: string) {
+  workingAreaId.value = id
+}
+
+function goToQuarantineTasks() {
+  navigateTo('/dashboard/quarantines-tasks')
+}
+
+const selectedBoxType = computed(
+  () => boxTypes.value.find((box) => box.id === selectedBoxTypeId.value) ?? null,
+)
+
+function chooseBoxType(id: string) {
+  selectedBoxTypeId.value = id
+  showBoxTypeModal.value = false
+}
+
+async function handleReleaseTask() {
+  if (!workingArea.value) {
+    toast.error('Select a Line Area first')
+    return
+  }
+  if (!selectedBoxType.value) {
+    toast.error('Select a Box Type first')
+    return
+  }
+  releasing.value = true
+  const task = await releaseTask({
+    productionLineAreaId: workingArea.value.id,
+    boxTypeId: selectedBoxType.value.id,
+    taskAction: taskAction.value,
+  })
+  releasing.value = false
+  if (task) {
+    lastReleasedTask.value = { taskId: task.taskId, status: task.status }
+  }
+}
+
+function viewQueue() {
+  navigateTo('/dashboard/tasks')
+}
+</script>
+
+<template>
+  <div class="animate-fade-in space-y-4">
+    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 class="text-2xl font-extrabold text-[#0F1F52] dark:text-[#F8FAFC]">Mainline</h1>
+        <p class="font-medium mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Warehouse line control and task queue
+        </p>
+      </div>
+
+      <div class="rounded-2xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-4 py-2.5 shadow-sm">
+        <div class="flex items-center gap-2 text-sm">
+          <Wifi class="h-4 w-4 text-slate-400" />
+          <span class="font-medium text-slate-500 dark:text-slate-400">System Status</span>
+          <span class="rounded-full bg-red-50 dark:bg-red-500/10 px-2 py-0.5 text-xs font-semibold text-red-500">
+            Offline
+          </span>
+        </div>
+        <p class="font-medium mt-1 text-xs text-slate-400">
+          Last updated: just now | {{ lastUpdatedLabel }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Line Areas + Quarantine -->
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <UiBaseCard class="lg:col-span-2">
+        <div class="mb-4 flex items-center gap-2">
+          <LayoutGrid class="h-4 w-4 text-[#01ADEF]" />
+          <p class="text-xs font-bold uppercase tracking-wide text-[#0F1F52] dark:text-[#F8FAFC]">
+            Line Areas
+          </p>
+        </div>
+
+        <p v-if="myAreas.length === 0" class="font-medium py-6 text-center text-sm text-slate-400">
+          No production line areas assigned to you
+        </p>
+
+        <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <button
+            v-for="area in myAreas"
+            :key="area.id"
+            type="button"
+            class="group relative flex items-center gap-4 overflow-hidden rounded-2xl border px-4 py-4 text-left shadow-sm transition-all hover:shadow-md"
+            :class="
+              workingAreaId === area.id
+                ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-900/10'
+                : 'border-blue-200 bg-blue-50/60 hover:border-[#01ADEF]/40 dark:border-[#1E293B] dark:bg-[#0F172A]'
+            "
+            @click="setWorkingArea(area.id)"
+          >
+            <Building2
+              class="pointer-events-none absolute -bottom-3 -right-3 h-16 w-16 opacity-[0.06] transition-transform group-hover:scale-105"
+              :class="workingAreaId === area.id ? 'text-emerald-600' : 'text-[#01ADEF]'"
+            />
+
+            <div
+              class="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-inner transition-transform group-hover:scale-105"
+              :class="
+                workingAreaId === area.id
+                  ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white'
+                  : 'bg-gradient-to-br from-blue-400 to-blue-600 text-white'
+              "
+            >
+              <LayoutGrid class="h-6 w-6" />
+            </div>
+            <div class="relative">
+              <p class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">{{ area.name }}</p>
+              <p class="font-medium text-xs text-slate-400">{{ area.productionLine.name }}</p>
+              <span
+                class="mt-1.5 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                :class="
+                  workingAreaId === area.id
+                    ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white'
+                    : 'bg-blue-200 text-blue-600'
+                "
+              >
+                <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+                {{ workingAreaId === area.id ? 'Currently Working' : 'Available' }}
+              </span>
+            </div>
+          </button>
+        </div>
+      </UiBaseCard>
+
+      <UiBaseCard
+        class="group relative cursor-pointer overflow-hidden transition-all hover:shadow-md"
+        @click="goToQuarantineTasks"
+      >
+        <div
+          class="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-red-500/5"
+        />
+        <ShieldAlert
+          class="pointer-events-none absolute -right-6 -top-6 h-24 w-24 text-red-500 opacity-[0.08]"
+        />
+
+        <div class="relative mb-3 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <AlertTriangle class="h-4 w-4 text-red-500" />
+            <p class="text-xs font-bold uppercase tracking-wide text-red-500">Quarantine</p>
+          </div>
+          <ChevronRight
+            class="h-4 w-4 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-red-400 dark:text-slate-600"
+          />
+        </div>
+
+        <template v-if="workingLine">
+          <p class="relative font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">
+            {{ workingLine.quarantineLine.name }}
+          </p>
+          <p class="font-medium relative mt-1 text-xs text-slate-400">
+            Quarantine line for {{ workingLine.name }}
+          </p>
+          <div class="relative mt-6 flex items-end justify-end">
+            <span class="inline-flex items-center gap-1 text-xs font-semibold text-[#01ADEF]">
+              View Details
+              <ChevronRight class="h-3.5 w-3.5" />
+            </span>
+          </div>
+        </template>
+        <p v-else class="font-medium relative py-6 text-center text-sm text-slate-400">
+          Select a Line Area to see its Quarantine Line
+        </p>
+      </UiBaseCard>
+    </div>
+
+    <!-- Current queue -->
+    <div
+      class="flex items-center gap-4 rounded-2xl border border-[#01ADEF]/20 bg-gradient-to-r from-[#01ADEF]/10 to-transparent px-5 py-4"
+    >
+      <div
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-sm"
+      >
+        <Truck class="h-5 w-5" />
+      </div>
+      <div v-if="lastReleasedTask" class="grid flex-1 grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
+        <p class="font-semibold uppercase tracking-wide text-[#01ADEF]">Current Queue</p>
+        <p class="font-medium text-slate-500 dark:text-slate-400">
+          Task ID :
+          <span class="font-medium text-[#0F1F52] dark:text-[#F8FAFC]">{{ lastReleasedTask.taskId }}</span>
+        </p>
+        <p class="font-medium text-slate-500 dark:text-slate-400">
+          Status : <span class="font-semibold text-[#01ADEF]">{{ lastReleasedTask.status }}</span>
+        </p>
+      </div>
+      <p v-else class="font-medium flex-1 text-sm text-slate-500 dark:text-slate-400">
+        No task released yet — pick a Line Area, Box Type, and Function below, then Release Task.
+      </p>
+    </div>
+
+    <!-- Select action -->
+    <UiBaseCard>
+      <div class="mb-4 flex items-center gap-2">
+        <Sparkles class="h-4 w-4 text-[#01ADEF]" />
+        <p class="text-xs font-bold uppercase tracking-wide text-[#0F1F52] dark:text-[#F8FAFC]">
+          Select Action
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <!-- Box type picker -->
+        <button
+          type="button"
+          class="flex items-center gap-3 rounded-2xl border-2 border-dashed px-4 py-4 text-left shadow-sm transition-all hover:shadow-md"
+          :style="
+            selectedBoxType
+              ? { borderColor: selectedBoxType.colorCode, backgroundColor: `${selectedBoxType.colorCode}14` }
+              : undefined
+          "
+          :class="!selectedBoxType && 'border-[#E2E8F0] bg-white hover:border-[#01ADEF]/40 dark:border-[#1E293B] dark:bg-[#0F172A]'"
+          @click="showBoxTypeModal = true"
+        >
+          <div
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white"
+            :style="{ backgroundColor: selectedBoxType?.colorCode ?? '#94A3B8' }"
+          >
+            <Package class="h-5 w-5" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="truncate font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">
+              {{ selectedBoxType?.name ?? 'Select Box Type' }}
+            </p>
+            <p class="font-medium text-xs text-slate-400">Box type</p>
+          </div>
+        </button>
+
+        <!-- Ambil FG -->
+        <button
+          type="button"
+          class="flex items-center gap-3 rounded-2xl border px-4 py-4 text-left shadow-sm transition-all hover:shadow-md"
+          :class="
+            taskAction === 'AMBIL_FG'
+              ? 'border-emerald-500 bg-gradient-to-br from-emerald-50 to-transparent dark:from-emerald-900/15'
+              : 'border-[#E2E8F0] bg-white hover:border-[#01ADEF]/40 dark:border-[#1E293B] dark:bg-[#0F172A]'
+          "
+          @click="taskAction = 'AMBIL_FG'"
+        >
+          <div
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+            :class="
+              taskAction === 'AMBIL_FG'
+                ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white'
+                : 'bg-slate-100 text-slate-400 dark:bg-slate-800'
+            "
+          >
+            <Truck class="h-5 w-5" />
+          </div>
+          <div>
+            <p class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Ambil FG</p>
+            <p class="font-medium text-xs text-slate-400">Function</p>
+          </div>
+        </button>
+
+        <!-- Not Standard -->
+        <button
+          type="button"
+          class="flex items-center gap-3 rounded-2xl border px-4 py-4 text-left shadow-sm transition-all hover:shadow-md"
+          :class="
+            taskAction === 'NOT_STANDARD'
+              ? 'border-red-500 bg-gradient-to-br from-red-50 to-transparent dark:from-red-900/15'
+              : 'border-[#E2E8F0] bg-white hover:border-[#01ADEF]/40 dark:border-[#1E293B] dark:bg-[#0F172A]'
+          "
+          @click="taskAction = 'NOT_STANDARD'"
+        >
+          <div
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+            :class="
+              taskAction === 'NOT_STANDARD'
+                ? 'bg-gradient-to-br from-red-400 to-red-600 text-white'
+                : 'bg-slate-100 text-slate-400 dark:bg-slate-800'
+            "
+          >
+            <AlertTriangle class="h-5 w-5" />
+          </div>
+          <div>
+            <p class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Not Standard</p>
+            <p class="font-medium text-xs text-slate-400">Function</p>
+          </div>
+        </button>
+      </div>
+    </UiBaseCard>
+
+    <!-- Actions -->
+    <div class="flex flex-col gap-3 sm:flex-row">
+      <button
+        v-if="hasPermission('task.create')"
+        type="button"
+        class="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm shadow-emerald-500/20 transition-all hover:shadow-md hover:shadow-emerald-500/30 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+        :disabled="releasing"
+        @click="handleReleaseTask"
+      >
+        <AlertTriangle class="h-4 w-4" />
+        {{ releasing ? 'Releasing…' : 'Release Task' }}
+      </button>
+
+      <button
+        type="button"
+        class="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm shadow-[#01ADEF]/20 transition-all hover:shadow-md hover:shadow-[#01ADEF]/30 active:scale-[0.99]"
+        @click="viewQueue"
+      >
+        <ClipboardList class="h-4 w-4" />
+        View Queue
+      </button>
+    </div>
+
+    <!-- Connection status -->
+    <div class="flex justify-center pt-1">
+      <div class="inline-flex items-center gap-2 rounded-full border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3 py-1.5 text-xs text-slate-400 shadow-sm">
+        <Signal class="h-3.5 w-3.5 text-emerald-500" />
+        42 ms
+        <RefreshCw class="h-3.5 w-3.5 text-slate-300 dark:text-slate-600" />
+      </div>
+    </div>
+
+    <!-- Box type modal -->
+    <UiBaseModal v-model="showBoxTypeModal" title="Select Box Type" size="sm">
+      <p v-if="boxTypes.length === 0" class="font-medium py-6 text-center text-sm text-slate-400">
+        No box types found
+      </p>
+      <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <button
+          v-for="box in boxTypes"
+          :key="box.id"
+          type="button"
+          class="flex items-center gap-2 rounded-xl border-2 px-4 py-3 text-left transition-colors"
+          :style="{
+            borderColor: selectedBoxTypeId === box.id ? box.colorCode : '#E2E8F0',
+            backgroundColor: selectedBoxTypeId === box.id ? `${box.colorCode}14` : undefined,
+          }"
+          @click="chooseBoxType(box.id)"
+        >
+          <span class="h-3 w-3 shrink-0 rounded-full" :style="{ backgroundColor: box.colorCode }" />
+          <span class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">{{ box.name }}</span>
+        </button>
+      </div>
+    </UiBaseModal>
+  </div>
+</template>

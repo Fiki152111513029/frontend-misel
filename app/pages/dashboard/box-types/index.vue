@@ -1,0 +1,201 @@
+﻿<script setup lang="ts">
+import { Plus, RefreshCw } from 'lucide-vue-next'
+import type { BoxTypeSortKey } from '~/components/box-types/Table.vue'
+import type { BoxType, BoxTypeFromSystem, BoxTypeQuery, CreateBoxTypeInput } from '~/types/box-type'
+
+const SERVER_SORT_KEYS = ['name', 'ordering', 'createdAt'] as const
+
+definePageMeta({ layout: 'dashboard' })
+useHead({ title: 'Box Types — Misel' })
+
+const {
+  items,
+  meta,
+  loading,
+  filters,
+  fetchBoxTypes,
+  createBoxType,
+  updateBoxType,
+  deleteBoxType,
+  setFilters,
+} = useBoxTypes()
+
+const fromSystemFilter = ref<'All' | BoxTypeFromSystem>('All')
+
+const filteredItems = computed(() => items.value.filter((item) => {
+  return fromSystemFilter.value === 'All' || item.fromSystem === fromSystemFilter.value
+}))
+
+// Color Preview, Model Process Code, and From System aren't sortable
+// server-side, so those columns are sorted client-side over the currently
+// loaded page only.
+const clientSort = ref<{ key: BoxTypeSortKey, order: 'asc' | 'desc' } | null>(null)
+
+const CLIENT_SORT_ACCESSORS: Record<string, (item: BoxType) => string> = {
+  color: item => item.colorCode.toLowerCase(),
+  modelProcessCode: item => item.modelProcessCode.toLowerCase(),
+  fromSystem: item => item.fromSystem,
+}
+
+const sortedItems = computed(() => {
+  if (!clientSort.value) return filteredItems.value
+  const { key, order } = clientSort.value
+  const accessor = CLIENT_SORT_ACCESSORS[key]
+  if (!accessor) return filteredItems.value
+  return [...filteredItems.value].sort((a, b) => {
+    const av = accessor(a)
+    const bv = accessor(b)
+    if (av < bv) return order === 'asc' ? -1 : 1
+    if (av > bv) return order === 'asc' ? 1 : -1
+    return 0
+  })
+})
+
+const showFormDialog = ref(false)
+const showDeleteDialog = ref(false)
+const editingBoxType = ref<BoxType | null>(null)
+const deletingBoxType = ref<BoxType | null>(null)
+const submitting = ref(false)
+const deleting = ref(false)
+
+onMounted(() => {
+  fetchBoxTypes()
+})
+
+function openCreate() {
+  editingBoxType.value = null
+  showFormDialog.value = true
+}
+
+function openEdit(boxType: BoxType) {
+  editingBoxType.value = boxType
+  showFormDialog.value = true
+}
+
+function openDelete(boxType: BoxType) {
+  deletingBoxType.value = boxType
+  showDeleteDialog.value = true
+}
+
+async function handleFormSubmit(input: CreateBoxTypeInput) {
+  submitting.value = true
+  const ok = editingBoxType.value
+    ? await updateBoxType(editingBoxType.value.id, input)
+    : await createBoxType(input)
+  submitting.value = false
+  if (ok) showFormDialog.value = false
+}
+
+async function handleDeleteConfirm() {
+  if (!deletingBoxType.value) return
+  deleting.value = true
+  const ok = await deleteBoxType(deletingBoxType.value.id)
+  deleting.value = false
+  if (ok) showDeleteDialog.value = false
+}
+
+function handleFilterChange(patch: Partial<BoxTypeQuery>) {
+  setFilters({ ...patch, page: 1 })
+  fetchBoxTypes()
+}
+
+function goToPage(page: number) {
+  setFilters({ page })
+  fetchBoxTypes()
+}
+
+function handleLimitChange(limit: number) {
+  setFilters({ limit, page: 1 })
+  fetchBoxTypes()
+}
+
+function handleSort(patch: { sortBy: BoxTypeSortKey, sortOrder: 'asc' | 'desc' }) {
+  if ((SERVER_SORT_KEYS as readonly string[]).includes(patch.sortBy)) {
+    clientSort.value = null
+    handleFilterChange(patch as Partial<BoxTypeQuery>)
+  } else {
+    clientSort.value = { key: patch.sortBy, order: patch.sortOrder }
+  }
+}
+</script>
+
+<template>
+  <div class="animate-fade-in">
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 class="text-2xl font-extrabold text-[#0F1F52] dark:text-[#F8FAFC]">Box Types</h1>
+        <p class="font-medium mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Manage box type categories used across the warehouse
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2F6FED] to-[#1D4FD8] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:from-[#2660D9] hover:to-[#173FB0]"
+        @click="openCreate"
+      >
+        <Plus class="h-4 w-4" />
+        Add Box Type
+      </button>
+    </div>
+
+    <div class="mb-4 flex flex-wrap items-center gap-3">
+      <BoxTypesFilter :filters="filters" @change="handleFilterChange" />
+
+      <select
+        v-model="fromSystemFilter"
+        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+      >
+        <option value="All">All From System</option>
+        <option value="MES">MES</option>
+        <option value="WMS">WMS</option>
+      </select>
+
+      <button
+        type="button"
+        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-4 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
+        @click="fetchBoxTypes()"
+      >
+        <RefreshCw class="h-4 w-4 text-slate-400" />
+        Refresh
+      </button>
+    </div>
+
+    <BoxTypesTable
+      :items="sortedItems"
+      :loading="loading"
+      :sort-by="clientSort?.key ?? filters.sortBy"
+      :sort-order="clientSort?.order ?? filters.sortOrder"
+      @edit="openEdit"
+      @delete="openDelete"
+      @sort="handleSort"
+    />
+
+    <UiBasePagination
+      class="mt-4"
+      :page="meta.page"
+      :total-pages="meta.totalPages"
+      :total="meta.total"
+      :limit="meta.limit"
+      item-label="box types"
+      @update:page="goToPage"
+      @update:limit="handleLimitChange"
+    />
+
+    <BoxTypesFormDialog
+      v-model="showFormDialog"
+      :box-type="editingBoxType"
+      :submitting="submitting"
+      @submit="handleFormSubmit"
+      @cancel="showFormDialog = false"
+    />
+
+    <BoxTypesDeleteDialog
+      v-model="showDeleteDialog"
+      :box-type="deletingBoxType"
+      :deleting="deleting"
+      @confirm="handleDeleteConfirm"
+      @cancel="showDeleteDialog = false"
+    />
+  </div>
+</template>
