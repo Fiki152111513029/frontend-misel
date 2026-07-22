@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { Plus, RefreshCw } from 'lucide-vue-next'
+import { Plus } from 'lucide-vue-next'
 import type { WarehouseLineLocationSortKey } from '~/components/warehouse-line-locations/Table.vue'
 import type {
   CreateWarehouseLineLocationInput,
@@ -131,19 +131,6 @@ function handleSort(patch: { sortBy: WarehouseLineLocationSortKey, sortOrder: 'a
       >
         <Plus class="h-4 w-4" />
         Add Line Location
-      </button>
-    </div>
-
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-      <WarehouseLineLocationsFilter :filters="filters" @change="handleFilterChange" />
-
-      <button
-        type="button"
-        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-4 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
-        @click="fetchWarehouseLineLocations()"
-      >
-        <RefreshCw class="h-4 w-4 text-slate-400" />
-        Refresh
       </button>
     </div>
 

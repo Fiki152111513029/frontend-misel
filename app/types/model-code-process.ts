@@ -5,6 +5,14 @@ export interface ModelCodeProcess {
   name: string
   fromSystem: FromSystem
   isActive: boolean
+  statusComment1: string
+  statusComment2: string
+  statusComment3: string
+  statusComment4: string
+  statusComment5: string
+  statusComment6: string
+  statusComment7: string
+  statusComment8: string
   createdAt: string
   updatedAt: string
   deletedAt: string | null
@@ -14,6 +22,14 @@ export interface CreateModelCodeProcessInput {
   name: string
   fromSystem: FromSystem
   isActive?: boolean
+  statusComment1?: string
+  statusComment2?: string
+  statusComment3?: string
+  statusComment4?: string
+  statusComment5?: string
+  statusComment6?: string
+  statusComment7?: string
+  statusComment8?: string
 }
 
 export type UpdateModelCodeProcessInput = Partial<CreateModelCodeProcessInput>

@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
-import { Plus, RefreshCw } from 'lucide-vue-next'
+import { Plus } from 'lucide-vue-next'
 import type { BoxTypeSortKey } from '~/components/box-types/Table.vue'
-import type { BoxType, BoxTypeFromSystem, BoxTypeQuery, CreateBoxTypeInput } from '~/types/box-type'
+import type { BoxType, BoxTypeQuery, CreateBoxTypeInput } from '~/types/box-type'
 
 const SERVER_SORT_KEYS = ['name', 'ordering', 'createdAt'] as const
 
@@ -20,29 +20,21 @@ const {
   setFilters,
 } = useBoxTypes()
 
-const fromSystemFilter = ref<'All' | BoxTypeFromSystem>('All')
-
-const filteredItems = computed(() => items.value.filter((item) => {
-  return fromSystemFilter.value === 'All' || item.fromSystem === fromSystemFilter.value
-}))
-
-// Color Preview, Model Process Code, and From System aren't sortable
-// server-side, so those columns are sorted client-side over the currently
-// loaded page only.
+// Color Preview and From System aren't sortable server-side, so those
+// columns are sorted client-side over the currently loaded page only.
 const clientSort = ref<{ key: BoxTypeSortKey, order: 'asc' | 'desc' } | null>(null)
 
 const CLIENT_SORT_ACCESSORS: Record<string, (item: BoxType) => string> = {
   color: item => item.colorCode.toLowerCase(),
-  modelProcessCode: item => item.modelProcessCode.toLowerCase(),
   fromSystem: item => item.fromSystem,
 }
 
 const sortedItems = computed(() => {
-  if (!clientSort.value) return filteredItems.value
+  if (!clientSort.value) return items.value
   const { key, order } = clientSort.value
   const accessor = CLIENT_SORT_ACCESSORS[key]
-  if (!accessor) return filteredItems.value
-  return [...filteredItems.value].sort((a, b) => {
+  if (!accessor) return items.value
+  return [...items.value].sort((a, b) => {
     const av = accessor(a)
     const bv = accessor(b)
     if (av < bv) return order === 'asc' ? -1 : 1
@@ -136,28 +128,6 @@ function handleSort(patch: { sortBy: BoxTypeSortKey, sortOrder: 'asc' | 'desc' }
       >
         <Plus class="h-4 w-4" />
         Add Box Type
-      </button>
-    </div>
-
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-      <BoxTypesFilter :filters="filters" @change="handleFilterChange" />
-
-      <select
-        v-model="fromSystemFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
-      >
-        <option value="All">All From System</option>
-        <option value="MES">MES</option>
-        <option value="WMS">WMS</option>
-      </select>
-
-      <button
-        type="button"
-        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-4 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
-        @click="fetchBoxTypes()"
-      >
-        <RefreshCw class="h-4 w-4 text-slate-400" />
-        Refresh
       </button>
     </div>
 

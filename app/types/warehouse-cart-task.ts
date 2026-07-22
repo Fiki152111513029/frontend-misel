@@ -44,6 +44,16 @@ export interface WarehouseCartTaskQuery {
   limit?: number
   sortBy?: WarehouseCartTaskSortBy
   sortOrder?: WarehouseCartTaskSortOrder
+  dateFrom?: string
+  dateTo?: string
+  operatorId?: string
+  status?: WarehouseCartTaskStatus
+}
+
+export interface WarehouseCartTaskOperatorOption {
+  id: string
+  username: string
+  fullName: string
 }
 
 export interface WarehouseCartTaskListMeta {

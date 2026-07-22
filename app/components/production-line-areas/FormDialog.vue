@@ -6,6 +6,7 @@ import type {
 import type { ProductionLine } from '~/types/production-line'
 import type { EximLocation } from '~/types/exim-location'
 import type { EmptyPalletLocation } from '~/types/empty-pallet-location'
+import type { ModelCodeProcess } from '~/types/model-code-process'
 
 interface Props {
   modelValue: boolean
@@ -13,6 +14,7 @@ interface Props {
   productionLines: ProductionLine[]
   eximLocations: EximLocation[]
   emptyPalletLocations: EmptyPalletLocation[]
+  modelCodeProcesses: ModelCodeProcess[]
   submitting?: boolean
 }
 
@@ -33,6 +35,7 @@ const iRaypleLocationCode = ref('')
 const productionLineId = ref('')
 const eximLocationId = ref('')
 const emptyPalletLocationId = ref('')
+const modelCodeProcessId = ref('')
 const orderText = ref('')
 const errors = reactive<{
   name?: string
@@ -53,6 +56,7 @@ function resetFields() {
     props.productionLineArea?.eximLocationId ?? props.eximLocations[0]?.id ?? ''
   emptyPalletLocationId.value =
     props.productionLineArea?.emptyPalletLocationId ?? props.emptyPalletLocations[0]?.id ?? ''
+  modelCodeProcessId.value = props.productionLineArea?.modelCodeProcessId ?? ''
   orderText.value =
     props.productionLineArea?.order !== undefined ? String(props.productionLineArea.order) : ''
   errors.name = undefined
@@ -122,6 +126,7 @@ function handleSubmit() {
     productionLineId: productionLineId.value,
     eximLocationId: eximLocationId.value,
     emptyPalletLocationId: emptyPalletLocationId.value,
+    modelCodeProcessId: modelCodeProcessId.value || undefined,
     order: Number(orderText.value),
   })
 }
@@ -209,6 +214,18 @@ const selectClass =
         <p v-if="errors.emptyPalletLocationId" class="font-medium text-xs text-red-500 dark:text-red-400">
           {{ errors.emptyPalletLocationId }}
         </p>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+          Task Template
+        </label>
+        <select v-model="modelCodeProcessId" :class="selectClass">
+          <option value="">None</option>
+          <option v-for="process in modelCodeProcesses" :key="process.id" :value="process.id">
+            {{ process.name }}
+          </option>
+        </select>
       </div>
 
       <UiBaseInput v-model="orderText" label="Order" required :error="errors.order" />

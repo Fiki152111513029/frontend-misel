@@ -56,6 +56,18 @@ export interface TaskQuery {
   limit?: number
   sortBy?: TaskSortBy
   sortOrder?: TaskSortOrder
+  dateFrom?: string
+  dateTo?: string
+  operatorId?: string
+  status?: TaskStatus
+  taskAction?: TaskAction
+  activeOnly?: boolean
+}
+
+export interface TaskOperatorOption {
+  id: string
+  username: string
+  fullName: string
 }
 
 export interface TaskListMeta {

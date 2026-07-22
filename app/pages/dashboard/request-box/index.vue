@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus, RefreshCw, Search } from 'lucide-vue-next'
+import { Plus } from 'lucide-vue-next'
 import type { RequestBoxSortKey } from '~/components/request-boxes/Table.vue'
 import type { CreateRequestBoxInput, RequestBox } from '~/types/request-box'
 
@@ -14,22 +14,6 @@ const { items, meta, loading, fetchRequestBoxes, createRequestBox, deleteRequest
 const { items: productionLines, fetchProductionLines } = useProductionLines()
 const { items: boxTypes, fetchBoxTypes } = useBoxTypes()
 
-const search = ref('')
-const productionLineFilter = ref('All')
-const boxTypeFilter = ref('All')
-
-const filteredItems = computed(() => {
-  const query = search.value.trim().toLowerCase()
-  return items.value.filter((item) => {
-    const matchesProductionLine = productionLineFilter.value === 'All' || item.productionLineId === productionLineFilter.value
-    const matchesBoxType = boxTypeFilter.value === 'All' || item.boxTypeId === boxTypeFilter.value
-    const matchesSearch = !query
-      || item.productionLine.name.toLowerCase().includes(query)
-      || item.boxType.name.toLowerCase().includes(query)
-    return matchesProductionLine && matchesBoxType && matchesSearch
-  })
-})
-
 // Only qty and createdAt are sortable server-side — the remaining columns
 // are sorted client-side over the currently loaded page only.
 const clientSort = ref<{ key: RequestBoxSortKey, order: 'asc' | 'desc' } | null>(null)
@@ -41,11 +25,11 @@ const CLIENT_SORT_ACCESSORS: Record<string, (item: RequestBox) => string> = {
 }
 
 const sortedItems = computed(() => {
-  if (!clientSort.value) return filteredItems.value
+  if (!clientSort.value) return items.value
   const { key, order } = clientSort.value
   const accessor = CLIENT_SORT_ACCESSORS[key]
-  if (!accessor) return filteredItems.value
-  return [...filteredItems.value].sort((a, b) => {
+  if (!accessor) return items.value
+  return [...items.value].sort((a, b) => {
     const av = accessor(a)
     const bv = accessor(b)
     if (av < bv) return order === 'asc' ? -1 : 1
@@ -127,43 +111,6 @@ function handleSort(patch: { sortBy: RequestBoxSortKey, sortOrder: 'asc' | 'desc
       >
         <Plus class="h-4 w-4" />
         Add Request Box
-      </button>
-    </div>
-
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-      <div class="relative min-w-[200px] flex-1 sm:max-w-xs">
-        <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input
-          v-model="search"
-          type="text"
-          placeholder="Search production line, box type..."
-          class="w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] py-2.5 pl-10 pr-4 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] placeholder-slate-400 outline-none transition-colors focus:border-[#01ADEF]"
-        />
-      </div>
-
-      <select
-        v-model="productionLineFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
-      >
-        <option value="All">All Production Lines</option>
-        <option v-for="line in productionLines" :key="line.id" :value="line.id">{{ line.name }}</option>
-      </select>
-
-      <select
-        v-model="boxTypeFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
-      >
-        <option value="All">All Box Types</option>
-        <option v-for="box in boxTypes" :key="box.id" :value="box.id">{{ box.name }}</option>
-      </select>
-
-      <button
-        type="button"
-        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-4 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
-        @click="fetchRequestBoxes()"
-      >
-        <RefreshCw class="h-4 w-4 text-slate-400" />
-        Refresh
       </button>
     </div>
 

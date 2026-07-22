@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus, RefreshCw } from 'lucide-vue-next'
+import { Plus } from 'lucide-vue-next'
 import type { UserSortKey, UserSortOrder } from '~/components/users/Table.vue'
 import type { CreateUserInput, User, UserFormValues } from '~/types/user'
 
@@ -7,10 +7,11 @@ definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'User Management — Misel' })
 
 const { hasPermission } = useAuth()
-const { items, loading, search, fetchUsers, createUser, updateUser, deleteUser } = useUsers()
+const { items, loading, fetchUsers, createUser, updateUser, deleteUser } = useUsers()
 const { items: roles, fetchRoles } = useRoles()
 
 const roleFilter = ref('All')
+const priorityFilter = ref<'All' | 4 | 6 | 8>('All')
 const statusFilter = ref<'All' | 'Active' | 'Inactive'>('All')
 const sort = ref<{ key: UserSortKey, order: UserSortOrder }>({ key: 'username', order: 'asc' })
 const currentPage = ref(1)
@@ -31,8 +32,9 @@ const CLIENT_SORT_ACCESSORS: Record<UserSortKey, (item: User) => string | number
 
 const filteredItems = computed(() => items.value.filter((item) => {
   const matchesRole = roleFilter.value === 'All' || item.roleId === roleFilter.value
+  const matchesPriority = priorityFilter.value === 'All' || item.priority === priorityFilter.value
   const matchesStatus = statusFilter.value === 'All' || (statusFilter.value === 'Active' ? item.isActive : !item.isActive)
-  return matchesRole && matchesStatus
+  return matchesRole && matchesPriority && matchesStatus
 }))
 
 const sortedItems = computed(() => {
@@ -53,7 +55,7 @@ const paginatedItems = computed(() => {
   return sortedItems.value.slice(start, start + pageSize.value)
 })
 
-watch([search, roleFilter, statusFilter], () => {
+watch([roleFilter, priorityFilter, statusFilter], () => {
   currentPage.value = 1
 })
 
@@ -148,16 +150,22 @@ async function handleDeleteConfirm() {
     </div>
 
     <div class="mb-4 flex flex-wrap items-center gap-3">
-      <div class="w-full min-w-[200px] flex-1 sm:max-w-xs">
-        <UiBaseInput v-model="search" placeholder="Search by username, email, or name..." />
-      </div>
-
       <select
         v-model="roleFilter"
         class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option value="All">All Roles</option>
         <option v-for="role in roles" :key="role.id" :value="role.id">{{ role.name }}</option>
+      </select>
+
+      <select
+        v-model="priorityFilter"
+        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+      >
+        <option value="All">All Priorities</option>
+        <option :value="4">High</option>
+        <option :value="6">Medium</option>
+        <option :value="8">Low</option>
       </select>
 
       <select
@@ -168,15 +176,6 @@ async function handleDeleteConfirm() {
         <option value="Active">Active</option>
         <option value="Inactive">Inactive</option>
       </select>
-
-      <button
-        type="button"
-        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-4 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
-        @click="fetchUsers()"
-      >
-        <RefreshCw class="h-4 w-4 text-slate-400" />
-        Refresh
-      </button>
     </div>
 
     <UsersTable

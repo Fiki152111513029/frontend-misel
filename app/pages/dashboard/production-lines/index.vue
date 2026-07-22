@@ -152,8 +152,6 @@ function handleLimitChange(limit: number) {
     </div>
 
     <div class="mb-4 flex flex-wrap items-center gap-3">
-      <ProductionLinesFilter :filters="filters" @change="handleFilterChange" />
-
       <select
         v-model="quarantineLineFilter"
         class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"

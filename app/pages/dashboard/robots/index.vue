@@ -1,6 +1,6 @@
 ﻿<script setup lang="ts">
 import { useIntervalFn } from '@vueuse/core'
-import { Plus, RefreshCw } from 'lucide-vue-next'
+import { Plus } from 'lucide-vue-next'
 import type { RobotSortKey } from '~/components/robots/Table.vue'
 import type { CreateRobotInput, Robot } from '~/types/robot'
 
@@ -25,12 +25,6 @@ const {
   setFilters,
 } = useRobots()
 
-const statusFilter = ref<'All' | 'Active' | 'Inactive'>('All')
-
-const filteredItems = computed(() => items.value.filter((item) => {
-  return statusFilter.value === 'All' || (statusFilter.value === 'Active' ? item.isActive : !item.isActive)
-}))
-
 // Only name and createdAt are sortable server-side — the remaining columns
 // are sorted client-side over the currently loaded page only.
 const clientSort = ref<{ key: RobotSortKey, order: 'asc' | 'desc' } | null>(null)
@@ -47,11 +41,11 @@ const CLIENT_SORT_ACCESSORS: Record<string, (item: Robot) => string | number> = 
 }
 
 const sortedItems = computed(() => {
-  if (!clientSort.value) return filteredItems.value
+  if (!clientSort.value) return items.value
   const { key, order } = clientSort.value
   const accessor = CLIENT_SORT_ACCESSORS[key]
-  if (!accessor) return filteredItems.value
-  return [...filteredItems.value].sort((a, b) => {
+  if (!accessor) return items.value
+  return [...items.value].sort((a, b) => {
     const av = accessor(a)
     const bv = accessor(b)
     if (av < bv) return order === 'asc' ? -1 : 1
@@ -147,28 +141,6 @@ function handleSort(patch: { sortBy: RobotSortKey, sortOrder: 'asc' | 'desc' }) 
       >
         <Plus class="h-4 w-4" />
         Add Robot
-      </button>
-    </div>
-
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-      <RobotsFilter :filters="filters" @change="handleFilterChange" />
-
-      <select
-        v-model="statusFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
-      >
-        <option value="All">All Status</option>
-        <option value="Active">Active</option>
-        <option value="Inactive">Inactive</option>
-      </select>
-
-      <button
-        type="button"
-        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-4 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
-        @click="fetchRobots()"
-      >
-        <RefreshCw class="h-4 w-4 text-slate-400" />
-        Refresh
       </button>
     </div>
 

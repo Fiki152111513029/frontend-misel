@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { Plus, RefreshCw } from 'lucide-vue-next'
+import { Plus } from 'lucide-vue-next'
 import type { ModelCodeProcessSortKey } from '~/components/model-code-processes/Table.vue'
 import type { CreateModelCodeProcessInput, ModelCodeProcess } from '~/types/model-code-process'
 
@@ -21,15 +21,6 @@ const {
   setFilters,
 } = useModelCodeProcesses()
 
-const fromSystemFilter = ref<'All' | 'MES' | 'WMS'>('All')
-const statusFilter = ref<'All' | 'Active' | 'Inactive'>('All')
-
-const filteredItems = computed(() => items.value.filter((item) => {
-  const matchesFromSystem = fromSystemFilter.value === 'All' || item.fromSystem === fromSystemFilter.value
-  const matchesStatus = statusFilter.value === 'All' || (statusFilter.value === 'Active' ? item.isActive : !item.isActive)
-  return matchesFromSystem && matchesStatus
-}))
-
 // From System and Status aren't sortable server-side, so those columns are
 // sorted client-side over the currently loaded page only.
 const clientSort = ref<{ key: ModelCodeProcessSortKey, order: 'asc' | 'desc' } | null>(null)
@@ -40,11 +31,11 @@ const CLIENT_SORT_ACCESSORS: Record<string, (item: ModelCodeProcess) => string |
 }
 
 const sortedItems = computed(() => {
-  if (!clientSort.value) return filteredItems.value
+  if (!clientSort.value) return items.value
   const { key, order } = clientSort.value
   const accessor = CLIENT_SORT_ACCESSORS[key]
-  if (!accessor) return filteredItems.value
-  return [...filteredItems.value].sort((a, b) => {
+  if (!accessor) return items.value
+  return [...items.value].sort((a, b) => {
     const av = accessor(a)
     const bv = accessor(b)
     if (av < bv) return order === 'asc' ? -1 : 1
@@ -139,37 +130,6 @@ function handleLimitChange(limit: number) {
       >
         <Plus class="h-4 w-4" />
         Add Model Code Process
-      </button>
-    </div>
-
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-      <ModelCodeProcessesFilter :filters="filters" @change="handleFilterChange" />
-
-      <select
-        v-model="fromSystemFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
-      >
-        <option value="All">All From System</option>
-        <option value="MES">MES</option>
-        <option value="WMS">WMS</option>
-      </select>
-
-      <select
-        v-model="statusFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
-      >
-        <option value="All">All Status</option>
-        <option value="Active">Active</option>
-        <option value="Inactive">Inactive</option>
-      </select>
-
-      <button
-        type="button"
-        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-4 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
-        @click="fetchModelCodeProcesses()"
-      >
-        <RefreshCw class="h-4 w-4 text-slate-400" />
-        Refresh
       </button>
     </div>
 

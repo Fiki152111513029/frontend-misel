@@ -18,20 +18,28 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const { items: modelCodeProcesses, fetchModelCodeProcesses } = useModelCodeProcesses()
+const activeModelCodeProcesses = computed(() => modelCodeProcesses.value.filter(process => process.isActive))
+
 const name = ref('')
 const isActive = ref(true)
+const modelCodeProcessId = ref('')
 const errors = reactive<{ name?: string }>({})
 
 function resetFields() {
   name.value = props.quarantineLine?.name ?? ''
   isActive.value = props.quarantineLine?.isActive ?? true
+  modelCodeProcessId.value = props.quarantineLine?.modelCodeProcessId ?? ''
   errors.name = undefined
 }
 
 watch(
   () => props.modelValue,
   (isOpen) => {
-    if (isOpen) resetFields()
+    if (isOpen) {
+      resetFields()
+      fetchModelCodeProcesses({ limit: 100 })
+    }
   },
   { immediate: true },
 )
@@ -53,6 +61,7 @@ function handleSubmit() {
   emit('submit', {
     name: name.value.trim(),
     isActive: isActive.value,
+    modelCodeProcessId: modelCodeProcessId.value || undefined,
   })
 }
 
@@ -71,6 +80,21 @@ function handleCancel() {
     <div class="space-y-4">
       <UiBaseInput v-model="name" label="Name" required :error="errors.name" />
       <UiBaseCheckbox v-model="isActive" label="Active" />
+
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          Task Template
+        </label>
+        <select
+          v-model="modelCodeProcessId"
+          class="w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        >
+          <option value="">None</option>
+          <option v-for="process in activeModelCodeProcesses" :key="process.id" :value="process.id">
+            {{ process.name }}
+          </option>
+        </select>
+      </div>
     </div>
 
     <template #footer>

@@ -1,8 +1,8 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-vue-next'
 import type { BoxType, BoxTypeSortBy, BoxTypeSortOrder } from '~/types/box-type'
 
-export type BoxTypeSortKey = BoxTypeSortBy | 'color' | 'modelProcessCode' | 'fromSystem'
+export type BoxTypeSortKey = BoxTypeSortBy | 'color' | 'fromSystem'
 
 interface Props {
   items: BoxType[]
@@ -23,7 +23,6 @@ const columns = [
   { key: 'name', label: 'Name' },
   { key: 'ordering', label: 'Ordering', width: '100px' },
   { key: 'color', label: 'Color Preview' },
-  { key: 'modelProcessCode', label: 'Model Process Code' },
   { key: 'fromSystem', label: 'From System', width: '110px' },
   { key: 'createdAt', label: 'Created At' },
   { key: 'actions', label: 'Actions', width: '120px' },
@@ -93,9 +92,6 @@ function formatDate(value: string) {
           <td class="px-4 py-3">
             <BoxTypesColorPreview :color-code="item.colorCode" />
           </td>
-          <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
-            {{ item.modelProcessCode }}
-          </td>
           <td class="px-4 py-3">
             <span
               class="rounded-full px-2 py-0.5 text-xs font-medium bg-[#01ADEF]/10 text-[#01ADEF]"
@@ -110,7 +106,7 @@ function formatDate(value: string) {
             <div class="flex items-center gap-2">
               <button
                 type="button"
-                class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#01ADEF] dark:hover:bg-slate-800/60 transition-colors"
+                class="rounded-lg bg-slate-100 dark:bg-slate-800/60 p-1.5 text-[#01ADEF] hover:bg-slate-200 dark:hover:bg-slate-700/60 transition-colors"
                 aria-label="Edit"
                 @click="emit('edit', item)"
               >
@@ -118,7 +114,7 @@ function formatDate(value: string) {
               </button>
               <button
                 type="button"
-                class="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/15 transition-colors"
+                class="rounded-lg bg-red-50 dark:bg-red-900/15 p-1.5 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/25 transition-colors"
                 aria-label="Delete"
                 @click="emit('delete', item)"
               >

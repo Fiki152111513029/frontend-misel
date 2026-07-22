@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ChevronDown, ChevronUp, Trash2 } from 'lucide-vue-next'
 import type { RequestBox, RequestBoxSortBy, RequestBoxSortOrder } from '~/types/request-box'
 
@@ -110,7 +110,7 @@ function formatDate(value: string) {
               <button
                 v-if="hasPermission('request-box.delete')"
                 type="button"
-                class="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/15 transition-colors"
+                class="rounded-lg bg-red-50 dark:bg-red-900/15 p-1.5 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/25 transition-colors"
                 aria-label="Delete"
                 @click="emit('delete', item)"
               >

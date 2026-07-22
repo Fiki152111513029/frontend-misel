@@ -1,7 +1,14 @@
+export interface QuarantineLineModelCodeProcessRef {
+  id: string
+  name: string
+}
+
 export interface QuarantineLine {
   id: string
   name: string
   isActive: boolean
+  modelCodeProcessId: string | null
+  modelCodeProcess: QuarantineLineModelCodeProcessRef | null
   createdAt: string
   updatedAt: string
   deletedAt: string | null
@@ -10,6 +17,7 @@ export interface QuarantineLine {
 export interface CreateQuarantineLineInput {
   name: string
   isActive?: boolean
+  modelCodeProcessId?: string
 }
 
 export type UpdateQuarantineLineInput = Partial<CreateQuarantineLineInput>

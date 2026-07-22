@@ -1,79 +1,89 @@
-﻿<script setup lang="ts">
-import { RefreshCw, Search } from 'lucide-vue-next'
-import type { WarehouseTaskSortKey, WarehouseTaskSortOrder } from '~/components/warehouse-tasks/Table.vue'
+<script setup lang="ts">
+import type { WarehouseCartTaskSortKey } from '~/components/warehouse-tasks/Table.vue'
+import type { WarehouseCartTaskStatus } from '~/types/warehouse-cart-task'
 
 definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'Warehouse Tasks — Misel' })
 
-const { warehouseTasks, loading, viewWarehouseTask } = useWarehouseTasks()
+const SERVER_SORT_KEYS = ['createdAt'] as const
+const STATUS_OPTIONS: WarehouseCartTaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED']
 
-const search = ref('')
-const lineLocationFilter = ref('All')
-const statusFilter = ref('All')
-const sort = ref<{ key: WarehouseTaskSortKey, order: WarehouseTaskSortOrder }>({ key: 'createdAt', order: 'desc' })
+const {
+  items,
+  meta,
+  loading,
+  filters,
+  operators,
+  fetchWarehouseCartTasks,
+  fetchWarehouseCartTaskOperators,
+  setFilters,
+} = useWarehouseCartTasks()
 
-const lineLocationOptions = computed(() => ['All', ...new Set(warehouseTasks.value.map(t => t.lineLocation))])
-const statusOptions = computed(() => ['All', ...new Set(warehouseTasks.value.map(t => t.status))])
+const dateFrom = ref('')
+const dateTo = ref('')
+const operatorId = ref('')
+const statusFilter = ref('')
 
-const CLIENT_SORT_ACCESSORS: Record<WarehouseTaskSortKey, (item: typeof warehouseTasks.value[number]) => string> = {
-  id: item => item.id,
-  lineLocation: item => item.lineLocation.toLowerCase(),
-  status: item => item.status,
-  createdAt: item => item.createdAt,
+function applyFilters() {
+  setFilters({
+    dateFrom: dateFrom.value || undefined,
+    dateTo: dateTo.value || undefined,
+    operatorId: operatorId.value || undefined,
+    status: (statusFilter.value || undefined) as WarehouseCartTaskStatus | undefined,
+    page: 1,
+  })
+  fetchWarehouseCartTasks()
 }
 
-const filteredItems = computed(() => {
-  const query = search.value.trim().toLowerCase()
-  return warehouseTasks.value.filter((item) => {
-    const matchesLineLocation = lineLocationFilter.value === 'All' || item.lineLocation === lineLocationFilter.value
-    const matchesStatus = statusFilter.value === 'All' || item.status === statusFilter.value
-    const matchesSearch = !query || item.id.toLowerCase().includes(query) || item.lineLocation.toLowerCase().includes(query)
-    return matchesLineLocation && matchesStatus && matchesSearch
-  })
-})
+// Only createdAt is sortable server-side — the remaining columns are sorted
+// client-side over the currently loaded page only.
+const clientSort = ref<{ key: WarehouseCartTaskSortKey, order: 'asc' | 'desc' } | null>(null)
+
+const CLIENT_SORT_ACCESSORS: Record<string, (item: typeof items.value[number]) => string> = {
+  taskId: item => item.taskId.toLowerCase(),
+  taskAction: item => item.modelCodeProcess.name.toLowerCase(),
+  robot: item => (item.robot?.name ?? '').toLowerCase(),
+  operator: item => item.operator.fullName.toLowerCase(),
+  status: item => item.status.toLowerCase(),
+}
 
 const sortedItems = computed(() => {
-  const accessor = CLIENT_SORT_ACCESSORS[sort.value.key]
-  return [...filteredItems.value].sort((a, b) => {
+  if (!clientSort.value) return items.value
+  const { key, order } = clientSort.value
+  const accessor = CLIENT_SORT_ACCESSORS[key]
+  if (!accessor) return items.value
+  return [...items.value].sort((a, b) => {
     const av = accessor(a)
     const bv = accessor(b)
-    if (av < bv) return sort.value.order === 'asc' ? -1 : 1
-    if (av > bv) return sort.value.order === 'asc' ? 1 : -1
+    if (av < bv) return order === 'asc' ? -1 : 1
+    if (av > bv) return order === 'asc' ? 1 : -1
     return 0
   })
 })
 
-const currentPage = ref(1)
-const pageSize = ref(10)
+function handleSort(patch: { sortBy: WarehouseCartTaskSortKey, sortOrder: 'asc' | 'desc' }) {
+  if ((SERVER_SORT_KEYS as readonly string[]).includes(patch.sortBy)) {
+    clientSort.value = null
+    setFilters({ ...patch, page: 1 })
+    fetchWarehouseCartTasks()
+  } else {
+    clientSort.value = patch
+  }
+}
 
-const totalPages = computed(() => Math.max(1, Math.ceil(sortedItems.value.length / pageSize.value)))
-
-const paginatedItems = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  return sortedItems.value.slice(start, start + pageSize.value)
-})
-
-watch([search, lineLocationFilter, statusFilter], () => {
-  currentPage.value = 1
+onMounted(() => {
+  fetchWarehouseCartTasks()
+  fetchWarehouseCartTaskOperators()
 })
 
 function goToPage(page: number) {
-  currentPage.value = Math.min(Math.max(1, page), totalPages.value)
+  setFilters({ page })
+  fetchWarehouseCartTasks()
 }
 
 function handleLimitChange(limit: number) {
-  pageSize.value = limit
-  currentPage.value = 1
-}
-
-function handleSort(patch: { sortBy: WarehouseTaskSortKey, sortOrder: WarehouseTaskSortOrder }) {
-  sort.value = { key: patch.sortBy, order: patch.sortOrder }
-}
-
-function refresh() {
-  search.value = ''
-  lineLocationFilter.value = 'All'
-  statusFilter.value = 'All'
+  setFilters({ limit, page: 1 })
+  fetchWarehouseCartTasks()
 }
 </script>
 
@@ -84,60 +94,60 @@ function refresh() {
       <p class="font-medium mt-1 text-sm text-slate-500 dark:text-slate-400">View and manage all Warehouse Tasks</p>
     </div>
 
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-      <div class="relative min-w-[200px] flex-1 sm:max-w-xs">
-        <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+    <div class="mb-4 flex flex-wrap items-end gap-3">
+      <div>
+        <label class="mb-1.5 block text-xs font-semibold text-slate-500 dark:text-slate-400">Date From</label>
         <input
-          v-model="search"
-          type="text"
-          placeholder="Search task ID, line location..."
-          class="w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] py-2.5 pl-10 pr-4 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] placeholder-slate-400 outline-none transition-colors focus:border-[#01ADEF]"
+          v-model="dateFrom"
+          type="datetime-local"
+          class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+          @change="applyFilters"
+        />
+      </div>
+
+      <div>
+        <label class="mb-1.5 block text-xs font-semibold text-slate-500 dark:text-slate-400">Date To</label>
+        <input
+          v-model="dateTo"
+          type="datetime-local"
+          class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+          @change="applyFilters"
         />
       </div>
 
       <select
-        v-model="lineLocationFilter"
+        v-model="operatorId"
         class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        @change="applyFilters"
       >
-        <option v-for="option in lineLocationOptions" :key="option" :value="option">
-          {{ option === 'All' ? 'All Line Locations' : option }}
-        </option>
+        <option value="">All Operators</option>
+        <option v-for="op in operators" :key="op.id" :value="op.id">{{ op.fullName }}</option>
       </select>
 
       <select
         v-model="statusFilter"
         class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        @change="applyFilters"
       >
-        <option v-for="option in statusOptions" :key="option" :value="option">
-          {{ option === 'All' ? 'All Status' : option }}
-        </option>
+        <option value="">All Status</option>
+        <option v-for="status in STATUS_OPTIONS" :key="status" :value="status">{{ status }}</option>
       </select>
-
-      <button
-        type="button"
-        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-4 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
-        @click="refresh"
-      >
-        <RefreshCw class="h-4 w-4 text-slate-400" />
-        Refresh
-      </button>
     </div>
 
     <WarehouseTasksTable
-      :items="paginatedItems"
+      :items="sortedItems"
       :loading="loading"
-      :sort-by="sort.key"
-      :sort-order="sort.order"
-      @view="viewWarehouseTask"
+      :sort-by="clientSort?.key ?? filters.sortBy"
+      :sort-order="clientSort?.order ?? filters.sortOrder"
       @sort="handleSort"
     />
 
     <UiBasePagination
       class="mt-4"
-      :page="currentPage"
-      :total-pages="totalPages"
-      :total="sortedItems.length"
-      :limit="pageSize"
+      :page="meta.page"
+      :total-pages="meta.totalPages"
+      :total="meta.total"
+      :limit="meta.limit"
       item-label="warehouse tasks"
       @update:page="goToPage"
       @update:limit="handleLimitChange"

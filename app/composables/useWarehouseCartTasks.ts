@@ -26,13 +26,23 @@ export function useWarehouseCartTasks() {
     }
   }
 
+  async function fetchWarehouseCartTaskOperators() {
+    try {
+      await store.loadOperators()
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to load operators')
+    }
+  }
+
   return {
     items: computed(() => store.items),
     meta: computed(() => store.meta),
     loading: computed(() => store.loading),
     filters: computed(() => store.filters),
+    operators: computed(() => store.operators),
     fetchWarehouseCartTasks,
     releaseWarehouseCartTask,
+    fetchWarehouseCartTaskOperators,
     setFilters: store.setFilters,
   }
 }

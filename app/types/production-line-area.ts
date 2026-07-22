@@ -16,6 +16,8 @@ export interface ProductionLineArea {
   eximLocation: NamedRef
   emptyPalletLocationId: string
   emptyPalletLocation: NamedRef
+  modelCodeProcessId: string | null
+  modelCodeProcess: NamedRef | null
   order: number
   createdAt: string
   updatedAt: string
@@ -29,6 +31,7 @@ export interface CreateProductionLineAreaInput {
   productionLineId: string
   eximLocationId: string
   emptyPalletLocationId: string
+  modelCodeProcessId?: string
   order: number
 }
 

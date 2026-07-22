@@ -26,13 +26,36 @@ export function useTasks() {
     }
   }
 
+  async function fetchTaskOperators() {
+    try {
+      await store.loadOperators()
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to load operators')
+    }
+  }
+
+  async function cancelTask(id: string) {
+    try {
+      const task = await store.cancelTask(id)
+      toast.success(`Task ${task.taskId} cancelled`)
+      await fetchTasks()
+      return task
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to cancel task')
+      return null
+    }
+  }
+
   return {
     items: computed(() => store.items),
     meta: computed(() => store.meta),
     loading: computed(() => store.loading),
     filters: computed(() => store.filters),
+    operators: computed(() => store.operators),
     fetchTasks,
     releaseTask,
+    fetchTaskOperators,
+    cancelTask,
     setFilters: store.setFilters,
   }
 }

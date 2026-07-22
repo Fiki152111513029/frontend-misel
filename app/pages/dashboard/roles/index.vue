@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { Plus, RefreshCw } from 'lucide-vue-next'
+import { Plus } from 'lucide-vue-next'
 import type { RoleSortKey, RoleSortOrder } from '~/components/roles/Table.vue'
 import type { CreateRoleInput, Role } from '~/types/role'
 
@@ -7,7 +7,7 @@ definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'Roles — Misel' })
 
 const { hasPermission } = useAuth()
-const { items, loading, search, fetchRoles, createRole, updateRole, deleteRole, assignPermissions } =
+const { items, loading, fetchRoles, createRole, updateRole, deleteRole, assignPermissions } =
   useRoles()
 const { items: allPermissions, fetchPermissions } = usePermissions()
 
@@ -37,10 +37,6 @@ const totalPages = computed(() => Math.max(1, Math.ceil(sortedItems.value.length
 const paginatedItems = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   return sortedItems.value.slice(start, start + pageSize.value)
-})
-
-watch(search, () => {
-  currentPage.value = 1
 })
 
 function handleSort(patch: { sortBy: RoleSortKey, sortOrder: RoleSortOrder }) {
@@ -133,21 +129,6 @@ async function handlePermissionsSubmit(permissionIds: string[]) {
       >
         <Plus class="h-4 w-4" />
         Add Role
-      </button>
-    </div>
-
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-      <div class="w-full min-w-[200px] flex-1 sm:max-w-xs">
-        <UiBaseInput v-model="search" placeholder="Search by name..." />
-      </div>
-
-      <button
-        type="button"
-        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-4 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
-        @click="fetchRoles()"
-      >
-        <RefreshCw class="h-4 w-4 text-slate-400" />
-        Refresh
       </button>
     </div>
 

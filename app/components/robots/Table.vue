@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ChevronDown, ChevronUp, Pencil, PauseCircle, RotateCcw, Trash2 } from 'lucide-vue-next'
 import type { Robot, RobotSortBy, RobotSortOrder } from '~/types/robot'
 
@@ -160,7 +160,7 @@ function formatDate(value: string | null) {
               <button
                 v-if="hasPermission('robot.update')"
                 type="button"
-                class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#01ADEF] dark:hover:bg-slate-800/60 transition-colors"
+                class="rounded-lg bg-slate-100 dark:bg-slate-800/60 p-1.5 text-[#01ADEF] hover:bg-slate-200 dark:hover:bg-slate-700/60 transition-colors"
                 aria-label="Edit"
                 @click="emit('edit', item)"
               >
@@ -187,7 +187,7 @@ function formatDate(value: string | null) {
               <button
                 v-if="hasPermission('robot.delete')"
                 type="button"
-                class="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/15 transition-colors"
+                class="rounded-lg bg-red-50 dark:bg-red-900/15 p-1.5 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/25 transition-colors"
                 aria-label="Delete"
                 @click="emit('delete', item)"
               >

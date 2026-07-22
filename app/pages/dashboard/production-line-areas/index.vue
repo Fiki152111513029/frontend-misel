@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { Plus, RefreshCw } from 'lucide-vue-next'
+import { Plus } from 'lucide-vue-next'
 import type { ProductionLineAreaSortKey } from '~/components/production-line-areas/Table.vue'
 import type {
   CreateProductionLineAreaInput,
@@ -27,6 +27,7 @@ const {
 const { items: productionLines, fetchProductionLines } = useProductionLines()
 const { items: eximLocations, fetchEximLocations } = useEximLocations()
 const { items: emptyPalletLocations, fetchEmptyPalletLocations } = useEmptyPalletLocations()
+const { items: modelCodeProcesses, fetchModelCodeProcesses } = useModelCodeProcesses()
 
 // Backend list endpoint only supports search/sort — Type, Production Line,
 // EXIM Location, and Empty Pallet Location are filtered client-side over the
@@ -55,6 +56,7 @@ const CLIENT_SORT_ACCESSORS: Record<string, (item: ProductionLineArea) => string
   productionLine: item => item.productionLine.name.toLowerCase(),
   eximLocation: item => item.eximLocation.name.toLowerCase(),
   emptyPalletLocation: item => item.emptyPalletLocation.name.toLowerCase(),
+  modelCodeProcess: item => (item.modelCodeProcess?.name ?? '').toLowerCase(),
 }
 
 const sortedItems = computed(() => {
@@ -83,6 +85,7 @@ onMounted(() => {
   fetchProductionLines({ limit: 100 })
   fetchEximLocations({ limit: 100 })
   fetchEmptyPalletLocations({ limit: 100 })
+  fetchModelCodeProcesses({ limit: 100 })
 })
 
 function openCreate() {
@@ -166,8 +169,6 @@ function handleReorder(reorderedItems: ProductionLineArea[]) {
     </div>
 
     <div class="mb-4 flex flex-wrap items-center gap-3">
-      <ProductionLineAreasFilter :filters="filters" @change="handleFilterChange" />
-
       <select
         v-model="typeFilter"
         class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
@@ -200,15 +201,6 @@ function handleReorder(reorderedItems: ProductionLineArea[]) {
         <option value="All">All Empty Pallet Locations</option>
         <option v-for="location in emptyPalletLocations" :key="location.id" :value="location.id">{{ location.name }}</option>
       </select>
-
-      <button
-        type="button"
-        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-4 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
-        @click="fetchProductionLineAreas()"
-      >
-        <RefreshCw class="h-4 w-4 text-slate-400" />
-        Refresh
-      </button>
     </div>
 
     <ProductionLineAreasTable
@@ -239,6 +231,7 @@ function handleReorder(reorderedItems: ProductionLineArea[]) {
       :production-lines="productionLines"
       :exim-locations="eximLocations"
       :empty-pallet-locations="emptyPalletLocations"
+      :model-code-processes="modelCodeProcesses"
       :submitting="submitting"
       @submit="handleFormSubmit"
       @cancel="showFormDialog = false"

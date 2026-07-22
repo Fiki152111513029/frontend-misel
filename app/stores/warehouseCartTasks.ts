@@ -4,6 +4,7 @@ import type {
   ReleaseWarehouseCartTaskInput,
   WarehouseCartTask,
   WarehouseCartTaskListMeta,
+  WarehouseCartTaskOperatorOption,
   WarehouseCartTaskQuery,
 } from '~/types/warehouse-cart-task'
 
@@ -18,6 +19,7 @@ export const useWarehouseCartTasksStore = defineStore('warehouseCartTasks', () =
     sortBy: 'createdAt',
     sortOrder: 'desc',
   })
+  const operators = ref<WarehouseCartTaskOperatorOption[]>([])
 
   async function loadWarehouseCartTasks() {
     loading.value = true
@@ -34,6 +36,10 @@ export const useWarehouseCartTasksStore = defineStore('warehouseCartTasks', () =
     }
   }
 
+  async function loadOperators() {
+    operators.value = await warehouseCartTaskService.fetchWarehouseCartTaskOperators()
+  }
+
   async function releaseWarehouseCartTask(input: ReleaseWarehouseCartTaskInput) {
     return warehouseCartTaskService.releaseWarehouseCartTask(input)
   }
@@ -48,7 +54,9 @@ export const useWarehouseCartTasksStore = defineStore('warehouseCartTasks', () =
     loading,
     error,
     filters,
+    operators,
     loadWarehouseCartTasks,
+    loadOperators,
     releaseWarehouseCartTask,
     setFilters,
   }

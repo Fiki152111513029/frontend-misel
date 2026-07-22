@@ -1,6 +1,6 @@
 import * as taskService from '~/services/task.service'
 import { ApiError } from '~/types/api'
-import type { ReleaseTaskInput, Task, TaskListMeta, TaskQuery } from '~/types/task'
+import type { ReleaseTaskInput, Task, TaskListMeta, TaskOperatorOption, TaskQuery } from '~/types/task'
 
 export const useTasksStore = defineStore('tasks', () => {
   const items = ref<Task[]>([])
@@ -13,6 +13,7 @@ export const useTasksStore = defineStore('tasks', () => {
     sortBy: 'createdAt',
     sortOrder: 'desc',
   })
+  const operators = ref<TaskOperatorOption[]>([])
 
   async function loadTasks() {
     loading.value = true
@@ -29,8 +30,16 @@ export const useTasksStore = defineStore('tasks', () => {
     }
   }
 
+  async function loadOperators() {
+    operators.value = await taskService.fetchTaskOperators()
+  }
+
   async function releaseTask(input: ReleaseTaskInput) {
     return taskService.releaseTask(input)
+  }
+
+  async function cancelTask(id: string) {
+    return taskService.cancelTask(id)
   }
 
   function setFilters(patch: Partial<TaskQuery>) {
@@ -43,8 +52,11 @@ export const useTasksStore = defineStore('tasks', () => {
     loading,
     error,
     filters,
+    operators,
     loadTasks,
+    loadOperators,
     releaseTask,
+    cancelTask,
     setFilters,
   }
 })

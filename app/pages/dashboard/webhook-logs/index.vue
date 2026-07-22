@@ -87,77 +87,79 @@ function viewPayload(payload: Record<string, unknown>, title: string) {
 </script>
 
 <template>
-  <div class="animate-fade-in space-y-4">
-    <h1 class="text-2xl font-extrabold text-[#0F1F52] dark:text-[#F8FAFC]">ICS Webhook Logs</h1>
+  <IcsLogsPasswordGate title="ICS Webhook Logs">
+    <div class="animate-fade-in space-y-4">
+      <h1 class="text-2xl font-extrabold text-[#0F1F52] dark:text-[#F8FAFC]">ICS Webhook Logs</h1>
 
-    <UiBaseCard>
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label class="mb-1.5 block text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Date &amp; Time From</label>
-          <input
-            v-model="dateFrom"
-            type="datetime-local"
-            class="w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
-          />
+      <UiBaseCard>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label class="mb-1.5 block text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Date &amp; Time From</label>
+            <input
+              v-model="dateFrom"
+              type="datetime-local"
+              class="w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+            />
+          </div>
+          <div>
+            <label class="mb-1.5 block text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Date &amp; Time To</label>
+            <input
+              v-model="dateTo"
+              type="datetime-local"
+              class="w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+            />
+          </div>
         </div>
-        <div>
-          <label class="mb-1.5 block text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Date &amp; Time To</label>
-          <input
-            v-model="dateTo"
-            type="datetime-local"
-            class="w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
-          />
+
+        <div class="mt-4 flex items-center gap-3">
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2F6FED] to-[#1D4FD8] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:from-[#2660D9] hover:to-[#173FB0]"
+            @click="applyFilter"
+          >
+            Apply Filter
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-5 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
+            @click="resetFilter"
+          >
+            Reset
+          </button>
         </div>
-      </div>
+      </UiBaseCard>
 
-      <div class="mt-4 flex items-center gap-3">
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2F6FED] to-[#1D4FD8] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:from-[#2660D9] hover:to-[#173FB0]"
-          @click="applyFilter"
-        >
-          Apply Filter
-        </button>
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-5 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
-          @click="resetFilter"
-        >
-          Reset
-        </button>
-      </div>
-    </UiBaseCard>
+      <UiBaseCard padding="none">
+        <p class="font-medium border-b border-[#E2E8F0] dark:border-[#1E293B] px-5 py-3.5 text-sm text-slate-500 dark:text-slate-400">
+          {{ filteredLogs.length }} record(s) found
+        </p>
 
-    <UiBaseCard padding="none">
-      <p class="font-medium border-b border-[#E2E8F0] dark:border-[#1E293B] px-5 py-3.5 text-sm text-slate-500 dark:text-slate-400">
-        {{ filteredLogs.length }} record(s) found
-      </p>
+        <WebhookLogsTable
+          :items="paginatedLogs"
+          :loading="loading"
+          :sort-by="sort.key"
+          :sort-order="sort.order"
+          @sort="handleSort"
+          @view-payload="viewPayload"
+        />
+      </UiBaseCard>
 
-      <WebhookLogsTable
-        :items="paginatedLogs"
-        :loading="loading"
-        :sort-by="sort.key"
-        :sort-order="sort.order"
-        @sort="handleSort"
-        @view-payload="viewPayload"
+      <UiBasePagination
+        v-if="filteredLogs.length > 0"
+        :page="currentPage"
+        :total-pages="totalPages"
+        :total="filteredLogs.length"
+        :limit="pageSize"
+        item-label="webhook logs"
+        @update:page="goToPage"
+        @update:limit="handleLimitChange"
       />
-    </UiBaseCard>
 
-    <UiBasePagination
-      v-if="filteredLogs.length > 0"
-      :page="currentPage"
-      :total-pages="totalPages"
-      :total="filteredLogs.length"
-      :limit="pageSize"
-      item-label="webhook logs"
-      @update:page="goToPage"
-      @update:limit="handleLimitChange"
-    />
-
-    <UiJsonPayloadModal
-      v-model="showPayloadModal"
-      :title="payloadTitle"
-      :payload="payloadData"
-    />
-  </div>
+      <UiJsonPayloadModal
+        v-model="showPayloadModal"
+        :title="payloadTitle"
+        :payload="payloadData"
+      />
+    </div>
+  </IcsLogsPasswordGate>
 </template>
