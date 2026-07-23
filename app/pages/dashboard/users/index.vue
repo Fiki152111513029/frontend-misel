@@ -23,7 +23,7 @@ function roleName(roleId: string) {
 
 const CLIENT_SORT_ACCESSORS: Record<UserSortKey, (item: User) => string | number> = {
   username: item => item.username.toLowerCase(),
-  email: item => item.email.toLowerCase(),
+  email: item => (item.email ?? '').toLowerCase(),
   fullName: item => item.fullName.toLowerCase(),
   role: item => roleName(item.roleId).toLowerCase(),
   priority: item => item.priority,
@@ -101,9 +101,10 @@ function openDelete(user: User) {
 
 async function handleFormSubmit(values: UserFormValues) {
   submitting.value = true
+  const email = values.email.trim() || undefined
   const ok = editingUser.value
     ? await updateUser(editingUser.value.id, {
-        email: values.email,
+        email,
         password: values.password || undefined,
         fullName: values.fullName,
         roleId: values.roleId,
@@ -111,7 +112,7 @@ async function handleFormSubmit(values: UserFormValues) {
       })
     : await createUser({
         username: values.username,
-        email: values.email,
+        email,
         password: values.password,
         fullName: values.fullName,
         roleId: values.roleId,

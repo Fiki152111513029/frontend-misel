@@ -14,7 +14,7 @@ export const useUsersStore = defineStore('users', () => {
     return items.value.filter(
       (u) =>
         u.username.toLowerCase().includes(term) ||
-        u.email.toLowerCase().includes(term) ||
+        (u.email ?? '').toLowerCase().includes(term) ||
         u.fullName.toLowerCase().includes(term),
     )
   })

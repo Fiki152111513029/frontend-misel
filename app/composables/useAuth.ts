@@ -11,7 +11,7 @@ interface LoginApiResponse {
   user: {
     id: string
     username: string
-    email: string
+    email: string | null
     fullName: string
     role: string
     permissions: string[]

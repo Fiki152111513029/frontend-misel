@@ -3,7 +3,7 @@ export type UserPriority = 4 | 6 | 8
 export interface User {
   id: string
   username: string
-  email: string
+  email: string | null
   fullName: string
   roleId: string
   isActive: boolean
@@ -14,7 +14,7 @@ export interface User {
 
 export interface CreateUserInput {
   username: string
-  email: string
+  email?: string
   password: string
   fullName: string
   roleId: string

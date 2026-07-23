@@ -73,9 +73,7 @@ function validate(): boolean {
     errors.username = 'Username is required'
   }
 
-  if (!email.value.trim()) {
-    errors.email = 'Email is required'
-  } else if (!EMAIL_PATTERN.test(email.value.trim())) {
+  if (email.value.trim() && !EMAIL_PATTERN.test(email.value.trim())) {
     errors.email = 'Enter a valid email address'
   }
 
@@ -136,7 +134,7 @@ const selectClass =
         Username cannot be changed after creation.
       </p>
 
-      <UiBaseInput v-model="email" type="email" label="Email" required :error="errors.email" />
+      <UiBaseInput v-model="email" type="email" label="Email" :error="errors.email" />
       <UiBaseInput v-model="fullName" label="Full Name" required :error="errors.fullName" />
 
       <UiBaseInput

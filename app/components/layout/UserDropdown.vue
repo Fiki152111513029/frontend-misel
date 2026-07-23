@@ -55,7 +55,7 @@ const menuItems = [
       >
         <div class="border-b border-[#E2E8F0] dark:border-[#1E293B] px-4 py-3">
           <p class="font-semibold text-sm text-[#0F1F52] dark:text-[#F8FAFC]">{{ user?.name }}</p>
-          <p class="font-medium text-xs text-slate-500 dark:text-slate-400 mt-0.5">{{ user?.email }}</p>
+          <p class="font-medium text-xs text-slate-500 dark:text-slate-400 mt-0.5">{{ user?.email || 'No email' }}</p>
         </div>
 
         <div class="py-1">

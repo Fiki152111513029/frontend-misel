@@ -104,7 +104,7 @@ const PRIORITY_STYLE: Record<User['priority'], string> = {
           <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
             {{ item.username }}
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">{{ item.email }}</td>
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">{{ item.email || '—' }}</td>
           <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
             {{ item.fullName }}
           </td>
