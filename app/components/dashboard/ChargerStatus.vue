@@ -15,9 +15,9 @@ const hubs: ChargerHub[] = [
 
 <template>
   <UiBaseCard padding="none">
-    <div class="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#1E293B] px-5 py-4">
-      <p class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Charger Status</p>
-      <span class="rounded-lg bg-slate-100 dark:bg-[#1E293B] px-2.5 py-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+    <div class="flex items-center justify-between border-b border-[#E2E8F0] px-5 py-4">
+      <p class="font-semibold text-[#0F1F52]">Charger Status</p>
+      <span class="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
         {{ hubs.length }} Slots Total
       </span>
     </div>
@@ -27,7 +27,7 @@ const hubs: ChargerHub[] = [
         v-for="hub in hubs"
         :key="hub.id"
         class="flex flex-col items-center gap-2 rounded-xl border border-dashed px-4 py-5 text-center"
-        :class="hub.unit ? 'border-[#01ADEF]/40 bg-[#01ADEF]/5' : 'border-[#E2E8F0] dark:border-[#1E293B]'"
+        :class="hub.unit ? 'border-[#01ADEF]/40 bg-[#01ADEF]/5' : 'border-[#E2E8F0] '"
       >
         <span class="text-[11px] font-medium uppercase tracking-wide text-slate-400">{{ hub.id }}</span>
 
@@ -41,7 +41,7 @@ const hubs: ChargerHub[] = [
         </svg>
         <svg
           v-else
-          class="h-6 w-6 text-slate-300 dark:text-slate-600"
+          class="h-6 w-6 text-slate-300"
           fill="none"
           stroke="currentColor"
           stroke-width="1.5"
@@ -57,7 +57,7 @@ const hubs: ChargerHub[] = [
         >
           {{ hub.unit }} ({{ hub.battery }}%)
         </span>
-        <span v-else class="text-sm font-medium text-slate-300 dark:text-slate-600">
+        <span v-else class="text-sm font-medium text-slate-300">
           Vacant
         </span>
       </div>

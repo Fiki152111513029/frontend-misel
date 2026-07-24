@@ -115,8 +115,8 @@ function handleSort(patch: { sortBy: BoxTypeSortKey, sortOrder: 'asc' | 'desc' }
   <div class="animate-fade-in">
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-2xl font-extrabold text-[#0F1F52] dark:text-[#F8FAFC]">Box Types</h1>
-        <p class="font-medium mt-1 text-sm text-slate-500 dark:text-slate-400">
+        <h1 class="text-2xl font-extrabold text-[#0F1F52]">Box Types</h1>
+        <p class="font-medium mt-1 text-sm text-slate-500">
           Manage box type categories used across the warehouse
         </p>
       </div>

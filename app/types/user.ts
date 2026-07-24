@@ -16,13 +16,14 @@ export interface CreateUserInput {
   username: string
   email?: string
   password: string
-  fullName: string
+  fullName?: string
   roleId: string
   isActive?: boolean
   priority?: UserPriority
 }
 
 export interface UpdateUserInput {
+  username?: string
   email?: string
   password?: string
   fullName?: string

@@ -27,7 +27,7 @@ const checkboxId = computed(
         type="checkbox"
         :checked="modelValue"
         :disabled="disabled"
-        class="peer h-4 w-4 cursor-pointer appearance-none rounded border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#020617] transition-all checked:border-[#01ADEF] checked:bg-[#01ADEF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#01ADEF]/30 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+        class="peer h-4 w-4 cursor-pointer appearance-none rounded border border-[#E2E8F0] bg-white transition-all checked:border-[#01ADEF] checked:bg-[#01ADEF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#01ADEF]/30 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
         @change="emit('update:modelValue', ($event.target as HTMLInputElement).checked)"
       />
       <!-- Checkmark icon overlay -->
@@ -45,7 +45,7 @@ const checkboxId = computed(
     <label
       v-if="label"
       :for="checkboxId"
-      class="cursor-pointer select-none text-sm text-slate-600 dark:text-slate-400"
+      class="cursor-pointer select-none text-sm text-slate-600"
       :class="{ 'cursor-not-allowed opacity-50': disabled }"
     >
       {{ label }}

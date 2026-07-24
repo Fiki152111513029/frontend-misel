@@ -69,7 +69,7 @@ function validate(): boolean {
   errors.fullName = undefined
   errors.roleId = undefined
 
-  if (!isEditMode.value && !username.value.trim()) {
+  if (!username.value.trim()) {
     errors.username = 'Username is required'
   }
 
@@ -81,10 +81,6 @@ function validate(): boolean {
     errors.password = 'Password is required'
   } else if (password.value && password.value.length < 8) {
     errors.password = 'Password must be at least 8 characters'
-  }
-
-  if (!fullName.value.trim()) {
-    errors.fullName = 'Full name is required'
   }
 
   if (!roleId.value) {
@@ -112,7 +108,7 @@ function handleCancel() {
 }
 
 const selectClass =
-  'w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#020617] px-4 py-3 text-sm text-[#0F1F52] dark:text-[#F8FAFC] outline-none focus:border-[#01ADEF] focus:ring-2 focus:ring-[#01ADEF]/15'
+  'w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#0F1F52] outline-none focus:border-[#01ADEF] focus:ring-2 focus:ring-[#01ADEF]/15'
 </script>
 
 <template>
@@ -127,15 +123,11 @@ const selectClass =
         v-model="username"
         label="Username"
         required
-        :disabled="isEditMode"
         :error="errors.username"
       />
-      <p v-if="isEditMode" class="font-medium -mt-3 text-xs text-slate-400">
-        Username cannot be changed after creation.
-      </p>
 
       <UiBaseInput v-model="email" type="email" label="Email" :error="errors.email" />
-      <UiBaseInput v-model="fullName" label="Full Name" required :error="errors.fullName" />
+      <UiBaseInput v-model="fullName" label="Full Name" :error="errors.fullName" />
 
       <UiBaseInput
         v-model="password"
@@ -147,7 +139,7 @@ const selectClass =
       />
 
       <div class="space-y-1.5">
-        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+        <label class="block text-sm font-medium text-slate-700">
           Role
           <span class="ml-0.5 text-[#01ADEF]">*</span>
         </label>
@@ -156,13 +148,13 @@ const selectClass =
             {{ role.name }}
           </option>
         </select>
-        <p v-if="errors.roleId" class="font-medium text-xs text-red-500 dark:text-red-400">
+        <p v-if="errors.roleId" class="font-medium text-xs text-red-500">
           {{ errors.roleId }}
         </p>
       </div>
 
       <div class="space-y-1.5">
-        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+        <label class="block text-sm font-medium text-slate-700">
           Priority
         </label>
         <select v-model="priority" :class="selectClass">

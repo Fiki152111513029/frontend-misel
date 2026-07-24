@@ -26,15 +26,15 @@ const menuItems = [
 <template>
   <div ref="dropdownRef" class="relative">
     <button
-      class="flex items-center gap-2.5 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#1E293B] px-3 py-2 text-sm transition-all hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none"
+      class="flex items-center gap-2.5 rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm transition-all hover:bg-slate-50 focus:outline-none"
       @click="isOpen = !isOpen"
     >
       <div class="flex h-7 w-7 items-center justify-center rounded-full bg-[#01ADEF] text-xs font-bold text-white flex-shrink-0">
         {{ initials(user?.name ?? '') }}
       </div>
       <div class="hidden md:block text-left">
-        <p class="font-medium text-[#0F1F52] dark:text-[#F8FAFC] leading-none text-sm">{{ user?.name }}</p>
-        <p class="font-medium text-xs text-slate-500 dark:text-slate-400 mt-0.5">{{ user?.role }}</p>
+        <p class="font-medium text-[#0F1F52] leading-none text-sm">{{ user?.name }}</p>
+        <p class="font-medium text-xs text-slate-500 mt-0.5">{{ user?.role }}</p>
       </div>
       <svg class="h-3.5 w-3.5 text-slate-400 transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180': isOpen }" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
@@ -51,11 +51,11 @@ const menuItems = [
     >
       <div
         v-if="isOpen"
-        class="absolute right-0 top-full mt-2 w-56 origin-top-right rounded-2xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] py-1 shadow-xl dark:shadow-slate-950/60 z-50"
+        class="absolute right-0 top-full mt-2 w-56 origin-top-right rounded-2xl border border-[#E2E8F0] bg-white py-1 shadow-xl z-50"
       >
-        <div class="border-b border-[#E2E8F0] dark:border-[#1E293B] px-4 py-3">
-          <p class="font-semibold text-sm text-[#0F1F52] dark:text-[#F8FAFC]">{{ user?.name }}</p>
-          <p class="font-medium text-xs text-slate-500 dark:text-slate-400 mt-0.5">{{ user?.email || 'No email' }}</p>
+        <div class="border-b border-[#E2E8F0] px-4 py-3">
+          <p class="font-semibold text-sm text-[#0F1F52]">{{ user?.name }}</p>
+          <p class="font-medium text-xs text-slate-500 mt-0.5">{{ user?.email || 'No email' }}</p>
         </div>
 
         <div class="py-1">
@@ -63,7 +63,7 @@ const menuItems = [
             v-for="item in menuItems"
             :key="item.label"
             :to="item.path"
-            class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#01ADEF] dark:hover:text-[#01ADEF] transition-colors"
+            class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-[#01ADEF] transition-colors"
             @click="isOpen = false"
           >
             <component :is="item.icon" class="h-4 w-4 flex-shrink-0" />
@@ -71,9 +71,9 @@ const menuItems = [
           </NuxtLink>
         </div>
 
-        <div class="border-t border-[#E2E8F0] dark:border-[#1E293B] pt-1">
+        <div class="border-t border-[#E2E8F0] pt-1">
           <button
-            class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
             @click="logout(); isOpen = false"
           >
             <LogOut class="h-4 w-4 flex-shrink-0" />

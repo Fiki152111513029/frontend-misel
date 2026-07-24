@@ -74,9 +74,9 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
 
 <template>
   <UiBaseCard padding="none" class="flex flex-col">
-    <div class="border-b border-[#E2E8F0] dark:border-[#1E293B] px-6 py-4">
-      <p class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">{{ title }}</p>
-      <p v-if="subtitle" class="font-medium mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ subtitle }}</p>
+    <div class="border-b border-[#E2E8F0] px-6 py-4">
+      <p class="font-semibold text-[#0F1F52]">{{ title }}</p>
+      <p v-if="subtitle" class="font-medium mt-0.5 text-xs text-slate-500">{{ subtitle }}</p>
     </div>
     <div class="p-4">
       <ClientOnly>

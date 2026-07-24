@@ -119,8 +119,8 @@ function handleLimitChange(limit: number) {
   <div class="animate-fade-in">
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-2xl font-extrabold text-[#0F1F52] dark:text-[#F8FAFC]">Empty Pallet Location</h1>
-        <p class="font-medium mt-1 text-sm text-slate-500 dark:text-slate-400">View and manage all Empty Pallet Location</p>
+        <h1 class="text-2xl font-extrabold text-[#0F1F52]">Empty Pallet Location</h1>
+        <p class="font-medium mt-1 text-sm text-slate-500">View and manage all Empty Pallet Location</p>
       </div>
 
       <button

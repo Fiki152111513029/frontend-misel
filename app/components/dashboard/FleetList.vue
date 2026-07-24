@@ -18,20 +18,18 @@ const STATUS_DOT: Record<RobotUnit['status'], string> = {
 
 <template>
   <UiBaseCard padding="none">
-    <div class="border-b border-[#E2E8F0] px-4 py-3 dark:border-[#1E293B]">
-      <p class="text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Fleet Units</p>
+    <div class="border-b border-[#E2E8F0] px-4 py-3">
+      <p class="text-sm font-semibold text-[#0F1F52]">Fleet Units</p>
     </div>
-    <div class="divide-y divide-[#E2E8F0] dark:divide-[#1E293B]">
+    <div class="divide-y divide-[#E2E8F0]">
       <button
         v-for="robot in robots"
         :key="robot.id"
         type="button"
         class="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors"
-        :class="
-          robot.id === selectedId
-            ? 'bg-[#01ADEF]/10 text-[#01ADEF]'
-            : 'text-[#0F1F52] hover:bg-slate-50 dark:text-[#F8FAFC] dark:hover:bg-slate-800/60'
-        "
+        :class="robot.id === selectedId
+ ? 'bg-[#01ADEF]/10 text-[#01ADEF]'
+ : 'text-[#0F1F52] hover:bg-slate-50 '"
         @click="emit('select', robot.id)"
       >
         <span class="flex items-center gap-2">

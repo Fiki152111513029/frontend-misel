@@ -14,7 +14,7 @@ const boxes = [
 <template>
   <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
     <div>
-      <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
         Operational Status
       </p>
       <p class="mt-1 flex items-center gap-1.5 text-sm font-medium text-emerald-500">

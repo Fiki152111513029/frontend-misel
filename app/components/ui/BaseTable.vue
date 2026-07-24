@@ -15,13 +15,13 @@ withDefaults(defineProps<Props>(), { loading: false })
   <div class="w-full overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
-        <tr class="border-b border-[#E2E8F0] dark:border-[#1E293B]">
+        <tr class="border-b border-[#E2E8F0]">
           <slot name="header">
             <th
               v-for="col in columns"
               :key="col.key"
               :style="col.width ? `width: ${col.width}` : ''"
-              class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
+              class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
             >
               {{ col.label }}
             </th>

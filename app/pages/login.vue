@@ -28,19 +28,12 @@ async function handleLogin(credentials: { identifier: string; password: string; 
 </script>
 
 <template>
-  <div
-    class="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12 transition-colors duration-300"
-    :class="$colorMode.value === 'dark' ? 'bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950' : ''"
-  >
+  <div class="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
     <!-- Background image (fixed, unaffected by card size changes) -->
     <div
-      v-if="$colorMode.value !== 'dark'"
       class="pointer-events-none fixed inset-0 bg-cover bg-center"
       :style="`background-image: url(${bgHeroSrc})`"
     />
-
-    <!-- Theme toggle -->
-    <AuthThemeToggle />
 
     <!-- Login card (centered) -->
     <AuthLoginCard

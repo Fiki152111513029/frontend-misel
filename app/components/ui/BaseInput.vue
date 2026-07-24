@@ -38,7 +38,7 @@ const inputId = computed(
     <label
       v-if="label"
       :for="inputId"
-      class="block text-sm font-medium text-slate-700 dark:text-slate-300"
+      class="block text-sm font-medium text-slate-700"
     >
       {{ label }}
       <span v-if="required" class="ml-0.5 text-[#01ADEF]">*</span>
@@ -47,19 +47,19 @@ const inputId = computed(
     <div
       class="relative flex items-center rounded-xl border transition-all duration-200"
       :class="[
-        isFocused
-          ? 'border-[#01ADEF] ring-2 ring-[#01ADEF]/15 dark:ring-[#01ADEF]/20'
-          : error
-            ? 'border-red-400 dark:border-red-500 ring-2 ring-red-400/10'
-            : 'border-[#E2E8F0] dark:border-[#1E293B] hover:border-slate-300 dark:hover:border-slate-600',
-        'bg-white dark:bg-[#020617]',
-      ]"
+ isFocused
+ ? 'border-[#01ADEF] ring-2 ring-[#01ADEF]/15 '
+ : error
+ ? 'border-red-400 ring-2 ring-red-400/10'
+ : 'border-[#E2E8F0] hover:border-slate-300 ',
+ 'bg-white ',
+ ]"
     >
       <!-- Left icon -->
       <div
         v-if="icon"
         class="pointer-events-none absolute left-3.5 flex items-center transition-colors duration-200"
-        :class="isFocused ? 'text-[#01ADEF]' : 'text-slate-400 dark:text-slate-500'"
+        :class="isFocused ? 'text-[#01ADEF]' : 'text-slate-400 '"
       >
         <svg v-if="icon === 'email'" class="h-4.5 w-4.5 h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
@@ -81,7 +81,7 @@ const inputId = computed(
         :required="required"
         :aria-describedby="error ? `${inputId}-error` : undefined"
         :aria-invalid="!!error"
-        class="w-full rounded-xl bg-transparent py-3 text-sm text-[#0F1F52] dark:text-[#F8FAFC] placeholder-slate-400 dark:placeholder-slate-600 outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        class="w-full rounded-xl bg-transparent py-3 text-sm text-[#0F1F52] placeholder-slate-400 outline-none disabled:cursor-not-allowed disabled:opacity-50"
         :class="[
           icon ? 'pl-10' : 'pl-4',
           type === 'password' ? 'pr-11' : 'pr-4',
@@ -95,7 +95,7 @@ const inputId = computed(
       <button
         v-if="type === 'password'"
         type="button"
-        class="absolute right-3.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors focus:outline-none"
+        class="absolute right-3.5 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
         :aria-label="showPassword ? 'Hide password' : 'Show password'"
         @click="showPassword = !showPassword"
       >
@@ -112,7 +112,7 @@ const inputId = computed(
     <p v-if="error"
       :id="`${inputId}-error`"
       role="alert"
-      class="font-medium flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400"
+      class="font-medium flex items-center gap-1.5 text-xs text-red-500"
     >
       <svg class="h-3.5 w-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />

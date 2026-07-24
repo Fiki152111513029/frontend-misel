@@ -51,7 +51,7 @@ function toggleSort(key: PermissionSortKey) {
           v-for="col in sortableColumns"
           :key="col.key"
           :style="col.width ? `width: ${col.width}` : ''"
-          class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
+          class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
         >
           <button
             type="button"
@@ -64,7 +64,7 @@ function toggleSort(key: PermissionSortKey) {
             <ChevronDown v-else class="h-3.5 w-3.5 opacity-30" />
           </button>
         </th>
-        <th style="width: 120px" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        <th style="width: 120px" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
           Actions
         </th>
       </template>
@@ -78,13 +78,13 @@ function toggleSort(key: PermissionSortKey) {
         <tr
           v-for="item in items"
           :key="item.id"
-          class="border-b border-[#E2E8F0] dark:border-[#1E293B] last:border-0"
+          class="border-b border-[#E2E8F0] last:border-0"
         >
-          <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52]">
             {{ item.code }}
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">{{ item.name }}</td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">{{ item.name }}</td>
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.description || '—' }}
           </td>
           <td class="px-4 py-3">
@@ -92,7 +92,7 @@ function toggleSort(key: PermissionSortKey) {
               <button
                 v-if="hasPermission('permission.update')"
                 type="button"
-                class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#01ADEF] dark:hover:bg-slate-800/60 transition-colors"
+                class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#01ADEF] transition-colors"
                 aria-label="Edit"
                 @click="emit('edit', item)"
               >
@@ -101,7 +101,7 @@ function toggleSort(key: PermissionSortKey) {
               <button
                 v-if="hasPermission('permission.delete')"
                 type="button"
-                class="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/15 transition-colors"
+                class="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
                 aria-label="Delete"
                 @click="emit('delete', item)"
               >

@@ -3,7 +3,7 @@ const { isCollapsed } = useSidebar()
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-[#F8FAFC] dark:bg-[#020617] transition-colors duration-300">
+  <div class="flex min-h-screen bg-[#F8FAFC] transition-colors duration-300">
     <!-- Sidebar -->
     <LayoutAppSidebar />
 

@@ -51,11 +51,11 @@ const SPEC_LABELS: Record<string, string> = {
       <div class="flex items-center justify-between">
         <div>
           <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Serial ID</p>
-          <p class="font-mono text-sm text-[#0F1F52] dark:text-[#F8FAFC]">{{ robot.serialId }}</p>
+          <p class="font-mono text-sm text-[#0F1F52]">{{ robot.serialId }}</p>
         </div>
         <div class="text-right">
           <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Status</p>
-          <p class="flex items-center gap-1.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">
+          <p class="flex items-center gap-1.5 text-sm font-semibold text-[#0F1F52]">
             <span class="h-2 w-2 rounded-full" :class="STATUS_DOT[robot.status]" />
             {{ STATUS_LABEL[robot.status] }}
           </p>
@@ -63,14 +63,14 @@ const SPEC_LABELS: Record<string, string> = {
       </div>
 
       <div class="grid grid-cols-2 gap-3">
-        <div class="rounded-xl border border-[#E2E8F0] p-3 dark:border-[#1E293B]">
+        <div class="rounded-xl border border-[#E2E8F0] p-3">
           <p class="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
             <Package class="h-3 w-3" /> Payload
           </p>
-          <p class="mt-1 font-mono text-base font-bold text-[#0F1F52] dark:text-[#F8FAFC]">
+          <p class="mt-1 font-mono text-base font-bold text-[#0F1F52]">
             {{ robot.payload }} <span class="text-xs font-normal text-slate-400">/ {{ robot.payloadCapacity }}kg</span>
           </p>
-          <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+          <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
             <div
               class="h-full rounded-full bg-[#01ADEF]"
               :style="{ width: `${Math.min(100, (robot.payload / robot.payloadCapacity) * 100)}%` }"
@@ -78,14 +78,14 @@ const SPEC_LABELS: Record<string, string> = {
           </div>
         </div>
 
-        <div class="rounded-xl border border-[#E2E8F0] p-3 dark:border-[#1E293B]">
+        <div class="rounded-xl border border-[#E2E8F0] p-3">
           <p class="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
             <Gauge class="h-3 w-3" /> Battery
           </p>
-          <p class="mt-1 font-mono text-base font-bold text-[#0F1F52] dark:text-[#F8FAFC]">
+          <p class="mt-1 font-mono text-base font-bold text-[#0F1F52]">
             {{ robot.battery }}%
           </p>
-          <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+          <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
             <div
               class="h-full rounded-full"
               :class="robot.battery > 30 ? 'bg-emerald-500' : 'bg-red-500'"
@@ -95,10 +95,10 @@ const SPEC_LABELS: Record<string, string> = {
         </div>
       </div>
 
-      <div v-if="robot.mission" class="rounded-xl border border-[#E2E8F0] p-3 dark:border-[#1E293B]">
+      <div v-if="robot.mission" class="rounded-xl border border-[#E2E8F0] p-3">
         <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Current Mission</p>
-        <p class="mt-1 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">{{ robot.mission.name }}</p>
-        <p class="font-medium text-xs text-slate-500 dark:text-slate-400">{{ robot.mission.route }}</p>
+        <p class="mt-1 text-sm font-semibold text-[#0F1F52]">{{ robot.mission.name }}</p>
+        <p class="font-medium text-xs text-slate-500">{{ robot.mission.route }}</p>
         <div class="mt-2 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wide text-slate-400">
           <span>Progress</span>
           <span>{{ robot.mission.stepLabel }}</span>
@@ -108,24 +108,24 @@ const SPEC_LABELS: Record<string, string> = {
             v-for="step in robot.mission.totalSteps"
             :key="step"
             class="h-1.5 flex-1 rounded-full"
-            :class="step <= robot.mission.currentStep ? 'bg-[#01ADEF]' : 'bg-slate-100 dark:bg-slate-800'"
+            :class="step <= robot.mission.currentStep ? 'bg-[#01ADEF]' : 'bg-slate-100 '"
           />
         </div>
       </div>
-      <p v-else class="font-medium rounded-xl border border-dashed border-[#E2E8F0] p-3 text-center text-xs text-slate-400 dark:border-[#1E293B]">
+      <p v-else class="font-medium rounded-xl border border-dashed border-[#E2E8F0] p-3 text-center text-xs text-slate-400">
         No active mission
       </p>
 
       <div>
         <p class="text-xs font-semibold uppercase tracking-wide text-[#01ADEF]">Technical Specifications</p>
-        <dl class="mt-2 divide-y divide-[#E2E8F0] text-sm dark:divide-[#1E293B]">
+        <dl class="mt-2 divide-y divide-[#E2E8F0] text-sm">
           <div
             v-for="(value, key) in robot.specs"
             :key="key"
             class="flex items-center justify-between py-1.5"
           >
-            <dt class="text-slate-500 dark:text-slate-400">{{ SPEC_LABELS[key] }}</dt>
-            <dd class="font-mono text-[#0F1F52] dark:text-[#F8FAFC]">{{ value }}</dd>
+            <dt class="text-slate-500">{{ SPEC_LABELS[key] }}</dt>
+            <dd class="font-mono text-[#0F1F52]">{{ value }}</dd>
           </div>
         </dl>
       </div>

@@ -50,7 +50,7 @@ function formatDate(value: string) {
           v-for="col in columns"
           :key="col.key"
           :style="col.width ? `width: ${col.width}` : ''"
-          class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
+          class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
         >
           <button
             type="button"
@@ -73,18 +73,18 @@ function formatDate(value: string) {
         <tr
           v-for="item in items"
           :key="item.id"
-          class="border-b border-[#E2E8F0] dark:border-[#1E293B] last:border-0"
+          class="border-b border-[#E2E8F0] last:border-0"
         >
-          <td class="px-4 py-3 text-sm font-mono font-bold text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-mono font-bold text-[#0F1F52]">
             {{ item.taskId }}
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ taskActionLabel(item.taskAction) }}
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.robot?.name ?? 'Unassigned' }}
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.operator.fullName }}
           </td>
           <td class="px-4 py-3">
@@ -95,7 +95,7 @@ function formatDate(value: string) {
               {{ taskStatusLabel(item.status) }}
             </span>
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ formatDate(item.createdAt) }}
           </td>
         </tr>

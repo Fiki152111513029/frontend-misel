@@ -10,7 +10,7 @@ withDefaults(defineProps<Props>(), {
 
 <template>
   <div
-    class="rounded-3xl bg-white dark:bg-slate-900 shadow-xl dark:shadow-slate-950/60 ring-1 ring-slate-100 dark:ring-slate-800 transition-colors duration-300"
+    class="rounded-3xl bg-white shadow-xl ring-1 ring-slate-100 transition-colors duration-300"
     :class="[
       padding === 'sm' ? 'p-5' : padding === 'lg' ? 'p-10' : 'p-8 md:p-10',
     ]"

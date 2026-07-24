@@ -103,8 +103,8 @@ async function handleDeleteConfirm() {
   <div class="animate-fade-in">
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-2xl font-extrabold text-[#0F1F52] dark:text-[#F8FAFC]">Permissions</h1>
-        <p class="font-medium mt-1 text-sm text-slate-500 dark:text-slate-400">Manage fine-grained access control codes</p>
+        <h1 class="text-2xl font-extrabold text-[#0F1F52]">Permissions</h1>
+        <p class="font-medium mt-1 text-sm text-slate-500">Manage fine-grained access control codes</p>
       </div>
 
       <button
@@ -125,7 +125,7 @@ async function handleDeleteConfirm() {
 
       <button
         type="button"
-        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-4 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
+        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-medium text-[#0F1F52] transition-colors hover:border-slate-300"
         @click="fetchPermissions()"
       >
         <RefreshCw class="h-4 w-4 text-slate-400" />

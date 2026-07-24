@@ -75,7 +75,7 @@ function handleCancel() {
     <div class="max-h-96 space-y-5 overflow-y-auto pr-1">
       <div v-for="(perms, resource) in groupedPermissions" :key="resource">
         <div class="mb-2 flex items-center justify-between">
-          <h4 class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <h4 class="text-xs font-semibold uppercase tracking-wide text-slate-500">
             {{ resource }}
           </h4>
           <div class="flex items-center gap-2 text-xs">
@@ -86,10 +86,10 @@ function handleCancel() {
             >
               Select all
             </button>
-            <span class="text-slate-300 dark:text-slate-600">|</span>
+            <span class="text-slate-300">|</span>
             <button
               type="button"
-              class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              class="text-slate-400 hover:text-slate-600"
               @click="toggleGroup(resource, false)"
             >
               Clear

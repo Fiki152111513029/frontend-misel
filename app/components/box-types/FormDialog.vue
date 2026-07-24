@@ -105,7 +105,7 @@ function handleCancel() {
 }
 
 const selectClass =
-  'w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#020617] px-4 py-3 text-sm text-[#0F1F52] dark:text-[#F8FAFC] outline-none focus:border-[#01ADEF] focus:ring-2 focus:ring-[#01ADEF]/15'
+  'w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#0F1F52] outline-none focus:border-[#01ADEF] focus:ring-2 focus:ring-[#01ADEF]/15'
 </script>
 
 <template>
@@ -119,7 +119,7 @@ const selectClass =
       <UiBaseInput v-model="name" label="Name" required :error="errors.name" />
       <UiBaseInput v-model="orderingText" label="Ordering" required :error="errors.ordering" />
       <div class="space-y-1.5">
-        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+        <label class="block text-sm font-medium text-slate-700">
           Color Code
           <span class="ml-0.5 text-[#01ADEF]">*</span>
         </label>
@@ -128,13 +128,13 @@ const selectClass =
             v-model="colorCode"
             type="color"
             aria-label="Pick color"
-            class="h-11 w-11 flex-shrink-0 cursor-pointer rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#020617] p-1"
+            class="h-11 w-11 flex-shrink-0 cursor-pointer rounded-xl border border-[#E2E8F0] bg-white p-1"
           />
           <UiBaseInput v-model="colorCode" placeholder="#01ADEF" class="flex-1" />
         </div>
         <p v-if="errors.colorCode"
           role="alert"
-          class="font-medium flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400"
+          class="font-medium flex items-center gap-1.5 text-xs text-red-500"
         >
           {{ errors.colorCode }}
         </p>
@@ -149,7 +149,7 @@ const selectClass =
       />
 
       <div class="space-y-1.5">
-        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+        <label class="block text-sm font-medium text-slate-700">
           From System
           <span class="ml-0.5 text-[#01ADEF]">*</span>
         </label>

@@ -117,12 +117,12 @@ function handleCancel() {
       />
 
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+        <label class="mb-1.5 block text-sm font-medium text-[#0F1F52]">
           Model Code Process
         </label>
         <select
           v-model="modelCodeProcessId"
-          class="w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+          class="w-full rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
         >
           <option value="">None</option>
           <option v-for="process in activeModelCodeProcesses" :key="process.id" :value="process.id">

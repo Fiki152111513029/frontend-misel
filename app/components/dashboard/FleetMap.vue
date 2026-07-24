@@ -4,10 +4,10 @@ defineProps<{ label: string }>()
 
 <template>
   <div
-    class="relative h-full min-h-[280px] overflow-hidden rounded-xl border border-[#E2E8F0] dark:border-[#1E293B]"
+    class="relative h-full min-h-[280px] overflow-hidden rounded-xl border border-[#E2E8F0]"
     style="background-image: linear-gradient(rgba(148,163,184,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.12) 1px, transparent 1px); background-size: 28px 28px;"
   >
-    <div class="absolute inset-0 bg-white/40 dark:bg-[#020617]/60" />
+    <div class="absolute inset-0 bg-white/40" />
 
     <!-- animated path -->
     <svg class="absolute inset-0 h-full w-full" preserveAspectRatio="none">
@@ -41,7 +41,7 @@ defineProps<{ label: string }>()
     </div>
 
     <p
-      class="absolute bottom-3 right-3 rounded-md bg-white/80 px-2 py-1 text-[10px] font-medium text-slate-500 dark:bg-black/40 dark:text-slate-400"
+      class="absolute bottom-3 right-3 rounded-md bg-white/80 px-2 py-1 text-[10px] font-medium text-slate-500"
     >
       Live tracking preview — sample data
     </p>

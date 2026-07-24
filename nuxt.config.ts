@@ -5,11 +5,13 @@ export default defineNuxtConfig({
 
   modules: [
     ['@nuxtjs/tailwindcss', { cssPath: '~/assets/styles/main.css' }],
+    // Dark mode removed — always light, ignoring OS preference and any
+    // previously stored toggle value (storageKey: false disables persistence).
     ['@nuxtjs/color-mode', {
       classSuffix: '',
-      preference: 'system',
+      preference: 'light',
       fallback: 'light',
-      storageKey: 'misel-color-mode',
+      storageKey: false,
     }],
     '@pinia/nuxt',
   ],
@@ -24,7 +26,7 @@ export default defineNuxtConfig({
   // (e.g. PORT=3001) or override NUXT_PUBLIC_API_BASE to match.
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://192.168.3.67:3001',
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:3001',
     },
   },
 

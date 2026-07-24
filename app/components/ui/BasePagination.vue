@@ -32,14 +32,14 @@ function onLimitChange(event: Event) {
 
 <template>
   <div class="flex flex-col items-center justify-between gap-3 sm:flex-row">
-    <p class="font-medium text-sm text-slate-500 dark:text-slate-400">
+    <p class="font-medium text-sm text-slate-500">
       Showing {{ rangeStart }} to {{ rangeEnd }} of {{ total }} {{ itemLabel }}
     </p>
 
     <div class="flex items-center gap-2">
       <select
         :value="limit"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3 py-2 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] outline-none"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-medium text-[#0F1F52] outline-none"
         @change="onLimitChange"
       >
         <option v-for="size in pageSizeOptions" :key="size" :value="size">{{ size }} per page</option>
@@ -48,7 +48,7 @@ function onLimitChange(event: Event) {
       <div class="flex items-center gap-1">
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] dark:border-[#1E293B] text-slate-400 transition-colors hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
+          class="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] text-slate-400 transition-colors hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
           :disabled="page === 1"
           @click="goToPage(page - 1)"
         >
@@ -60,15 +60,15 @@ function onLimitChange(event: Event) {
           type="button"
           class="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium transition-colors"
           :class="p === page
-            ? 'bg-[#2F6FED] text-white'
-            : 'border border-[#E2E8F0] dark:border-[#1E293B] text-slate-500 dark:text-slate-400 hover:border-slate-300'"
+ ? 'bg-[#2F6FED] text-white'
+ : 'border border-[#E2E8F0] text-slate-500 hover:border-slate-300'"
           @click="goToPage(p)"
         >
           {{ p }}
         </button>
         <button
           type="button"
-          class="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] dark:border-[#1E293B] text-slate-400 transition-colors hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
+          class="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] text-slate-400 transition-colors hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
           :disabled="page === totalPages"
           @click="goToPage(page + 1)"
         >

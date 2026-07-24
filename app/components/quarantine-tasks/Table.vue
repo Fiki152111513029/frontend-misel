@@ -64,7 +64,7 @@ function formatDate(value: string) {
           v-for="col in sortableColumns"
           :key="col.key"
           :style="col.width ? `width: ${col.width}` : ''"
-          class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
+          class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
         >
           <button
             type="button"
@@ -77,7 +77,7 @@ function formatDate(value: string) {
             <ChevronDown v-else class="h-3.5 w-3.5 opacity-30" />
           </button>
         </th>
-        <th style="width: 80px" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        <th style="width: 80px" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
           Action
         </th>
       </template>
@@ -91,27 +91,27 @@ function formatDate(value: string) {
         <tr
           v-for="item in items"
           :key="item.id"
-          class="border-b border-[#E2E8F0] dark:border-[#1E293B] last:border-0"
+          class="border-b border-[#E2E8F0] last:border-0"
         >
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ formatDate(item.createdAt) }}
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.productionLine.quarantineLine.name }}
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.quarantineArea?.name ?? '—' }}
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.productionLine.name }}
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.productionLineArea?.name ?? '—' }}
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.boxType.name }}
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.operator.fullName }}
           </td>
           <td class="px-4 py-3">
@@ -125,7 +125,7 @@ function formatDate(value: string) {
           <td class="px-4 py-3">
             <button
               type="button"
-              class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#01ADEF] dark:hover:bg-slate-800/60 transition-colors"
+              class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#01ADEF] transition-colors"
               aria-label="View"
               @click="emit('view', item)"
             >

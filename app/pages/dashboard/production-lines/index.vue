@@ -136,8 +136,8 @@ function handleLimitChange(limit: number) {
   <div class="animate-fade-in">
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-2xl font-extrabold text-[#0F1F52] dark:text-[#F8FAFC]">Production Lines</h1>
-        <p class="font-medium mt-1 text-sm text-slate-500 dark:text-slate-400">View and manage all Production Lines</p>
+        <h1 class="text-2xl font-extrabold text-[#0F1F52]">Production Lines</h1>
+        <p class="font-medium mt-1 text-sm text-slate-500">View and manage all Production Lines</p>
       </div>
 
       <button
@@ -154,7 +154,7 @@ function handleLimitChange(limit: number) {
     <div class="mb-4 flex flex-wrap items-center gap-3">
       <select
         v-model="quarantineLineFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option value="All">All Quarantine Lines</option>
         <option v-for="line in quarantineLines" :key="line.id" :value="line.id">{{ line.name }}</option>
@@ -162,7 +162,7 @@ function handleLimitChange(limit: number) {
 
       <select
         v-model="operatorFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option value="All">All Operators</option>
         <option v-for="operator in usersStore.items" :key="operator.id" :value="operator.id">{{ operator.username }}</option>
@@ -170,7 +170,7 @@ function handleLimitChange(limit: number) {
 
       <select
         v-model="statusFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option value="All">All Status</option>
         <option value="Active">Active</option>
@@ -179,7 +179,7 @@ function handleLimitChange(limit: number) {
 
       <button
         type="button"
-        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-4 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
+        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-medium text-[#0F1F52] transition-colors hover:border-slate-300"
         @click="fetchProductionLines()"
       >
         <RefreshCw class="h-4 w-4 text-slate-400" />

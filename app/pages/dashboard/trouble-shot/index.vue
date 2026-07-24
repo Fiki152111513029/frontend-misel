@@ -116,8 +116,8 @@ async function handleCancelConfirm() {
 <template>
   <div class="animate-fade-in">
     <div class="mb-6">
-      <h1 class="text-2xl font-extrabold text-[#0F1F52] dark:text-[#F8FAFC]">Trouble Shot</h1>
-      <p class="font-medium mt-1 text-sm text-slate-500 dark:text-slate-400">
+      <h1 class="text-2xl font-extrabold text-[#0F1F52]">Trouble Shot</h1>
+      <p class="font-medium mt-1 text-sm text-slate-500">
         Tasks currently running or waiting — cancel a task if it's stuck
       </p>
     </div>
@@ -129,13 +129,13 @@ async function handleCancelConfirm() {
           v-model="search"
           type="text"
           placeholder="Search task ID, robot, operator..."
-          class="w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] py-2.5 pl-10 pr-4 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] placeholder-slate-400 outline-none transition-colors focus:border-[#01ADEF]"
+          class="w-full rounded-xl border border-[#E2E8F0] bg-white py-2.5 pl-10 pr-4 text-sm font-semibold text-[#0F1F52] placeholder-slate-400 outline-none transition-colors focus:border-[#01ADEF]"
         />
       </div>
 
       <select
         v-model="statusFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option value="All">All Status</option>
         <option value="PENDING">Waiting</option>
@@ -144,7 +144,7 @@ async function handleCancelConfirm() {
 
       <button
         type="button"
-        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-4 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
+        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-medium text-[#0F1F52] transition-colors hover:border-slate-300"
         @click="refresh"
       >
         <RefreshCw class="h-4 w-4 text-slate-400" />
@@ -174,7 +174,7 @@ async function handleCancelConfirm() {
     />
 
     <UiBaseModal v-model="showCancelDialog" title="Cancel Task" size="sm">
-      <p class="font-medium text-sm text-slate-600 dark:text-slate-300">
+      <p class="font-medium text-sm text-slate-600">
         Are you sure you want to cancel <strong>{{ cancellingTask?.taskId }}</strong>? This marks the task as
         failed and cannot be undone.
       </p>

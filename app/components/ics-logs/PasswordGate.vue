@@ -39,8 +39,8 @@ async function handleSubmit() {
         <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#01ADEF]/10">
           <Lock class="h-6 w-6 text-[#01ADEF]" />
         </div>
-        <h2 class="mt-4 text-lg font-bold text-[#0F1F52] dark:text-[#F8FAFC]">{{ title }}</h2>
-        <p class="font-medium mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+        <h2 class="mt-4 text-lg font-bold text-[#0F1F52]">{{ title }}</h2>
+        <p class="font-medium mt-1.5 text-sm text-slate-500">
           This page requires an additional password for developer troubleshooting purposes.
         </p>
       </div>

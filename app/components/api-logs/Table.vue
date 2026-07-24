@@ -29,17 +29,17 @@ const columns = [
 const sortableKeys: ApiLogSortBy[] = ['createdAt', 'method', 'endpoint', 'statusCode', 'durationMs']
 
 const METHOD_STYLE: Record<HttpMethod, string> = {
-  GET: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400',
+  GET: 'bg-emerald-50 text-emerald-600',
   POST: 'bg-[#01ADEF]/10 text-[#01ADEF]',
-  PUT: 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400',
-  PATCH: 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400',
-  DELETE: 'bg-red-50 text-red-500 dark:bg-red-900/20 dark:text-red-400',
+  PUT: 'bg-amber-50 text-amber-600',
+  PATCH: 'bg-purple-50 text-purple-600',
+  DELETE: 'bg-red-50 text-red-500',
 }
 
 function statusStyle(statusCode: number) {
-  if (statusCode >= 500) return 'bg-red-50 text-red-500 dark:bg-red-900/20 dark:text-red-400'
-  if (statusCode >= 400) return 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400'
-  return 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'
+  if (statusCode >= 500) return 'bg-red-50 text-red-500'
+  if (statusCode >= 400) return 'bg-amber-50 text-amber-600'
+  return 'bg-emerald-50 text-emerald-600'
 }
 
 const activeSort = ref<{ key: ApiLogSortBy, order: ApiLogSortOrder }>({
@@ -66,7 +66,7 @@ function formatDate(value: string) {
           v-for="col in columns"
           :key="col.key"
           :style="col.width ? `width: ${col.width}` : ''"
-          class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
+          class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
         >
           <button
             v-if="sortableKeys.includes(col.key as ApiLogSortBy)"
@@ -85,8 +85,8 @@ function formatDate(value: string) {
 
       <tr v-if="!loading && items.length === 0">
         <td :colspan="columns.length" class="py-16 text-center">
-          <p class="text-lg font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">No API logs found</p>
-          <p class="font-medium mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+          <p class="text-lg font-semibold text-[#0F1F52]">No API logs found</p>
+          <p class="font-medium mt-1.5 text-sm text-slate-500">
             No records match the selected time range.
           </p>
         </td>
@@ -95,9 +95,9 @@ function formatDate(value: string) {
         <tr
           v-for="item in items"
           :key="item.id"
-          class="border-b border-[#E2E8F0] dark:border-[#1E293B] last:border-0"
+          class="border-b border-[#E2E8F0] last:border-0"
         >
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ formatDate(item.createdAt) }}
           </td>
           <td class="px-4 py-3">
@@ -105,7 +105,7 @@ function formatDate(value: string) {
               {{ item.method }}
             </span>
           </td>
-          <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52]">
             {{ item.endpoint }}
           </td>
           <td class="px-4 py-3">
@@ -113,7 +113,7 @@ function formatDate(value: string) {
               {{ item.statusCode }}
             </span>
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.durationMs }} ms
           </td>
           <td class="px-4 py-3">

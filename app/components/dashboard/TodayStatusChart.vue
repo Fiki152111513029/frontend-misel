@@ -53,7 +53,7 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
   <UiBaseCard padding="md">
     <div class="flex items-start justify-between">
       <div>
-        <p class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Performance</p>
+        <p class="font-semibold text-[#0F1F52]">Performance</p>
         <p class="font-medium mt-0.5 text-xs text-slate-400">Today</p>
       </div>
       <p class="text-xs font-medium text-slate-400">TOTAL : {{ total }}</p>
@@ -77,9 +77,9 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
         class="flex items-center gap-2 text-xs"
       >
         <span class="h-2.5 w-2.5 flex-shrink-0 rounded-sm" :style="{ backgroundColor: status.color }" />
-        <span class="text-slate-500 dark:text-slate-400">{{ status.label }}</span>
+        <span class="text-slate-500">{{ status.label }}</span>
         <span class="ml-auto text-slate-400">{{ percentOf(status.value) }}%</span>
-        <span class="w-5 text-right font-medium text-[#0F1F52] dark:text-[#F8FAFC]">{{ status.value }}</span>
+        <span class="w-5 text-right font-medium text-[#0F1F52]">{{ status.value }}</span>
       </div>
     </div>
   </UiBaseCard>

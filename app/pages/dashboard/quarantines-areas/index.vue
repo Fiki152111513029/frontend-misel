@@ -124,8 +124,8 @@ function handleLimitChange(limit: number) {
   <div class="animate-fade-in">
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-2xl font-extrabold text-[#0F1F52] dark:text-[#F8FAFC]">Quarantines Areas</h1>
-        <p class="font-medium mt-1 text-sm text-slate-500 dark:text-slate-400">View and manage all Quarantines Areas</p>
+        <h1 class="text-2xl font-extrabold text-[#0F1F52]">Quarantines Areas</h1>
+        <p class="font-medium mt-1 text-sm text-slate-500">View and manage all Quarantines Areas</p>
       </div>
 
       <button
@@ -142,7 +142,7 @@ function handleLimitChange(limit: number) {
     <div class="mb-4 flex flex-wrap items-center gap-3">
       <select
         v-model="quarantineLineFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option value="All">All Quarantine Lines</option>
         <option v-for="line in quarantineLines" :key="line.id" :value="line.id">{{ line.name }}</option>

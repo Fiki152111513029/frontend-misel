@@ -117,17 +117,17 @@ function viewQueue() {
   <div class="animate-fade-in space-y-4">
     <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-2xl font-extrabold text-[#0F1F52] dark:text-[#F8FAFC]">Mainline</h1>
-        <p class="font-medium mt-1 text-sm text-slate-500 dark:text-slate-400">
+        <h1 class="text-2xl font-extrabold text-[#0F1F52]">Mainline</h1>
+        <p class="font-medium mt-1 text-sm text-slate-500">
           Warehouse line control and task queue
         </p>
       </div>
 
-      <div class="rounded-2xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-4 py-2.5 shadow-sm">
+      <div class="rounded-2xl border border-[#E2E8F0] bg-white px-4 py-2.5 shadow-sm">
         <div class="flex items-center gap-2 text-sm">
           <Wifi class="h-4 w-4 text-slate-400" />
-          <span class="font-medium text-slate-500 dark:text-slate-400">System Status</span>
-          <span class="rounded-full bg-red-50 dark:bg-red-500/10 px-2 py-0.5 text-xs font-semibold text-red-500">
+          <span class="font-medium text-slate-500">System Status</span>
+          <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-500">
             Offline
           </span>
         </div>
@@ -142,7 +142,7 @@ function viewQueue() {
       <UiBaseCard class="lg:col-span-2">
         <div class="mb-4 flex items-center gap-2">
           <LayoutGrid class="h-4 w-4 text-[#01ADEF]" />
-          <p class="text-xs font-bold uppercase tracking-wide text-[#0F1F52] dark:text-[#F8FAFC]">
+          <p class="text-xs font-bold uppercase tracking-wide text-[#0F1F52]">
             Line Areas
           </p>
         </div>
@@ -157,11 +157,9 @@ function viewQueue() {
             :key="area.id"
             type="button"
             class="group relative flex items-center gap-4 overflow-hidden rounded-2xl border px-4 py-4 text-left shadow-sm transition-all hover:shadow-md"
-            :class="
-              workingAreaId === area.id
-                ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-900/10'
-                : 'border-blue-200 bg-blue-50/60 hover:border-[#01ADEF]/40 dark:border-[#1E293B] dark:bg-[#0F172A]'
-            "
+            :class="workingAreaId === area.id
+ ? 'border-emerald-200 bg-emerald-50/60 '
+ : 'border-blue-200 bg-blue-50/60 hover:border-[#01ADEF]/40 '"
             @click="setWorkingArea(area.id)"
           >
             <Building2
@@ -180,7 +178,7 @@ function viewQueue() {
               <LayoutGrid class="h-6 w-6" />
             </div>
             <div class="relative">
-              <p class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">{{ area.name }}</p>
+              <p class="font-semibold text-[#0F1F52]">{{ area.name }}</p>
               <p class="font-medium text-xs text-slate-400">{{ area.productionLine.name }}</p>
               <span
                 class="mt-1.5 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
@@ -215,12 +213,12 @@ function viewQueue() {
             <p class="text-xs font-bold uppercase tracking-wide text-red-500">Quarantine</p>
           </div>
           <ChevronRight
-            class="h-4 w-4 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-red-400 dark:text-slate-600"
+            class="h-4 w-4 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-red-400"
           />
         </div>
 
         <template v-if="workingLine">
-          <p class="relative font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">
+          <p class="relative font-semibold text-[#0F1F52]">
             {{ workingLine.quarantineLine.name }}
           </p>
           <p class="font-medium relative mt-1 text-xs text-slate-400">
@@ -250,15 +248,15 @@ function viewQueue() {
       </div>
       <div v-if="lastReleasedTask" class="grid flex-1 grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
         <p class="font-semibold uppercase tracking-wide text-[#01ADEF]">Current Queue</p>
-        <p class="font-medium text-slate-500 dark:text-slate-400">
+        <p class="font-medium text-slate-500">
           Task ID :
-          <span class="font-medium text-[#0F1F52] dark:text-[#F8FAFC]">{{ lastReleasedTask.taskId }}</span>
+          <span class="font-medium text-[#0F1F52]">{{ lastReleasedTask.taskId }}</span>
         </p>
-        <p class="font-medium text-slate-500 dark:text-slate-400">
+        <p class="font-medium text-slate-500">
           Status : <span class="font-semibold text-[#01ADEF]">{{ lastReleasedTask.status }}</span>
         </p>
       </div>
-      <p v-else class="font-medium flex-1 text-sm text-slate-500 dark:text-slate-400">
+      <p v-else class="font-medium flex-1 text-sm text-slate-500">
         No task released yet — pick a Line Area, Box Type, and Function below, then Release Task.
       </p>
     </div>
@@ -267,7 +265,7 @@ function viewQueue() {
     <UiBaseCard>
       <div class="mb-4 flex items-center gap-2">
         <Sparkles class="h-4 w-4 text-[#01ADEF]" />
-        <p class="text-xs font-bold uppercase tracking-wide text-[#0F1F52] dark:text-[#F8FAFC]">
+        <p class="text-xs font-bold uppercase tracking-wide text-[#0F1F52]">
           Select Action
         </p>
       </div>
@@ -282,7 +280,7 @@ function viewQueue() {
               ? { borderColor: selectedBoxType.colorCode, backgroundColor: `${selectedBoxType.colorCode}14` }
               : undefined
           "
-          :class="!selectedBoxType && 'border-[#E2E8F0] bg-white hover:border-[#01ADEF]/40 dark:border-[#1E293B] dark:bg-[#0F172A]'"
+          :class="!selectedBoxType && 'border-[#E2E8F0] bg-white hover:border-[#01ADEF]/40 '"
           @click="showBoxTypeModal = true"
         >
           <div
@@ -292,7 +290,7 @@ function viewQueue() {
             <Package class="h-5 w-5" />
           </div>
           <div class="min-w-0 flex-1">
-            <p class="truncate font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">
+            <p class="truncate font-semibold text-[#0F1F52]">
               {{ selectedBoxType?.name ?? 'Select Box Type' }}
             </p>
             <p class="font-medium text-xs text-slate-400">Box type</p>
@@ -303,25 +301,21 @@ function viewQueue() {
         <button
           type="button"
           class="flex items-center gap-3 rounded-2xl border px-4 py-4 text-left shadow-sm transition-all hover:shadow-md"
-          :class="
-            taskAction === 'AMBIL_FG'
-              ? 'border-emerald-500 bg-gradient-to-br from-emerald-50 to-transparent dark:from-emerald-900/15'
-              : 'border-[#E2E8F0] bg-white hover:border-[#01ADEF]/40 dark:border-[#1E293B] dark:bg-[#0F172A]'
-          "
+          :class="taskAction === 'AMBIL_FG'
+ ? 'border-emerald-500 bg-gradient-to-br from-emerald-50 to-transparent '
+ : 'border-[#E2E8F0] bg-white hover:border-[#01ADEF]/40 '"
           @click="taskAction = 'AMBIL_FG'"
         >
           <div
             class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-            :class="
-              taskAction === 'AMBIL_FG'
-                ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white'
-                : 'bg-slate-100 text-slate-400 dark:bg-slate-800'
-            "
+            :class="taskAction === 'AMBIL_FG'
+ ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white'
+ : 'bg-slate-100 text-slate-400 '"
           >
             <Truck class="h-5 w-5" />
           </div>
           <div>
-            <p class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Ambil FG</p>
+            <p class="font-semibold text-[#0F1F52]">Ambil FG</p>
             <p class="font-medium text-xs text-slate-400">Function</p>
           </div>
         </button>
@@ -330,25 +324,21 @@ function viewQueue() {
         <button
           type="button"
           class="flex items-center gap-3 rounded-2xl border px-4 py-4 text-left shadow-sm transition-all hover:shadow-md"
-          :class="
-            taskAction === 'NOT_STANDARD'
-              ? 'border-red-500 bg-gradient-to-br from-red-50 to-transparent dark:from-red-900/15'
-              : 'border-[#E2E8F0] bg-white hover:border-[#01ADEF]/40 dark:border-[#1E293B] dark:bg-[#0F172A]'
-          "
+          :class="taskAction === 'NOT_STANDARD'
+ ? 'border-red-500 bg-gradient-to-br from-red-50 to-transparent '
+ : 'border-[#E2E8F0] bg-white hover:border-[#01ADEF]/40 '"
           @click="taskAction = 'NOT_STANDARD'"
         >
           <div
             class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-            :class="
-              taskAction === 'NOT_STANDARD'
-                ? 'bg-gradient-to-br from-red-400 to-red-600 text-white'
-                : 'bg-slate-100 text-slate-400 dark:bg-slate-800'
-            "
+            :class="taskAction === 'NOT_STANDARD'
+ ? 'bg-gradient-to-br from-red-400 to-red-600 text-white'
+ : 'bg-slate-100 text-slate-400 '"
           >
             <AlertTriangle class="h-5 w-5" />
           </div>
           <div>
-            <p class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Not Standard</p>
+            <p class="font-semibold text-[#0F1F52]">Not Standard</p>
             <p class="font-medium text-xs text-slate-400">Function</p>
           </div>
         </button>
@@ -380,10 +370,10 @@ function viewQueue() {
 
     <!-- Connection status -->
     <div class="flex justify-center pt-1">
-      <div class="inline-flex items-center gap-2 rounded-full border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3 py-1.5 text-xs text-slate-400 shadow-sm">
+      <div class="inline-flex items-center gap-2 rounded-full border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs text-slate-400 shadow-sm">
         <Signal class="h-3.5 w-3.5 text-emerald-500" />
         42 ms
-        <RefreshCw class="h-3.5 w-3.5 text-slate-300 dark:text-slate-600" />
+        <RefreshCw class="h-3.5 w-3.5 text-slate-300" />
       </div>
     </div>
 
@@ -405,7 +395,7 @@ function viewQueue() {
           @click="chooseBoxType(box.id)"
         >
           <span class="h-3 w-3 shrink-0 rounded-full" :style="{ backgroundColor: box.colorCode }" />
-          <span class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">{{ box.name }}</span>
+          <span class="font-semibold text-[#0F1F52]">{{ box.name }}</span>
         </button>
       </div>
     </UiBaseModal>

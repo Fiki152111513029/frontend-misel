@@ -22,9 +22,9 @@ const summary = computed(() => ({
 }))
 
 const statusStyles: Record<FleetRow['status'], string> = {
-  Normal: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400',
-  Warning: 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400',
-  Error: 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400',
+  Normal: 'bg-emerald-50 text-emerald-600',
+  Warning: 'bg-amber-50 text-amber-600',
+  Error: 'bg-red-50 text-red-600',
 }
 
 function batteryColor(battery: number) {
@@ -36,14 +36,14 @@ function batteryColor(battery: number) {
 
 <template>
   <UiBaseCard padding="none">
-    <div class="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#1E293B] px-5 py-4">
+    <div class="flex items-center justify-between border-b border-[#E2E8F0] px-5 py-4">
       <div class="flex items-center gap-2">
         <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
         </svg>
-        <p class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">AMR Fleet Real-time Status</p>
+        <p class="font-semibold text-[#0F1F52]">AMR Fleet Real-time Status</p>
       </div>
-      <div class="flex items-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
+      <div class="flex items-center gap-4 text-xs font-medium text-slate-500">
         <span class="flex items-center gap-1.5">
           <span class="h-2 w-2 rounded-full bg-emerald-500" /> {{ summary.normal }} Normal
         </span>
@@ -68,9 +68,9 @@ function batteryColor(battery: number) {
             <th class="px-5 py-3" />
           </tr>
         </thead>
-        <tbody class="divide-y divide-[#E2E8F0] dark:divide-[#1E293B]">
+        <tbody class="divide-y divide-[#E2E8F0]">
           <tr v-for="row in rows" :key="row.unitId">
-            <td class="whitespace-nowrap px-5 py-3.5 font-bold text-[#0F1F52] dark:text-[#F8FAFC]">
+            <td class="whitespace-nowrap px-5 py-3.5 font-bold text-[#0F1F52]">
               {{ row.unitId }}
             </td>
             <td class="whitespace-nowrap px-5 py-3.5">
@@ -78,16 +78,16 @@ function batteryColor(battery: number) {
                 {{ row.status }}
               </span>
             </td>
-            <td class="whitespace-nowrap px-5 py-3.5 font-medium" :class="row.status === 'Error' ? 'text-red-500' : 'text-[#0F1F52] dark:text-[#F8FAFC]'">
+            <td class="whitespace-nowrap px-5 py-3.5 font-medium" :class="row.status === 'Error' ? 'text-red-500' : 'text-[#0F1F52] '">
               {{ row.mission }}
             </td>
-            <td class="whitespace-nowrap px-5 py-3.5 font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+            <td class="whitespace-nowrap px-5 py-3.5 font-medium text-[#0F1F52]">
               {{ row.load }}
             </td>
             <td class="whitespace-nowrap px-5 py-3.5">
               <div class="flex items-center gap-2">
-                <span class="w-9 text-xs font-medium text-[#0F1F52] dark:text-[#F8FAFC]">{{ row.battery }}%</span>
-                <div class="h-1.5 w-20 overflow-hidden rounded-full bg-slate-100 dark:bg-[#1E293B]">
+                <span class="w-9 text-xs font-medium text-[#0F1F52]">{{ row.battery }}%</span>
+                <div class="h-1.5 w-20 overflow-hidden rounded-full bg-slate-100">
                   <div
                     class="h-full rounded-full"
                     :class="batteryColor(row.battery)"
@@ -107,7 +107,7 @@ function batteryColor(battery: number) {
               <button
                 v-else
                 type="button"
-                class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                class="text-slate-400 hover:text-slate-600"
                 aria-label="More options"
               >
                 <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">

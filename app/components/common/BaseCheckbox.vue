@@ -24,13 +24,13 @@ const checkboxId = computed(() => props.id ?? `checkbox-${Math.random().toString
       type="checkbox"
       :checked="modelValue"
       :disabled="disabled"
-      class="h-4 w-4 cursor-pointer rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-brand-blue transition-colors focus:ring-brand-blue/30 focus:ring-offset-0 dark:focus:ring-offset-slate-900 checked:bg-brand-blue disabled:cursor-not-allowed disabled:opacity-50"
+      class="h-4 w-4 cursor-pointer rounded border-slate-300 bg-white text-brand-blue transition-colors focus:ring-brand-blue/30 focus:ring-offset-0 checked:bg-brand-blue disabled:cursor-not-allowed disabled:opacity-50"
       @change="emit('update:modelValue', ($event.target as HTMLInputElement).checked)"
     />
     <label
       v-if="label"
       :for="checkboxId"
-      class="cursor-pointer select-none text-sm text-slate-600 dark:text-slate-400 transition-colors"
+      class="cursor-pointer select-none text-sm text-slate-600 transition-colors"
       :class="{ 'cursor-not-allowed opacity-50': disabled }"
     >
       {{ label }}

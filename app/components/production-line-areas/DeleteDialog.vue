@@ -25,7 +25,7 @@ const emit = defineEmits<{
     size="sm"
     @update:model-value="emit('update:modelValue', $event)"
   >
-    <p class="font-medium text-sm text-slate-600 dark:text-slate-300">
+    <p class="font-medium text-sm text-slate-600">
       Are you sure you want to delete <strong>{{ productionLineArea?.name }}</strong>? This
       action cannot be undone.
     </p>

@@ -90,34 +90,34 @@ function handleLimitChange(limit: number) {
 <template>
   <div class="animate-fade-in">
     <div class="mb-6">
-      <h1 class="text-2xl font-extrabold text-[#0F1F52] dark:text-[#F8FAFC]">Warehouse Tasks</h1>
-      <p class="font-medium mt-1 text-sm text-slate-500 dark:text-slate-400">View and manage all Warehouse Tasks</p>
+      <h1 class="text-2xl font-extrabold text-[#0F1F52]">Warehouse Tasks</h1>
+      <p class="font-medium mt-1 text-sm text-slate-500">View and manage all Warehouse Tasks</p>
     </div>
 
     <div class="mb-4 flex flex-wrap items-end gap-3">
       <div>
-        <label class="mb-1.5 block text-xs font-semibold text-slate-500 dark:text-slate-400">Date From</label>
+        <label class="mb-1.5 block text-xs font-semibold text-slate-500">Date From</label>
         <input
           v-model="dateFrom"
           type="datetime-local"
-          class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+          class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
           @change="applyFilters"
         />
       </div>
 
       <div>
-        <label class="mb-1.5 block text-xs font-semibold text-slate-500 dark:text-slate-400">Date To</label>
+        <label class="mb-1.5 block text-xs font-semibold text-slate-500">Date To</label>
         <input
           v-model="dateTo"
           type="datetime-local"
-          class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+          class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
           @change="applyFilters"
         />
       </div>
 
       <select
         v-model="operatorId"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
         @change="applyFilters"
       >
         <option value="">All Operators</option>
@@ -126,7 +126,7 @@ function handleLimitChange(limit: number) {
 
       <select
         v-model="statusFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
         @change="applyFilters"
       >
         <option value="">All Status</option>

@@ -11,9 +11,9 @@ const HEX_PATTERN = /^#[0-9A-Fa-f]{6}$/
 <template>
   <div class="flex items-center gap-2">
     <div
-      class="h-5 w-5 flex-shrink-0 rounded-md border border-[#E2E8F0] dark:border-[#1E293B]"
+      class="h-5 w-5 flex-shrink-0 rounded-md border border-[#E2E8F0]"
       :style="HEX_PATTERN.test(colorCode) ? { backgroundColor: colorCode } : undefined"
     />
-    <span class="font-mono text-xs text-slate-500 dark:text-slate-400">{{ colorCode }}</span>
+    <span class="font-mono text-xs text-slate-500">{{ colorCode }}</span>
   </div>
 </template>

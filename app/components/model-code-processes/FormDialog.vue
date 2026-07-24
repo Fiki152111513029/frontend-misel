@@ -87,7 +87,7 @@ function handleCancel() {
 }
 
 const selectClass =
-  'w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#020617] px-4 py-3 text-sm text-[#0F1F52] dark:text-[#F8FAFC] outline-none focus:border-[#01ADEF] focus:ring-2 focus:ring-[#01ADEF]/15'
+  'w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#0F1F52] outline-none focus:border-[#01ADEF] focus:ring-2 focus:ring-[#01ADEF]/15'
 </script>
 
 <template>
@@ -101,7 +101,7 @@ const selectClass =
       <UiBaseInput v-model="name" label="Name" required :error="errors.name" />
 
       <div class="space-y-1.5">
-        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+        <label class="block text-sm font-medium text-slate-700">
           From System
           <span class="ml-0.5 text-[#01ADEF]">*</span>
         </label>
@@ -113,8 +113,8 @@ const selectClass =
 
       <UiBaseCheckbox v-model="isActive" label="Active" />
 
-      <div class="space-y-3 border-t border-[#E2E8F0] pt-4 dark:border-[#1E293B]">
-        <p class="text-xs font-bold uppercase tracking-wide text-[#0F1F52] dark:text-[#F8FAFC]">
+      <div class="space-y-3 border-t border-[#E2E8F0] pt-4">
+        <p class="text-xs font-bold uppercase tracking-wide text-[#0F1F52]">
           Status Comments
         </p>
         <p class="font-medium -mt-2 text-xs text-slate-400">

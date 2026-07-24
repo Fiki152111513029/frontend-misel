@@ -127,8 +127,8 @@ function refresh() {
   <div class="animate-fade-in space-y-4">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-2xl font-extrabold text-[#0F1F52] dark:text-[#F8FAFC]">Docking</h1>
-        <p class="font-medium mt-1 text-sm text-slate-500 dark:text-slate-400">View and manage all Docking tasks</p>
+        <h1 class="text-2xl font-extrabold text-[#0F1F52]">Docking</h1>
+        <p class="font-medium mt-1 text-sm text-slate-500">View and manage all Docking tasks</p>
       </div>
 
       <button
@@ -145,7 +145,7 @@ function refresh() {
       <UiBaseCard padding="sm" class="flex items-center justify-between">
         <div>
           <p class="text-[11px] font-medium uppercase tracking-wide text-slate-400">Total Tasks</p>
-          <p class="mt-1 text-2xl font-bold text-[#0F1F52] dark:text-[#F8FAFC]">{{ stats.total }}</p>
+          <p class="mt-1 text-2xl font-bold text-[#0F1F52]">{{ stats.total }}</p>
         </div>
         <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#01ADEF]/10 text-[#01ADEF]">
           <ClipboardList class="h-5 w-5" />
@@ -157,7 +157,7 @@ function refresh() {
           <p class="text-[11px] font-medium uppercase tracking-wide text-slate-400">In Progress</p>
           <p class="mt-1 text-2xl font-bold text-amber-500">{{ stats.inProgress }}</p>
         </div>
-        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-500 dark:bg-amber-500/10">
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-500">
           <Loader2 class="h-5 w-5" />
         </div>
       </UiBaseCard>
@@ -167,7 +167,7 @@ function refresh() {
           <p class="text-[11px] font-medium uppercase tracking-wide text-slate-400">Completed</p>
           <p class="mt-1 text-2xl font-bold text-emerald-500">{{ stats.completed }}</p>
         </div>
-        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10">
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-500">
           <CheckCircle2 class="h-5 w-5" />
         </div>
       </UiBaseCard>
@@ -177,7 +177,7 @@ function refresh() {
           <p class="text-[11px] font-medium uppercase tracking-wide text-slate-400">Failed</p>
           <p class="mt-1 text-2xl font-bold text-red-500">{{ stats.failed }}</p>
         </div>
-        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-500 dark:bg-red-500/10">
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-500">
           <XCircle class="h-5 w-5" />
         </div>
       </UiBaseCard>
@@ -185,25 +185,25 @@ function refresh() {
 
     <!-- Filter bar -->
     <div class="flex flex-wrap items-center gap-3">
-      <div class="flex items-center gap-1.5 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3 py-2">
+      <div class="flex items-center gap-1.5 rounded-xl border border-[#E2E8F0] bg-white px-3 py-2">
         <CalendarDays class="h-4 w-4 flex-shrink-0 text-slate-400" />
         <input
           v-model="dateFrom"
           type="date"
-          class="w-[110px] bg-transparent text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none [color-scheme:light] dark:[color-scheme:dark]"
+          class="w-[110px] bg-transparent text-sm font-semibold text-[#0F1F52] outline-none [color-scheme:light]"
         />
         <span class="text-slate-300">–</span>
         <input
           v-model="dateTo"
           type="date"
-          class="w-[110px] bg-transparent text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none [color-scheme:light] dark:[color-scheme:dark]"
+          class="w-[110px] bg-transparent text-sm font-semibold text-[#0F1F52] outline-none [color-scheme:light]"
         />
       </div>
 
       <select
         v-model="shiftFilter"
         title="Shift filter is not wired to task data yet"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option v-for="option in shiftOptions" :key="option" :value="option">
           {{ option === 'All' ? 'All Shifts' : option }}
@@ -212,7 +212,7 @@ function refresh() {
 
       <select
         v-model="boxTypeFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option v-for="option in boxTypeOptions" :key="option" :value="option">
           {{ option === 'All' ? 'All Box Type' : option }}
@@ -221,7 +221,7 @@ function refresh() {
 
       <select
         v-model="statusFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option v-for="option in statusOptions" :key="option" :value="option">
           {{ option === 'All' ? 'All Status' : option }}
@@ -230,7 +230,7 @@ function refresh() {
 
       <select
         v-model="lineFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option v-for="option in lineOptions" :key="option" :value="option">
           {{ option === 'All' ? 'All Lines' : option }}
@@ -239,7 +239,7 @@ function refresh() {
 
       <button
         type="button"
-        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-4 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
+        class="ml-auto inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-medium text-[#0F1F52] transition-colors hover:border-slate-300"
         @click="refresh"
       >
         <RefreshCw class="h-4 w-4 text-slate-400" />
@@ -254,7 +254,7 @@ function refresh() {
         v-model="search"
         type="text"
         placeholder="Search task ID, AMR, location..."
-        class="w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] py-2.5 pl-10 pr-4 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] placeholder-slate-400 outline-none transition-colors focus:border-[#01ADEF]"
+        class="w-full rounded-xl border border-[#E2E8F0] bg-white py-2.5 pl-10 pr-4 text-sm font-semibold text-[#0F1F52] placeholder-slate-400 outline-none transition-colors focus:border-[#01ADEF]"
       />
     </div>
 
@@ -269,14 +269,14 @@ function refresh() {
 
     <!-- Pagination -->
     <div class="flex flex-col items-center justify-between gap-3 sm:flex-row">
-      <p class="font-medium text-sm text-slate-500 dark:text-slate-400">
+      <p class="font-medium text-sm text-slate-500">
         Showing {{ rangeStart }} to {{ rangeEnd }} of {{ filteredDockings.length }} tasks
       </p>
 
       <div class="flex items-center gap-2">
         <select
           v-model.number="pageSize"
-          class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3 py-2 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] outline-none"
+          class="rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-medium text-[#0F1F52] outline-none"
         >
           <option :value="10">10 per page</option>
           <option :value="20">20 per page</option>
@@ -286,7 +286,7 @@ function refresh() {
         <div class="flex items-center gap-1">
           <button
             type="button"
-            class="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] dark:border-[#1E293B] text-slate-400 transition-colors hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
+            class="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] text-slate-400 transition-colors hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
             :disabled="currentPage === 1"
             @click="goToPage(currentPage - 1)"
           >
@@ -298,15 +298,15 @@ function refresh() {
             type="button"
             class="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium transition-colors"
             :class="page === currentPage
-              ? 'bg-[#2F6FED] text-white'
-              : 'border border-[#E2E8F0] dark:border-[#1E293B] text-slate-500 dark:text-slate-400 hover:border-slate-300'"
+ ? 'bg-[#2F6FED] text-white'
+ : 'border border-[#E2E8F0] text-slate-500 hover:border-slate-300'"
             @click="goToPage(page)"
           >
             {{ page }}
           </button>
           <button
             type="button"
-            class="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] dark:border-[#1E293B] text-slate-400 transition-colors hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
+            class="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] text-slate-400 transition-colors hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
             :disabled="currentPage === totalPages"
             @click="goToPage(currentPage + 1)"
           >

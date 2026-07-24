@@ -15,23 +15,23 @@ const units: MapUnit[] = [
 
 <template>
   <UiBaseCard padding="none" class="flex flex-col">
-    <div class="flex items-center justify-between border-b border-[#E2E8F0] dark:border-[#1E293B] px-6 py-5">
+    <div class="flex items-center justify-between border-b border-[#E2E8F0] px-6 py-5">
       <div class="flex items-center gap-2.5">
         <svg class="h-5 w-5 text-[#01ADEF]" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
           <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
         </svg>
-        <p class="text-lg font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Factory Map</p>
+        <p class="text-lg font-semibold text-[#0F1F52]">Factory Map</p>
       </div>
       <span class="text-sm font-medium text-slate-400">ZOOM: 100%</span>
     </div>
 
-    <div class="relative h-[460px] w-full overflow-hidden bg-slate-50 dark:bg-[#0B1220] 2xl:h-[600px]">
+    <div class="relative h-[460px] w-full overflow-hidden bg-slate-50 2xl:h-[600px]">
       <!-- Zones -->
-      <div class="absolute left-[15%] top-[20%] h-[55%] w-[20%] rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white/60 dark:bg-white/5">
+      <div class="absolute left-[15%] top-[20%] h-[55%] w-[20%] rounded-xl border border-[#E2E8F0] bg-white/60">
         <span class="absolute left-3 top-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Zone A</span>
       </div>
-      <div class="absolute left-[30%] top-[35%] h-[38%] w-[26%] rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white/80 dark:bg-white/10">
+      <div class="absolute left-[30%] top-[35%] h-[38%] w-[26%] rounded-xl border border-[#E2E8F0] bg-white/80">
         <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-base font-semibold uppercase tracking-wide text-slate-400">
           Storage Hub
         </span>
@@ -53,7 +53,7 @@ const units: MapUnit[] = [
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 7V5a3 3 0 016 0v2" />
           </svg>
         </div>
-        <span class="rounded bg-white/90 dark:bg-[#0F172A]/90 px-1.5 py-0.5 text-sm font-semibold text-slate-600 dark:text-slate-300">
+        <span class="rounded bg-white/90 px-1.5 py-0.5 text-sm font-semibold text-slate-600">
           {{ unit.id }}
         </span>
       </div>

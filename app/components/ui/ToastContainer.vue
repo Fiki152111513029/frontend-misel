@@ -18,12 +18,10 @@ const { toasts, dismiss } = useToast()
         v-for="toast in toasts"
         :key="toast.id"
         role="alert"
-        class="pointer-events-auto flex items-start gap-2.5 rounded-xl border bg-white dark:bg-[#0F172A] px-4 py-3 shadow-lg"
-        :class="
-          toast.type === 'success'
-            ? 'border-emerald-200 dark:border-emerald-900/40'
-            : 'border-red-200 dark:border-red-900/40'
-        "
+        class="pointer-events-auto flex items-start gap-2.5 rounded-xl border bg-white px-4 py-3 shadow-lg"
+        :class="toast.type === 'success'
+ ? 'border-emerald-200 '
+ : 'border-red-200 '"
       >
         <CheckCircle2
           v-if="toast.type === 'success'"
@@ -31,11 +29,11 @@ const { toasts, dismiss } = useToast()
         />
         <XCircle v-else class="mt-0.5 h-[18px] w-[18px] flex-shrink-0 text-red-500" />
 
-        <p class="font-medium flex-1 text-sm text-[#0F1F52] dark:text-[#F8FAFC]">{{ toast.message }}</p>
+        <p class="font-medium flex-1 text-sm text-[#0F1F52]">{{ toast.message }}</p>
 
         <button
           type="button"
-          class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+          class="text-slate-400 hover:text-slate-600 transition-colors"
           aria-label="Dismiss"
           @click="dismiss(toast.id)"
         >

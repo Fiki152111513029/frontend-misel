@@ -153,8 +153,8 @@ function handleReorder(reorderedItems: ProductionLineArea[]) {
   <div class="animate-fade-in">
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-2xl font-extrabold text-[#0F1F52] dark:text-[#F8FAFC]">Production Line Areas</h1>
-        <p class="font-medium mt-1 text-sm text-slate-500 dark:text-slate-400">View and manage all Production Line Areas</p>
+        <h1 class="text-2xl font-extrabold text-[#0F1F52]">Production Line Areas</h1>
+        <p class="font-medium mt-1 text-sm text-slate-500">View and manage all Production Line Areas</p>
       </div>
 
       <button
@@ -171,7 +171,7 @@ function handleReorder(reorderedItems: ProductionLineArea[]) {
     <div class="mb-4 flex flex-wrap items-center gap-3">
       <select
         v-model="typeFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option value="All">All Types</option>
         <option value="PRODUCTION">Production</option>
@@ -180,7 +180,7 @@ function handleReorder(reorderedItems: ProductionLineArea[]) {
 
       <select
         v-model="productionLineFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option value="All">All Production Lines</option>
         <option v-for="line in productionLines" :key="line.id" :value="line.id">{{ line.name }}</option>
@@ -188,7 +188,7 @@ function handleReorder(reorderedItems: ProductionLineArea[]) {
 
       <select
         v-model="eximLocationFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option value="All">All EXIM Locations</option>
         <option v-for="location in eximLocations" :key="location.id" :value="location.id">{{ location.name }}</option>
@@ -196,7 +196,7 @@ function handleReorder(reorderedItems: ProductionLineArea[]) {
 
       <select
         v-model="emptyPalletLocationFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option value="All">All Empty Pallet Locations</option>
         <option v-for="location in emptyPalletLocations" :key="location.id" :value="location.id">{{ location.name }}</option>

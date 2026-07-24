@@ -40,7 +40,7 @@ function onInput(event: Event) {
     <label
       v-if="label"
       :for="inputId"
-      class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300 transition-colors"
+      class="mb-2 block text-sm font-semibold text-slate-700 transition-colors"
     >
       {{ label }}
       <span v-if="required" class="text-brand-blue ml-0.5">*</span>
@@ -50,7 +50,7 @@ function onInput(event: Event) {
       <!-- Left icon -->
       <div
         v-if="icon"
-        class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 dark:text-slate-500 group-focus-within:text-brand-blue transition-colors duration-200"
+        class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 group-focus-within:text-brand-blue transition-colors duration-200"
       >
         <!-- Email icon -->
         <svg v-if="icon === 'email'" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
@@ -75,14 +75,14 @@ function onInput(event: Event) {
         :required="required"
         :aria-describedby="error ? `${inputId}-error` : undefined"
         :aria-invalid="!!error"
-        class="w-full rounded-2xl border bg-white dark:bg-slate-800/60 py-3.5 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition-all duration-200 focus:ring-2 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 dark:disabled:bg-slate-900/50"
+        class="w-full rounded-2xl border bg-white py-3.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 focus:ring-2 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
         :class="[
-          icon ? 'pl-11' : 'pl-4',
-          type === 'password' ? 'pr-11' : 'pr-4',
-          error
-            ? 'border-red-400 dark:border-red-500 focus:border-red-400 focus:ring-red-100 dark:focus:ring-red-900/30'
-            : 'border-slate-200 dark:border-slate-700 focus:border-brand-blue dark:focus:border-brand-blue focus:ring-brand-blue/10 dark:focus:ring-brand-blue/20',
-        ]"
+ icon ? 'pl-11' : 'pl-4',
+ type === 'password' ? 'pr-11' : 'pr-4',
+ error
+ ? 'border-red-400 focus:border-red-400 focus:ring-red-100 '
+ : 'border-slate-200 focus:border-brand-blue focus:ring-brand-blue/10 ',
+ ]"
         @input="onInput"
       />
 
@@ -90,7 +90,7 @@ function onInput(event: Event) {
       <button
         v-if="type === 'password'"
         type="button"
-        class="absolute inset-y-0 right-0 flex items-center px-4 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors focus:outline-none"
+        class="absolute inset-y-0 right-0 flex items-center px-4 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
         :aria-label="showPassword ? 'Sembunyikan password' : 'Tampilkan password'"
         @click="showPassword = !showPassword"
       >
@@ -106,7 +106,7 @@ function onInput(event: Event) {
 
     <p v-if="error"
       :id="`${inputId}-error`"
-      class="font-medium mt-2 flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400"
+      class="font-medium mt-2 flex items-center gap-1.5 text-xs text-red-500"
       role="alert"
     >
       <svg class="h-3.5 w-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">

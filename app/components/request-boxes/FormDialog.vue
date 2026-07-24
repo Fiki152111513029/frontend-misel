@@ -89,7 +89,7 @@ function handleCancel() {
 }
 
 const selectClass =
-  'w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#020617] px-4 py-3 text-sm text-[#0F1F52] dark:text-[#F8FAFC] outline-none focus:border-[#01ADEF] focus:ring-2 focus:ring-[#01ADEF]/15'
+  'w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#0F1F52] outline-none focus:border-[#01ADEF] focus:ring-2 focus:ring-[#01ADEF]/15'
 </script>
 
 <template>
@@ -101,7 +101,7 @@ const selectClass =
   >
     <div class="space-y-4">
       <div class="space-y-1.5">
-        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+        <label class="block text-sm font-medium text-slate-700">
           Production Line
           <span class="ml-0.5 text-[#01ADEF]">*</span>
         </label>
@@ -114,18 +114,18 @@ const selectClass =
             {{ line.name }}
           </option>
         </select>
-        <p v-if="errors.productionLineId" class="font-medium text-xs text-red-500 dark:text-red-400">
+        <p v-if="errors.productionLineId" class="font-medium text-xs text-red-500">
           {{ errors.productionLineId }}
         </p>
         <p v-else-if="availableProductionLines.length === 0"
-          class="font-medium text-xs text-amber-600 dark:text-amber-400"
+          class="font-medium text-xs text-amber-600"
         >
           You are not assigned as the operator of any production line.
         </p>
       </div>
 
       <div class="space-y-1.5">
-        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+        <label class="block text-sm font-medium text-slate-700">
           Box
           <span class="ml-0.5 text-[#01ADEF]">*</span>
         </label>
@@ -134,7 +134,7 @@ const selectClass =
             {{ box.name }}
           </option>
         </select>
-        <p v-if="errors.boxTypeId" class="font-medium text-xs text-red-500 dark:text-red-400">
+        <p v-if="errors.boxTypeId" class="font-medium text-xs text-red-500">
           {{ errors.boxTypeId }}
         </p>
       </div>

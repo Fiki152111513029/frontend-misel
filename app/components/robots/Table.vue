@@ -63,13 +63,13 @@ function toggleSort(key: RobotSortKey) {
 // from the external system still get a sensible color instead of falling through.
 function stateStyle(state: string | null) {
   const value = state?.toLowerCase() ?? ''
-  if (!value) return 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
-  if (value.includes('fault')) return 'bg-red-50 text-red-500 dark:bg-red-900/20 dark:text-red-400'
-  if (value.includes('offline')) return 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
-  if (value.includes('idle')) return 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400'
-  if (value.includes('charging')) return 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'
-  if (value.includes('upgrading')) return 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
-  if (value.includes('initializing')) return 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400'
+  if (!value) return 'bg-slate-100 text-slate-400'
+  if (value.includes('fault')) return 'bg-red-50 text-red-500'
+  if (value.includes('offline')) return 'bg-slate-100 text-slate-500'
+  if (value.includes('idle')) return 'bg-amber-50 text-amber-600'
+  if (value.includes('charging')) return 'bg-emerald-50 text-emerald-600'
+  if (value.includes('upgrading')) return 'bg-purple-50 text-purple-600'
+  if (value.includes('initializing')) return 'bg-indigo-50 text-indigo-600'
   return 'bg-[#01ADEF]/10 text-[#01ADEF]'
 }
 
@@ -88,7 +88,7 @@ function formatDate(value: string | null) {
           v-for="col in sortableColumns"
           :key="col.key"
           :style="col.width ? `width: ${col.width}` : ''"
-          class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
+          class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
         >
           <button
             type="button"
@@ -101,7 +101,7 @@ function formatDate(value: string | null) {
             <ChevronDown v-else class="h-3.5 w-3.5 opacity-30" />
           </button>
         </th>
-        <th style="width: 160px" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        <th style="width: 160px" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
           Actions
         </th>
       </template>
@@ -115,24 +115,24 @@ function formatDate(value: string | null) {
         <tr
           v-for="item in items"
           :key="item.id"
-          class="border-b border-[#E2E8F0] dark:border-[#1E293B] last:border-0"
+          class="border-b border-[#E2E8F0] last:border-0"
         >
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.name }}
           </td>
-          <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52]">
             {{ item.amrDeviceSerialNo }}
           </td>
-          <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52]">
             {{ item.amrDeviceNo }}
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.areaId }}
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.speed ?? '-' }}
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.battery !== null ? `${item.battery}%` : '-' }}
           </td>
           <td class="px-4 py-3">
@@ -140,17 +140,15 @@ function formatDate(value: string | null) {
               {{ item.state ?? '-' }}
             </span>
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">
+          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ formatDate(item.lastUpdate) }}
           </td>
           <td class="px-4 py-3">
             <span
               class="rounded-full px-2 py-0.5 text-xs font-medium"
-              :class="
-                item.isActive
-                  ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'
-                  : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
-              "
+              :class="item.isActive
+ ? 'bg-emerald-50 text-emerald-600 '
+ : 'bg-slate-100 text-slate-500 '"
             >
               {{ item.isActive ? 'Active' : 'Inactive' }}
             </span>
@@ -160,7 +158,7 @@ function formatDate(value: string | null) {
               <button
                 v-if="hasPermission('robot.update')"
                 type="button"
-                class="rounded-lg bg-slate-100 dark:bg-slate-800/60 p-1.5 text-[#01ADEF] hover:bg-slate-200 dark:hover:bg-slate-700/60 transition-colors"
+                class="rounded-lg bg-slate-100 p-1.5 text-[#01ADEF] hover:bg-slate-200 transition-colors"
                 aria-label="Edit"
                 @click="emit('edit', item)"
               >
@@ -169,7 +167,7 @@ function formatDate(value: string | null) {
               <button
                 v-if="hasPermission('robot.update')"
                 type="button"
-                class="rounded-lg p-1.5 text-slate-400 hover:bg-[#01ADEF]/10 hover:text-[#01ADEF] dark:hover:bg-slate-800/60 transition-colors"
+                class="rounded-lg p-1.5 text-slate-400 hover:bg-[#01ADEF]/10 hover:text-[#01ADEF] transition-colors"
                 aria-label="Reset"
                 @click="emit('reset', item)"
               >
@@ -178,7 +176,7 @@ function formatDate(value: string | null) {
               <button
                 v-if="hasPermission('robot.update')"
                 type="button"
-                class="rounded-lg p-1.5 text-slate-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-slate-800/60 transition-colors"
+                class="rounded-lg p-1.5 text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors"
                 aria-label="Suspend"
                 @click="emit('suspend', item)"
               >
@@ -187,7 +185,7 @@ function formatDate(value: string | null) {
               <button
                 v-if="hasPermission('robot.delete')"
                 type="button"
-                class="rounded-lg bg-red-50 dark:bg-red-900/15 p-1.5 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/25 transition-colors"
+                class="rounded-lg bg-red-50 p-1.5 text-red-500 hover:bg-red-100 transition-colors"
                 aria-label="Delete"
                 @click="emit('delete', item)"
               >

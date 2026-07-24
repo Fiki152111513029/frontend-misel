@@ -86,7 +86,7 @@ function handleCancel() {
 }
 
 const selectClass =
-  'w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#020617] px-4 py-3 text-sm text-[#0F1F52] dark:text-[#F8FAFC] outline-none focus:border-[#01ADEF] focus:ring-2 focus:ring-[#01ADEF]/15'
+  'w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#0F1F52] outline-none focus:border-[#01ADEF] focus:ring-2 focus:ring-[#01ADEF]/15'
 </script>
 
 <template>
@@ -100,7 +100,7 @@ const selectClass =
       <UiBaseInput v-model="name" label="Name" required :error="errors.name" />
 
       <div class="space-y-1.5">
-        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+        <label class="block text-sm font-medium text-slate-700">
           Quarantine Line
           <span class="ml-0.5 text-[#01ADEF]">*</span>
         </label>
@@ -109,13 +109,13 @@ const selectClass =
             {{ line.name }}
           </option>
         </select>
-        <p v-if="errors.quarantineLineId" class="font-medium text-xs text-red-500 dark:text-red-400">
+        <p v-if="errors.quarantineLineId" class="font-medium text-xs text-red-500">
           {{ errors.quarantineLineId }}
         </p>
       </div>
 
       <div class="space-y-1.5">
-        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+        <label class="block text-sm font-medium text-slate-700">
           Operator
           <span class="ml-0.5 text-[#01ADEF]">*</span>
         </label>
@@ -125,7 +125,7 @@ const selectClass =
             {{ user.username }}
           </option>
         </select>
-        <p v-if="errors.operatorId" class="font-medium text-xs text-red-500 dark:text-red-400">
+        <p v-if="errors.operatorId" class="font-medium text-xs text-red-500">
           {{ errors.operatorId }}
         </p>
       </div>

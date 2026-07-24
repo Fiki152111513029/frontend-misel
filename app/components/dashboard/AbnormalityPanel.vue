@@ -21,7 +21,7 @@ function barColor(percent: number) {
   <UiBaseCard padding="md">
     <div class="flex items-start justify-between">
       <div>
-        <p class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Abnormality</p>
+        <p class="font-semibold text-[#0F1F52]">Abnormality</p>
         <p class="font-medium mt-0.5 text-xs text-slate-400">Error density by zone</p>
       </div>
       <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
@@ -32,10 +32,10 @@ function barColor(percent: number) {
     <div class="mt-4 space-y-4">
       <div v-for="zone in zones" :key="zone.label">
         <div class="mb-1.5 flex items-center justify-between text-xs">
-          <span class="text-slate-500 dark:text-slate-400">{{ zone.label }}</span>
-          <span class="font-medium text-[#0F1F52] dark:text-[#F8FAFC]">{{ zone.percent }}%</span>
+          <span class="text-slate-500">{{ zone.label }}</span>
+          <span class="font-medium text-[#0F1F52]">{{ zone.percent }}%</span>
         </div>
-        <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-[#1E293B]">
+        <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
           <div
             class="h-full rounded-full transition-all duration-300"
             :class="barColor(zone.percent)"

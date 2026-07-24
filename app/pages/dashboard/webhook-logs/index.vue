@@ -89,24 +89,24 @@ function viewPayload(payload: Record<string, unknown>, title: string) {
 <template>
   <IcsLogsPasswordGate title="ICS Webhook Logs">
     <div class="animate-fade-in space-y-4">
-      <h1 class="text-2xl font-extrabold text-[#0F1F52] dark:text-[#F8FAFC]">ICS Webhook Logs</h1>
+      <h1 class="text-2xl font-extrabold text-[#0F1F52]">ICS Webhook Logs</h1>
 
       <UiBaseCard>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label class="mb-1.5 block text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Date &amp; Time From</label>
+            <label class="mb-1.5 block text-sm font-semibold text-[#0F1F52]">Date &amp; Time From</label>
             <input
               v-model="dateFrom"
               type="datetime-local"
-              class="w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+              class="w-full rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-medium text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
             />
           </div>
           <div>
-            <label class="mb-1.5 block text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Date &amp; Time To</label>
+            <label class="mb-1.5 block text-sm font-semibold text-[#0F1F52]">Date &amp; Time To</label>
             <input
               v-model="dateTo"
               type="datetime-local"
-              class="w-full rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+              class="w-full rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-medium text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
             />
           </div>
         </div>
@@ -121,7 +121,7 @@ function viewPayload(payload: Record<string, unknown>, title: string) {
           </button>
           <button
             type="button"
-            class="inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-5 py-2.5 text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC] transition-colors hover:border-slate-300 dark:hover:border-slate-600"
+            class="inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-5 py-2.5 text-sm font-medium text-[#0F1F52] transition-colors hover:border-slate-300"
             @click="resetFilter"
           >
             Reset
@@ -130,7 +130,7 @@ function viewPayload(payload: Record<string, unknown>, title: string) {
       </UiBaseCard>
 
       <UiBaseCard padding="none">
-        <p class="font-medium border-b border-[#E2E8F0] dark:border-[#1E293B] px-5 py-3.5 text-sm text-slate-500 dark:text-slate-400">
+        <p class="font-medium border-b border-[#E2E8F0] px-5 py-3.5 text-sm text-slate-500">
           {{ filteredLogs.length }} record(s) found
         </p>
 

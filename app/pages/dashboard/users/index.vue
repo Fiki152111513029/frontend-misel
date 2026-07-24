@@ -104,6 +104,7 @@ async function handleFormSubmit(values: UserFormValues) {
   const email = values.email.trim() || undefined
   const ok = editingUser.value
     ? await updateUser(editingUser.value.id, {
+        username: values.username,
         email,
         password: values.password || undefined,
         fullName: values.fullName,
@@ -135,8 +136,8 @@ async function handleDeleteConfirm() {
   <div class="animate-fade-in">
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-2xl font-extrabold text-[#0F1F52] dark:text-[#F8FAFC]">User Management</h1>
-        <p class="font-medium mt-1 text-sm text-slate-500 dark:text-slate-400">Manage users, roles, and permissions</p>
+        <h1 class="text-2xl font-extrabold text-[#0F1F52]">User Management</h1>
+        <p class="font-medium mt-1 text-sm text-slate-500">Manage users, roles, and permissions</p>
       </div>
 
       <button
@@ -153,7 +154,7 @@ async function handleDeleteConfirm() {
     <div class="mb-4 flex flex-wrap items-center gap-3">
       <select
         v-model="roleFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option value="All">All Roles</option>
         <option v-for="role in roles" :key="role.id" :value="role.id">{{ role.name }}</option>
@@ -161,7 +162,7 @@ async function handleDeleteConfirm() {
 
       <select
         v-model="priorityFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option value="All">All Priorities</option>
         <option :value="4">High</option>
@@ -171,7 +172,7 @@ async function handleDeleteConfirm() {
 
       <select
         v-model="statusFilter"
-        class="rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] dark:text-[#F8FAFC] outline-none transition-colors focus:border-[#01ADEF]"
+        class="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
       >
         <option value="All">All Status</option>
         <option value="Active">Active</option>

@@ -43,13 +43,9 @@ function goToLogin() {
 
 <template>
   <div
-    class="relative flex min-h-screen flex-col overflow-hidden bg-cover bg-center transition-colors duration-300"
-    :class="$colorMode.value === 'dark' ? 'bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950' : ''"
-    :style="$colorMode.value === 'dark' ? '' : `background-image: url(${bgHeroSrc})`"
+    class="relative flex min-h-screen flex-col overflow-hidden bg-cover bg-center"
+    :style="`background-image: url(${bgHeroSrc})`"
   >
-    <!-- Theme toggle -->
-    <AuthThemeToggle />
-
     <!-- Hero -->
     <main class="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
       <!-- Logo -->
@@ -76,7 +72,7 @@ function goToLogin() {
 
       <!-- Title -->
       <h1
-        class="animate-slide-up text-5xl font-semibold tracking-tight text-[#254384] dark:text-[#F8FAFC] sm:text-6xl"
+        class="animate-slide-up text-5xl font-semibold tracking-tight text-[#254384] sm:text-6xl"
         style="animation-delay: 0.05s"
       >
         By Mitrainti Group
@@ -92,7 +88,7 @@ function goToLogin() {
 
       <!-- Subtitle -->
       <p
-        class="mx-auto mt-5 max-w-xl animate-slide-up text-base text-slate-500 dark:text-slate-400"
+        class="mx-auto mt-5 max-w-xl animate-slide-up text-base text-slate-500"
         style="animation-delay: 0.15s"
       >
         One platform to manage warehouses, robots, and production lines —
@@ -115,7 +111,7 @@ function goToLogin() {
 
         <a
           href="mailto:admin@misel.co.id"
-          class="text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-[#01ADEF] transition-colors"
+          class="text-sm font-medium text-slate-500 hover:text-[#01ADEF] transition-colors"
         >
           Need access? Contact administrator
         </a>
@@ -126,7 +122,7 @@ function goToLogin() {
         <div
           v-for="feature in features"
           :key="feature.title"
-          class="group relative overflow-hidden rounded-2xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white/70 dark:bg-[#0F172A]/70 p-5 text-left backdrop-blur-sm transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200/60 dark:hover:shadow-slate-950/60"
+          class="group relative overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white/70 p-5 text-left backdrop-blur-sm transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200/60"
         >
           <component
             :is="feature.icon"
@@ -139,10 +135,10 @@ function goToLogin() {
           >
             <component :is="feature.icon" class="h-5 w-5" />
           </div>
-          <h3 class="relative text-sm font-semibold text-[#254384] dark:text-[#F8FAFC]">
+          <h3 class="relative text-sm font-semibold text-[#254384]">
             {{ feature.title }}
           </h3>
-          <p class="relative mt-1.5 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+          <p class="relative mt-1.5 text-xs leading-relaxed text-slate-500">
             {{ feature.description }}
           </p>
           <span
@@ -154,7 +150,7 @@ function goToLogin() {
     </main>
 
     <!-- Footer -->
-    <footer class="relative z-10 w-full bg-[#0B2A6B] py-7 text-center text-xs text-white/70 dark:bg-[#0F172A]">
+    <footer class="relative z-10 w-full bg-[#0B2A6B] py-7 text-center text-xs text-white/70">
       &copy; {{ new Date().getFullYear() }} Mitrainti Group. All rights reserved.
     </footer>
   </div>

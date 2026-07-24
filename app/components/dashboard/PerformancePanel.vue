@@ -66,13 +66,13 @@ const requests: QueueRequest[] = [
 
 <template>
   <div
-    class="flex h-[460px] flex-col overflow-y-auto rounded-2xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] transition-colors duration-200 2xl:h-[600px]"
+    class="flex h-[460px] flex-col overflow-y-auto rounded-2xl border border-[#E2E8F0] bg-white transition-colors duration-200 2xl:h-[600px]"
   >
     <!-- Performance -->
-    <section class="border-b border-[#E2E8F0] dark:border-[#1E293B] p-5">
+    <section class="border-b border-[#E2E8F0] p-5">
       <div class="flex items-start justify-between">
         <div>
-          <p class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Performance</p>
+          <p class="font-semibold text-[#0F1F52]">Performance</p>
           <p class="font-medium mt-0.5 text-xs text-slate-400">Today</p>
         </div>
         <p class="text-xs font-medium text-slate-400">TOTAL : {{ total }}</p>
@@ -92,18 +92,18 @@ const requests: QueueRequest[] = [
       <div class="mt-4 grid grid-cols-2 gap-x-6 gap-y-2">
         <div v-for="status in statuses" :key="status.label" class="flex items-center gap-2 text-xs">
           <span class="h-2.5 w-2.5 flex-shrink-0 rounded-sm" :style="{ backgroundColor: status.color }" />
-          <span class="text-slate-500 dark:text-slate-400">{{ status.label }}</span>
+          <span class="text-slate-500">{{ status.label }}</span>
           <span class="ml-auto text-slate-400">{{ percentOf(status.value) }}%</span>
-          <span class="w-5 text-right font-medium text-[#0F1F52] dark:text-[#F8FAFC]">{{ status.value }}</span>
+          <span class="w-5 text-right font-medium text-[#0F1F52]">{{ status.value }}</span>
         </div>
       </div>
     </section>
 
     <!-- Abnormality -->
-    <section class="border-b border-[#E2E8F0] dark:border-[#1E293B] p-5">
+    <section class="border-b border-[#E2E8F0] p-5">
       <div class="flex items-start justify-between">
         <div>
-          <p class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Abnormality</p>
+          <p class="font-semibold text-[#0F1F52]">Abnormality</p>
           <p class="font-medium mt-0.5 text-xs text-slate-400">Error density by zone</p>
         </div>
         <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
@@ -114,10 +114,10 @@ const requests: QueueRequest[] = [
       <div class="mt-4 space-y-4">
         <div v-for="zone in zones" :key="zone.label">
           <div class="mb-1.5 flex items-center justify-between text-xs">
-            <span class="text-slate-500 dark:text-slate-400">{{ zone.label }}</span>
-            <span class="font-medium text-[#0F1F52] dark:text-[#F8FAFC]">{{ zone.percent }}%</span>
+            <span class="text-slate-500">{{ zone.label }}</span>
+            <span class="font-medium text-[#0F1F52]">{{ zone.percent }}%</span>
           </div>
-          <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-[#1E293B]">
+          <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
             <div
               class="h-full rounded-full transition-all duration-300"
               :class="barColor(zone.percent)"
@@ -129,10 +129,10 @@ const requests: QueueRequest[] = [
     </section>
 
     <!-- Charger Status -->
-    <section class="border-b border-[#E2E8F0] dark:border-[#1E293B] p-5">
+    <section class="border-b border-[#E2E8F0] p-5">
       <div class="flex items-center justify-between">
-        <p class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Charger Status</p>
-        <span class="rounded-lg bg-slate-100 dark:bg-[#1E293B] px-2.5 py-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+        <p class="font-semibold text-[#0F1F52]">Charger Status</p>
+        <span class="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
           {{ hubs.length }} Slots Total
         </span>
       </div>
@@ -142,14 +142,14 @@ const requests: QueueRequest[] = [
           v-for="hub in hubs"
           :key="hub.id"
           class="flex flex-col items-center gap-1.5 rounded-xl border border-dashed px-3 py-4 text-center"
-          :class="hub.unit ? 'border-[#01ADEF]/40 bg-[#01ADEF]/5' : 'border-[#E2E8F0] dark:border-[#1E293B]'"
+          :class="hub.unit ? 'border-[#01ADEF]/40 bg-[#01ADEF]/5' : 'border-[#E2E8F0] '"
         >
           <span class="text-[11px] font-medium uppercase tracking-wide text-slate-400">{{ hub.id }}</span>
 
           <svg v-if="hub.unit" class="h-5 w-5 text-[#01ADEF]" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M11.983 1.907a.75.75 0 00-1.292-.657l-8.5 9.5A.75.75 0 002.75 12h4.146l-1.879 6.093a.75.75 0 001.292.657l8.5-9.5a.75.75 0 00-.559-1.25h-4.146l1.879-6.093z" clip-rule="evenodd" />
           </svg>
-          <svg v-else class="h-5 w-5 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <svg v-else class="h-5 w-5 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
             <rect x="6" y="3" width="12" height="18" rx="2" stroke-linecap="round" stroke-linejoin="round" />
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 21v-2" />
           </svg>
@@ -157,7 +157,7 @@ const requests: QueueRequest[] = [
           <span v-if="hub.unit" class="text-xs font-semibold text-[#01ADEF]">
             {{ hub.unit }} ({{ hub.battery }}%)
           </span>
-          <span v-else class="text-xs font-medium text-slate-300 dark:text-slate-600">Vacant</span>
+          <span v-else class="text-xs font-medium text-slate-300">Vacant</span>
         </div>
       </div>
     </section>
@@ -165,21 +165,21 @@ const requests: QueueRequest[] = [
     <!-- Request Queue -->
     <section class="p-5">
       <div class="flex items-center justify-between">
-        <p class="font-semibold text-[#0F1F52] dark:text-[#F8FAFC]">Request Queue</p>
-        <span class="rounded-lg bg-slate-100 dark:bg-[#1E293B] px-2.5 py-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+        <p class="font-semibold text-[#0F1F52]">Request Queue</p>
+        <span class="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
           {{ requests.length }} Pending
         </span>
       </div>
 
-      <div class="mt-3 divide-y divide-[#E2E8F0] dark:divide-[#1E293B]">
+      <div class="mt-3 divide-y divide-[#E2E8F0]">
         <div v-for="request in requests" :key="request.id" class="flex items-center gap-3 py-3">
-          <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#0F1F52]/10 text-[#0F1F52] dark:bg-white/10 dark:text-white">
+          <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#0F1F52]/10 text-[#0F1F52]">
             <svg class="h-4.5 w-4.5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.75h16.5M3.75 9.75v8.25A2.25 2.25 0 006 20.25h12a2.25 2.25 0 002.25-2.25V9.75M3.75 9.75L5.7 4.5h12.6l1.95 5.25" />
             </svg>
           </div>
           <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-medium text-[#0F1F52] dark:text-[#F8FAFC]">{{ request.title }}</p>
+            <p class="truncate text-sm font-medium text-[#0F1F52]">{{ request.title }}</p>
             <p class="font-medium text-xs text-slate-400">{{ request.route }}</p>
           </div>
           <span class="flex-shrink-0 text-xs font-medium text-slate-400">{{ request.eta }}</span>
