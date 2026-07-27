@@ -13,7 +13,8 @@ import {
   Truck,
   Wifi,
 } from 'lucide-vue-next'
-import type { TaskAction } from '~/types/task'
+import { fetchTasks as fetchTasksSvc } from '~/services/task.service'
+import type { Task, TaskAction } from '~/types/task'
 
 definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'Mainline — Misel' })
@@ -25,13 +26,77 @@ const { items: boxTypes, fetchBoxTypes } = useBoxTypes()
 const { releaseTask } = useTasks()
 const toast = useToast()
 
+const TERMINAL_STATUSES = ['COMPLETED', 'FAILED']
+
 const workingAreaId = ref<string | null>(null)
 const selectedBoxTypeId = ref('')
 const showBoxTypeModal = ref(false)
-const taskAction = ref<TaskAction>('AMBIL_FG')
+// No default — the operator must actively pick Ambil FG or Not Standard.
+const taskAction = ref<TaskAction | null>(null)
 const releasing = ref(false)
-const lastReleasedTask = ref<{ taskId: string; status: string } | null>(null)
+const lastReleasedTask = ref<Task | null>(null)
+const queueNumber = ref<number | null>(null)
 const lastUpdatedAt = ref(new Date())
+
+// A released task locks Line Area switching until it reaches a terminal
+// status. Since completion happens on the robot/RCS side (not a frontend
+// action), we poll for the latest status instead of just trusting the
+// release response.
+const isTaskActive = computed(
+  () => !!lastReleasedTask.value && !TERMINAL_STATUSES.includes(lastReleasedTask.value.status),
+)
+
+let pollTimer: ReturnType<typeof setInterval> | null = null
+
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+// On completion, automatically move to the next Line Area in the list
+// (wrapping back to the first) so the operator doesn't have to switch by
+// hand. A FAILED task does NOT auto-advance — that needs attention first.
+function advanceToNextArea() {
+  if (myAreas.value.length < 2) return
+  const currentIndex = myAreas.value.findIndex(a => a.id === workingAreaId.value)
+  if (currentIndex === -1) return
+  const completedArea = myAreas.value[currentIndex]
+  const nextArea = myAreas.value[(currentIndex + 1) % myAreas.value.length]
+  if (nextArea) {
+    workingAreaId.value = nextArea.id
+    toast.success(`${completedArea?.name} completed — switched to ${nextArea.name}`)
+  }
+}
+
+function startPolling(taskDbId: string) {
+  stopPolling()
+  pollTimer = setInterval(async () => {
+    try {
+      const result = await fetchTasksSvc({
+        operatorId: user.value?.id,
+        limit: 20,
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+      })
+      const match = result.items.find(t => t.id === taskDbId)
+      if (match) {
+        lastReleasedTask.value = match
+        if (TERMINAL_STATUSES.includes(match.status)) {
+          stopPolling()
+          if (match.status === 'COMPLETED') {
+            advanceToNextArea()
+          }
+        }
+      }
+    } catch {
+      // Transient error — the next tick retries.
+    }
+  }, 5000)
+}
+
+onBeforeUnmount(() => stopPolling())
 
 const lastUpdatedLabel = computed(() =>
   lastUpdatedAt.value.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
@@ -71,6 +136,10 @@ const workingLine = computed(
 )
 
 function setWorkingArea(id: string) {
+  if (isTaskActive.value && id !== workingAreaId.value) {
+    toast.error('Finish the current task before switching Line Area')
+    return
+  }
   workingAreaId.value = id
 }
 
@@ -88,6 +157,10 @@ function chooseBoxType(id: string) {
 }
 
 async function handleReleaseTask() {
+  if (isTaskActive.value) {
+    toast.error('Finish the current task before releasing another one')
+    return
+  }
   if (!workingArea.value) {
     toast.error('Select a Line Area first')
     return
@@ -96,15 +169,22 @@ async function handleReleaseTask() {
     toast.error('Select a Box Type first')
     return
   }
+  const action = taskAction.value
+  if (!action) {
+    toast.error('Select a Function (Ambil FG / Not Standard) first')
+    return
+  }
   releasing.value = true
   const task = await releaseTask({
     productionLineAreaId: workingArea.value.id,
     boxTypeId: selectedBoxType.value.id,
-    taskAction: taskAction.value,
+    taskAction: action,
   })
   releasing.value = false
   if (task) {
-    lastReleasedTask.value = { taskId: task.taskId, status: task.status }
+    lastReleasedTask.value = task
+    queueNumber.value = (queueNumber.value ?? 0) + 1
+    startPolling(task.id)
   }
 }
 
@@ -140,11 +220,19 @@ function viewQueue() {
     <!-- Line Areas + Quarantine -->
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <UiBaseCard class="lg:col-span-2">
-        <div class="mb-4 flex items-center gap-2">
-          <LayoutGrid class="h-4 w-4 text-[#01ADEF]" />
-          <p class="text-xs font-bold uppercase tracking-wide text-[#0F1F52]">
-            Line Areas
-          </p>
+        <div class="mb-4 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <LayoutGrid class="h-4 w-4 text-[#01ADEF]" />
+            <p class="text-xs font-bold uppercase tracking-wide text-[#0F1F52]">
+              Line Areas
+            </p>
+          </div>
+          <span
+            v-if="isTaskActive"
+            class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-600"
+          >
+            Task in progress
+          </span>
         </div>
 
         <p v-if="myAreas.length === 0" class="font-medium py-6 text-center text-sm text-slate-400">
@@ -156,10 +244,14 @@ function viewQueue() {
             v-for="area in myAreas"
             :key="area.id"
             type="button"
-            class="group relative flex items-center gap-4 overflow-hidden rounded-2xl border px-4 py-4 text-left shadow-sm transition-all hover:shadow-md"
-            :class="workingAreaId === area.id
- ? 'border-emerald-200 bg-emerald-50/60 '
- : 'border-blue-200 bg-blue-50/60 hover:border-[#01ADEF]/40 '"
+            class="group relative flex items-center gap-4 overflow-hidden rounded-2xl border px-4 py-4 text-left shadow-sm transition-all hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-sm"
+            :class="[
+              workingAreaId === area.id
+                ? 'border-emerald-200 bg-emerald-50/60'
+                : 'border-blue-200 bg-blue-50/60 hover:border-[#01ADEF]/40',
+              workingAreaId === area.id && isTaskActive ? 'border-dashed' : '',
+            ]"
+            :disabled="isTaskActive && workingAreaId !== area.id"
             @click="setWorkingArea(area.id)"
           >
             <Building2
@@ -246,19 +338,21 @@ function viewQueue() {
       >
         <Truck class="h-5 w-5" />
       </div>
-      <div v-if="lastReleasedTask" class="grid flex-1 grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
+      <div class="flex-1 space-y-1 text-sm">
         <p class="font-semibold uppercase tracking-wide text-[#01ADEF]">Current Queue</p>
         <p class="font-medium text-slate-500">
-          Task ID :
-          <span class="font-medium text-[#0F1F52]">{{ lastReleasedTask.taskId }}</span>
+          No urut :
+          <span class="font-medium text-[#0F1F52]">{{ queueNumber ?? '-' }}</span>
         </p>
         <p class="font-medium text-slate-500">
-          Status : <span class="font-semibold text-[#01ADEF]">{{ lastReleasedTask.status }}</span>
+          Task ID :
+          <span class="font-medium text-[#0F1F52]">{{ lastReleasedTask?.taskId ?? '-' }}</span>
+        </p>
+        <p class="font-medium text-slate-500">
+          Status :
+          <span class="font-semibold text-[#01ADEF]">{{ lastReleasedTask?.status ?? '-' }}</span>
         </p>
       </div>
-      <p v-else class="font-medium flex-1 text-sm text-slate-500">
-        No task released yet — pick a Line Area, Box Type, and Function below, then Release Task.
-      </p>
     </div>
 
     <!-- Select action -->
@@ -351,11 +445,11 @@ function viewQueue() {
         v-if="hasPermission('task.create')"
         type="button"
         class="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm shadow-emerald-500/20 transition-all hover:shadow-md hover:shadow-emerald-500/30 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-        :disabled="releasing"
+        :disabled="releasing || isTaskActive"
         @click="handleReleaseTask"
       >
         <AlertTriangle class="h-4 w-4" />
-        {{ releasing ? 'Releasing…' : 'Release Task' }}
+        {{ releasing ? 'Releasing…' : isTaskActive ? 'Task in progress…' : 'Release Task' }}
       </button>
 
       <button
