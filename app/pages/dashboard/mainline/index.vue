@@ -26,7 +26,19 @@ const { items: boxTypes, fetchBoxTypes } = useBoxTypes()
 const { releaseTask } = useTasks()
 const toast = useToast()
 
-const TERMINAL_STATUSES = ['COMPLETED', 'FAILED']
+// Once a matching live order is found, the backend overwrites Task.status
+// with the RCS system's own raw OrderStatus code (a number, serialized as a
+// string) instead of our own PENDING/IN_PROGRESS/COMPLETED/FAILED — so both
+// vocabularies have to be recognized here. Per RCS: 3 Canceled, 5 Sending
+// failed, 6 Running, 7 Execution failed, 8 Completed, 9 Assigned, 10 Wait
+// for acknowledgment, 20 Picking, 21 Picked, 22 Placing, 23 Placed.
+const RCS_COMPLETED_STATUS = '8'
+const RCS_FAILED_STATUSES = ['3', '5', '7']
+const TERMINAL_STATUSES = ['COMPLETED', 'FAILED', RCS_COMPLETED_STATUS, ...RCS_FAILED_STATUSES]
+
+function isSuccessStatus(status: string) {
+  return status === 'COMPLETED' || status === RCS_COMPLETED_STATUS
+}
 
 const workingAreaId = ref<string | null>(null)
 const selectedBoxTypeId = ref('')
@@ -91,7 +103,7 @@ function startPolling(taskDbId: string) {
         lastReleasedTask.value = match
         if (TERMINAL_STATUSES.includes(match.status)) {
           stopPolling()
-          if (match.status === 'COMPLETED') {
+          if (isSuccessStatus(match.status)) {
             advanceToNextArea()
           }
         }
@@ -108,6 +120,32 @@ const lastUpdatedLabel = computed(() =>
   lastUpdatedAt.value.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
 )
 
+// The "task in progress" lock only lived in this component's memory, so a
+// page refresh silently forgot it and let Release Task fire again while the
+// previous task was still running on RCS. Re-derive the lock from the
+// backend on every mount instead of trusting local state alone.
+async function restoreActiveTask() {
+  if (!user.value?.id) return
+  try {
+    const result = await fetchTasksSvc({
+      operatorId: user.value.id,
+      limit: 10,
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
+    })
+    const active = result.items.find(t => !TERMINAL_STATUSES.includes(t.status))
+    if (active) {
+      lastReleasedTask.value = active
+      if (active.productionLineAreaId) {
+        workingAreaId.value = active.productionLineAreaId
+      }
+      startPolling(active.id)
+    }
+  } catch {
+    // Non-fatal — worst case the page just starts as if it were a fresh session.
+  }
+}
+
 onMounted(async () => {
   await Promise.all([
     fetchProductionLines({ limit: 100 }),
@@ -120,6 +158,7 @@ onMounted(async () => {
   if (!selectedBoxTypeId.value && boxTypes.value[0]) {
     selectedBoxTypeId.value = boxTypes.value[0].id
   }
+  await restoreActiveTask()
 })
 
 // Super Admin can act on any production line; everyone else is restricted to

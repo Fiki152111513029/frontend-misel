@@ -18,6 +18,9 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const { items: modelCodeProcesses, fetchModelCodeProcesses } = useModelCodeProcesses()
+const activeModelCodeProcesses = computed(() => modelCodeProcesses.value.filter(process => process.isActive))
+
 const HEX_PATTERN = /^#[0-9A-Fa-f]{6}$/
 
 const name = ref('')
@@ -47,7 +50,10 @@ function resetFields() {
 watch(
   () => props.modelValue,
   (isOpen) => {
-    if (isOpen) resetFields()
+    if (isOpen) {
+      resetFields()
+      fetchModelCodeProcesses({ limit: 100 })
+    }
   },
   { immediate: true },
 )
@@ -140,13 +146,24 @@ const selectClass =
         </p>
       </div>
 
-      <UiBaseInput
-        v-model="modelProcessCode"
-        label="Model Process Code"
-        placeholder="liftshelf122"
-        required
-        :error="errors.modelProcessCode"
-      />
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-slate-700">
+          Model Process Code
+          <span class="ml-0.5 text-[#01ADEF]">*</span>
+        </label>
+        <select v-model="modelProcessCode" :class="selectClass">
+          <option value="" disabled>Select Model Process Code</option>
+          <option v-for="process in activeModelCodeProcesses" :key="process.id" :value="process.name">
+            {{ process.name }}
+          </option>
+        </select>
+        <p v-if="errors.modelProcessCode"
+          role="alert"
+          class="font-medium flex items-center gap-1.5 text-xs text-red-500"
+        >
+          {{ errors.modelProcessCode }}
+        </p>
+      </div>
 
       <div class="space-y-1.5">
         <label class="block text-sm font-medium text-slate-700">
