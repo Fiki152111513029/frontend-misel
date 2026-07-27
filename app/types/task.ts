@@ -48,6 +48,21 @@ export interface ReleaseTaskInput {
   taskAction: TaskAction
 }
 
+export interface RcsOrderRequest {
+  modelProcessCode: string
+  priority: number
+  fromSystem: string
+  orderId: string
+  taskOrderDetail: { taskPath: string }[]
+}
+
+export interface ReleaseTaskResult {
+  task: Task
+  rcsRequest: RcsOrderRequest
+  // Shape is whatever the RCS system returns — not ours to constrain.
+  rcsResponse: unknown
+}
+
 export type TaskSortBy = 'createdAt'
 export type TaskSortOrder = 'asc' | 'desc'
 

@@ -14,7 +14,7 @@ import {
   Wifi,
 } from 'lucide-vue-next'
 import { fetchTasks as fetchTasksSvc } from '~/services/task.service'
-import type { Task, TaskAction } from '~/types/task'
+import type { RcsOrderRequest, Task, TaskAction } from '~/types/task'
 
 definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'Mainline — Misel' })
@@ -37,6 +37,12 @@ const releasing = ref(false)
 const lastReleasedTask = ref<Task | null>(null)
 const queueNumber = ref<number | null>(null)
 const lastUpdatedAt = ref(new Date())
+
+// What we actually sent to / got back from the RCS system for the last
+// released task, so it can be inspected from the page instead of the
+// backend logs.
+const lastRcsExchange = ref<{ request: RcsOrderRequest, response: unknown } | null>(null)
+const showRcsModal = ref(false)
 
 // A released task locks Line Area switching until it reaches a terminal
 // status. Since completion happens on the robot/RCS side (not a frontend
@@ -175,16 +181,17 @@ async function handleReleaseTask() {
     return
   }
   releasing.value = true
-  const task = await releaseTask({
+  const result = await releaseTask({
     productionLineAreaId: workingArea.value.id,
     boxTypeId: selectedBoxType.value.id,
     taskAction: action,
   })
   releasing.value = false
-  if (task) {
-    lastReleasedTask.value = task
+  if (result) {
+    lastReleasedTask.value = result.task
+    lastRcsExchange.value = { request: result.rcsRequest, response: result.rcsResponse }
     queueNumber.value = (queueNumber.value ?? 0) + 1
-    startPolling(task.id)
+    startPolling(result.task.id)
   }
 }
 
@@ -353,6 +360,14 @@ function viewQueue() {
           <span class="font-semibold text-[#01ADEF]">{{ lastReleasedTask?.status ?? '-' }}</span>
         </p>
       </div>
+      <button
+        v-if="lastRcsExchange"
+        type="button"
+        class="shrink-0 rounded-xl border border-[#01ADEF]/30 bg-white px-3 py-2 text-xs font-semibold text-[#01ADEF] shadow-sm transition-colors hover:bg-[#01ADEF]/5"
+        @click="showRcsModal = true"
+      >
+        View RCS Request
+      </button>
     </div>
 
     <!-- Select action -->
@@ -493,5 +508,12 @@ function viewQueue() {
         </button>
       </div>
     </UiBaseModal>
+
+    <!-- RCS request/response -->
+    <UiJsonPayloadModal
+      v-model="showRcsModal"
+      title="RCS Request & Response"
+      :payload="lastRcsExchange"
+    />
   </div>
 </template>

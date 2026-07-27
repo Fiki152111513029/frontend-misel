@@ -16,10 +16,10 @@ export function useTasks() {
 
   async function releaseTask(input: ReleaseTaskInput) {
     try {
-      const task = await store.releaseTask(input)
-      toast.success(`Task ${task.taskId} released successfully`)
+      const result = await store.releaseTask(input)
+      toast.success(`Task ${result.task.taskId} released successfully`)
       await fetchTasks()
-      return task
+      return result
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : 'Failed to release task')
       return null

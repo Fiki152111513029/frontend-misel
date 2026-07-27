@@ -1,5 +1,6 @@
 import type {
   ReleaseTaskInput,
+  ReleaseTaskResult,
   Task,
   TaskListResult,
   TaskOperatorOption,
@@ -11,9 +12,9 @@ export async function fetchTasks(query: TaskQuery = {}): Promise<TaskListResult>
   return (await $http.get('/tasks', { params: query })) as TaskListResult
 }
 
-export async function releaseTask(input: ReleaseTaskInput): Promise<Task> {
+export async function releaseTask(input: ReleaseTaskInput): Promise<ReleaseTaskResult> {
   const { $http } = useNuxtApp()
-  return (await $http.post('/tasks/release', input)) as Task
+  return (await $http.post('/tasks/release', input)) as ReleaseTaskResult
 }
 
 export async function fetchTaskOperators(): Promise<TaskOperatorOption[]> {
