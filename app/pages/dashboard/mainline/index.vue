@@ -36,8 +36,29 @@ const RCS_COMPLETED_STATUS = '8'
 const RCS_FAILED_STATUSES = ['3', '5', '7']
 const TERMINAL_STATUSES = ['COMPLETED', 'FAILED', RCS_COMPLETED_STATUS, ...RCS_FAILED_STATUSES]
 
+const RCS_STATUS_LABELS: Record<string, string> = {
+  '3': 'Canceled',
+  '5': 'Sending failed',
+  '6': 'Running',
+  '7': 'Execution failed',
+  '8': 'Completed',
+  '9': 'Assigned',
+  '10': 'Wait for acknowledgment',
+  '20': 'Picking',
+  '21': 'Picked',
+  '22': 'Placing',
+  '23': 'Placed',
+}
+
 function isSuccessStatus(status: string) {
   return status === 'COMPLETED' || status === RCS_COMPLETED_STATUS
+}
+
+// Raw RCS codes aren't meaningful to read as-is — show the mapped label when
+// we know it, otherwise fall back to whatever the backend sent (our own
+// PENDING/IN_PROGRESS/etc. labels already read fine as-is).
+function statusLabel(status: string) {
+  return RCS_STATUS_LABELS[status] ?? status
 }
 
 const workingAreaId = ref<string | null>(null)
@@ -396,7 +417,7 @@ function viewQueue() {
         </p>
         <p class="font-medium text-slate-500">
           Status :
-          <span class="font-semibold text-[#01ADEF]">{{ lastReleasedTask?.status ?? '-' }}</span>
+          <span class="font-semibold text-[#01ADEF]">{{ lastReleasedTask ? statusLabel(lastReleasedTask.status) : '-' }}</span>
         </p>
       </div>
       <button
