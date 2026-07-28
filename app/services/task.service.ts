@@ -1,4 +1,5 @@
 import type {
+  ReleaseQuarantineTaskResult,
   ReleaseTaskInput,
   ReleaseTaskResult,
   Task,
@@ -24,6 +25,11 @@ export async function releaseTask(input: ReleaseTaskInput): Promise<ReleaseTaskR
     return raw as ReleaseTaskResult
   }
   return { task: raw as Task, rcsRequest: null, rcsResponse: null }
+}
+
+export async function releaseQuarantineTask(id: string): Promise<ReleaseQuarantineTaskResult> {
+  const { $http } = useNuxtApp()
+  return (await $http.post(`/tasks/${id}/release-quarantine`)) as ReleaseQuarantineTaskResult
 }
 
 export async function fetchTaskOperators(): Promise<TaskOperatorOption[]> {

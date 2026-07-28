@@ -8,13 +8,13 @@ useHead({ title: 'Quarantines Tasks — Misel' })
 const SERVER_SORT_KEYS = ['createdAt'] as const
 const STATUS_OPTIONS: TaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED']
 
-const { items, meta, loading, filters, operators, fetchTasks, fetchTaskOperators, setFilters } = useTasks()
-const toast = useToast()
+const { items, meta, loading, filters, operators, fetchTasks, fetchTaskOperators, releaseQuarantineTask, setFilters } = useTasks()
 
 const dateFrom = ref('')
 const dateTo = ref('')
 const operatorId = ref('')
 const statusFilter = ref('')
+const releasingTaskId = ref<string | null>(null)
 
 function applyFilters() {
   setFilters({
@@ -88,8 +88,10 @@ function handleLimitChange(limit: number) {
   fetchTasks()
 }
 
-function viewTask(task: Task) {
-  toast.success(`Detail view for ${task.taskId} is coming soon`)
+async function handleRelease(task: Task) {
+  releasingTaskId.value = task.id
+  await releaseQuarantineTask(task.id)
+  releasingTaskId.value = null
 }
 </script>
 
@@ -145,7 +147,8 @@ function viewTask(task: Task) {
       :loading="loading"
       :sort-by="clientSort?.key ?? filters.sortBy"
       :sort-order="clientSort?.order ?? filters.sortOrder"
-      @view="viewTask"
+      :releasing-task-id="releasingTaskId"
+      @release="handleRelease"
       @sort="handleSort"
     />
 

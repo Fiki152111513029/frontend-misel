@@ -23,43 +23,9 @@ const { user, hasPermission } = useAuth()
 const { items: productionLines, fetchProductionLines } = useProductionLines()
 const { items: productionLineAreas, fetchProductionLineAreas } = useProductionLineAreas()
 const { items: boxTypes, fetchBoxTypes } = useBoxTypes()
+const { items: quarantineAreas, fetchQuarantineAreas } = useQuarantineAreas()
 const { releaseTask } = useTasks()
 const toast = useToast()
-
-// Once a matching live order is found, the backend overwrites Task.status
-// with the RCS system's own raw OrderStatus code (a number, serialized as a
-// string) instead of our own PENDING/IN_PROGRESS/COMPLETED/FAILED — so both
-// vocabularies have to be recognized here. Per RCS: 3 Canceled, 5 Sending
-// failed, 6 Running, 7 Execution failed, 8 Completed, 9 Assigned, 10 Wait
-// for acknowledgment, 20 Picking, 21 Picked, 22 Placing, 23 Placed.
-const RCS_COMPLETED_STATUS = '8'
-const RCS_FAILED_STATUSES = ['3', '5', '7']
-const TERMINAL_STATUSES = ['COMPLETED', 'FAILED', RCS_COMPLETED_STATUS, ...RCS_FAILED_STATUSES]
-
-const RCS_STATUS_LABELS: Record<string, string> = {
-  '3': 'Canceled',
-  '5': 'Sending failed',
-  '6': 'Running',
-  '7': 'Execution failed',
-  '8': 'Completed',
-  '9': 'Assigned',
-  '10': 'Wait for acknowledgment',
-  '20': 'Picking',
-  '21': 'Picked',
-  '22': 'Placing',
-  '23': 'Placed',
-}
-
-function isSuccessStatus(status: string) {
-  return status === 'COMPLETED' || status === RCS_COMPLETED_STATUS
-}
-
-// Raw RCS codes aren't meaningful to read as-is — show the mapped label when
-// we know it, otherwise fall back to whatever the backend sent (our own
-// PENDING/IN_PROGRESS/etc. labels already read fine as-is).
-function statusLabel(status: string) {
-  return RCS_STATUS_LABELS[status] ?? status
-}
 
 const workingAreaId = ref<string | null>(null)
 const selectedBoxTypeId = ref('')
@@ -82,7 +48,7 @@ const showRcsModal = ref(false)
 // action), we poll for the latest status instead of just trusting the
 // release response.
 const isTaskActive = computed(
-  () => !!lastReleasedTask.value && !TERMINAL_STATUSES.includes(lastReleasedTask.value.status),
+  () => !!lastReleasedTask.value && !isTaskTerminal(lastReleasedTask.value.status),
 )
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
@@ -122,9 +88,9 @@ function startPolling(taskDbId: string) {
       const match = result.items.find(t => t.id === taskDbId)
       if (match) {
         lastReleasedTask.value = match
-        if (TERMINAL_STATUSES.includes(match.status)) {
+        if (isTaskTerminal(match.status)) {
           stopPolling()
-          if (isSuccessStatus(match.status)) {
+          if (isTaskCompleted(match.status)) {
             advanceToNextArea()
           }
         }
@@ -154,7 +120,7 @@ async function restoreActiveTask() {
       sortBy: 'createdAt',
       sortOrder: 'desc',
     })
-    const active = result.items.find(t => !TERMINAL_STATUSES.includes(t.status))
+    const active = result.items.find(t => !isTaskTerminal(t.status))
     if (active) {
       lastReleasedTask.value = active
       if (active.productionLineAreaId) {
@@ -172,6 +138,7 @@ onMounted(async () => {
     fetchProductionLines({ limit: 100 }),
     fetchProductionLineAreas({ limit: 100 }),
     fetchBoxTypes({ limit: 100 }),
+    fetchQuarantineAreas({ limit: 100 }),
   ])
   if (!workingAreaId.value && myAreas.value[0]) {
     workingAreaId.value = myAreas.value[0].id
@@ -179,7 +146,7 @@ onMounted(async () => {
   if (!selectedBoxTypeId.value && boxTypes.value[0]) {
     selectedBoxTypeId.value = boxTypes.value[0].id
   }
-  await restoreActiveTask()
+  await Promise.all([restoreActiveTask(), refreshQuarantineProgress()])
 })
 
 // Super Admin can act on any production line; everyone else is restricted to
@@ -200,6 +167,46 @@ const workingArea = computed(
 const workingLine = computed(
   () => myLines.value.find((line) => line.id === workingArea.value?.productionLineId) ?? null,
 )
+
+// Quarantine Areas belonging to the working line's Quarantine Line, and how
+// many of them already have a task recorded against them (i.e. their
+// quarantine leg has been started) — shown as an X/Y progress indicator.
+const workingLineQuarantineAreas = computed(() =>
+  workingLine.value
+    ? quarantineAreas.value.filter(a => a.quarantineLineId === workingLine.value?.quarantineLineId)
+    : [],
+)
+
+const filledQuarantineAreaIds = ref<Set<string>>(new Set())
+
+async function refreshQuarantineProgress() {
+  try {
+    const result = await fetchTasksSvc({
+      taskAction: 'NOT_STANDARD',
+      limit: 200,
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
+    })
+    filledQuarantineAreaIds.value = new Set(
+      result.items
+        .map(t => t.quarantineAreaId)
+        .filter((id): id is string => !!id),
+    )
+  } catch {
+    // Non-fatal — the ratio just won't update this tick.
+  }
+}
+
+const quarantineProgress = computed(() => {
+  const areas = workingLineQuarantineAreas.value
+  if (areas.length === 0) return null
+  const filled = areas.filter(a => filledQuarantineAreaIds.value.has(a.id)).length
+  return { filled, total: areas.length }
+})
+
+watch(workingLine, () => {
+  refreshQuarantineProgress()
+})
 
 function setWorkingArea(id: string) {
   if (isTaskActive.value && id !== workingAreaId.value) {
@@ -385,6 +392,10 @@ function viewQueue() {
           <p class="font-medium relative mt-1 text-xs text-slate-400">
             Quarantine line for {{ workingLine.name }}
           </p>
+          <p v-if="quarantineProgress" class="font-medium relative mt-2 text-xs text-slate-500">
+            <span class="font-bold text-red-500">{{ quarantineProgress.filled }}</span>
+            / {{ quarantineProgress.total }} Quarantine Areas filled
+          </p>
           <div class="relative mt-6 flex items-end justify-end">
             <span class="inline-flex items-center gap-1 text-xs font-semibold text-[#01ADEF]">
               View Details
@@ -419,7 +430,7 @@ function viewQueue() {
         </p>
         <p class="font-medium text-slate-500">
           Status :
-          <span class="font-semibold text-[#01ADEF]">{{ lastReleasedTask ? statusLabel(lastReleasedTask.status) : '-' }}</span>
+          <span class="font-semibold text-[#01ADEF]">{{ lastReleasedTask ? taskStatusLabel(lastReleasedTask.status) : '-' }}</span>
         </p>
       </div>
       <button

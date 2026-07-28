@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { ChevronDown, ChevronUp, Eye } from 'lucide-vue-next'
+import { ChevronDown, ChevronUp, Truck } from 'lucide-vue-next'
 import type { Task, TaskSortBy, TaskSortOrder } from '~/types/task'
 
 export type QuarantineTaskSortKey =
@@ -17,12 +17,17 @@ interface Props {
   loading: boolean
   sortBy?: QuarantineTaskSortKey
   sortOrder?: TaskSortOrder
+  // id of the task currently being released, so only that row's button shows
+  // a loading state (releasing one task shouldn't disable every row).
+  releasingTaskId?: string | null
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  releasingTaskId: null,
+})
 
 const emit = defineEmits<{
-  view: [task: Task]
+  release: [task: Task]
   sort: [patch: { sortBy: QuarantineTaskSortKey, sortOrder: TaskSortOrder }]
 }>()
 
@@ -124,12 +129,14 @@ function formatDate(value: string) {
           </td>
           <td class="px-4 py-3">
             <button
+              v-if="isTaskCompleted(item.status)"
               type="button"
-              class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#01ADEF] transition-colors"
-              aria-label="View"
-              @click="emit('view', item)"
+              class="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#2F6FED] to-[#1D4FD8] px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:from-[#2660D9] hover:to-[#173FB0] disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="releasingTaskId === item.id"
+              @click="emit('release', item)"
             >
-              <Eye class="h-4 w-4" />
+              <Truck class="h-3.5 w-3.5" />
+              {{ releasingTaskId === item.id ? 'Releasing…' : 'Release' }}
             </button>
           </td>
         </tr>

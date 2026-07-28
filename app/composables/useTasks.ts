@@ -26,6 +26,18 @@ export function useTasks() {
     }
   }
 
+  async function releaseQuarantineTask(id: string) {
+    try {
+      const result = await store.releaseQuarantineTask(id)
+      toast.success('Quarantine task released successfully')
+      await fetchTasks()
+      return result
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to release quarantine task')
+      return null
+    }
+  }
+
   async function fetchTaskOperators() {
     try {
       await store.loadOperators()
@@ -54,6 +66,7 @@ export function useTasks() {
     operators: computed(() => store.operators),
     fetchTasks,
     releaseTask,
+    releaseQuarantineTask,
     fetchTaskOperators,
     cancelTask,
     setFilters: store.setFilters,

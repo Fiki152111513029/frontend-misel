@@ -38,6 +38,10 @@ export const useTasksStore = defineStore('tasks', () => {
     return taskService.releaseTask(input)
   }
 
+  async function releaseQuarantineTask(id: string) {
+    return taskService.releaseQuarantineTask(id)
+  }
+
   async function cancelTask(id: string) {
     return taskService.cancelTask(id)
   }
@@ -56,6 +60,7 @@ export const useTasksStore = defineStore('tasks', () => {
     loadTasks,
     loadOperators,
     releaseTask,
+    releaseQuarantineTask,
     cancelTask,
     setFilters,
   }

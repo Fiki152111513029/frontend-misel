@@ -65,6 +65,11 @@ export interface ReleaseTaskResult {
   rcsResponse: unknown
 }
 
+export interface ReleaseQuarantineTaskResult {
+  rcsRequest: RcsOrderRequest
+  rcsResponse: unknown
+}
+
 export type TaskSortBy = 'createdAt'
 export type TaskSortOrder = 'asc' | 'desc'
 
