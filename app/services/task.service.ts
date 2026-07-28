@@ -14,7 +14,16 @@ export async function fetchTasks(query: TaskQuery = {}): Promise<TaskListResult>
 
 export async function releaseTask(input: ReleaseTaskInput): Promise<ReleaseTaskResult> {
   const { $http } = useNuxtApp()
-  return (await $http.post('/tasks/release', input)) as ReleaseTaskResult
+  const raw = (await $http.post('/tasks/release', input)) as unknown
+
+  // Tolerate an older backend that returned the Task directly instead of
+  // { task, rcsRequest, rcsResponse } — a deploy-order mismatch between
+  // frontend/backend should degrade gracefully instead of throwing deep in
+  // a .task.taskId access and surfacing as a confusing "failed" toast.
+  if (raw && typeof raw === 'object' && 'task' in raw) {
+    return raw as ReleaseTaskResult
+  }
+  return { task: raw as Task, rcsRequest: null, rcsResponse: null }
 }
 
 export async function fetchTaskOperators(): Promise<TaskOperatorOption[]> {

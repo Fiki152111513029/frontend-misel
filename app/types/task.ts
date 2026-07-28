@@ -58,7 +58,9 @@ export interface RcsOrderRequest {
 
 export interface ReleaseTaskResult {
   task: Task
-  rcsRequest: RcsOrderRequest
+  // Null when an older backend returned the Task directly without the RCS
+  // exchange — see services/task.service.ts.
+  rcsRequest: RcsOrderRequest | null
   // Shape is whatever the RCS system returns — not ours to constrain.
   rcsResponse: unknown
 }

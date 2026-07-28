@@ -249,7 +249,9 @@ async function handleReleaseTask() {
   releasing.value = false
   if (result) {
     lastReleasedTask.value = result.task
-    lastRcsExchange.value = { request: result.rcsRequest, response: result.rcsResponse }
+    lastRcsExchange.value = result.rcsRequest
+      ? { request: result.rcsRequest, response: result.rcsResponse }
+      : null
     queueNumber.value = (queueNumber.value ?? 0) + 1
     startPolling(result.task.id)
   }
