@@ -20,3 +20,15 @@ export interface WebhookLogQuery {
   sortBy?: WebhookLogSortBy
   sortOrder?: WebhookLogSortOrder
 }
+
+export interface WebhookLogListMeta {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
+export interface WebhookLogListResult {
+  items: WebhookLog[]
+  meta: WebhookLogListMeta
+}

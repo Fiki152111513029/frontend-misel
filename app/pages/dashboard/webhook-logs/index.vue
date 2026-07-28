@@ -4,7 +4,11 @@ import type { WebhookLogSortBy, WebhookLogSortOrder } from '~/components/webhook
 definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'ICS Webhook Logs — Misel' })
 
-const { webhookLogs, loading } = useWebhookLogs()
+const { webhookLogs, loading, fetchWebhookLogs } = useWebhookLogs()
+
+onMounted(() => {
+  fetchWebhookLogs()
+})
 
 const dateFrom = ref('')
 const dateTo = ref('')
