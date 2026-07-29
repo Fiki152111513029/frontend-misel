@@ -127,7 +127,6 @@ function isGroupActive(menu: MenuGroup) {
 }
 
 const OPEN_GROUPS_STORAGE_KEY = 'sidebar-open-groups'
-const COLLAPSED_STORAGE_KEY = 'sidebar-collapsed'
 
 const openGroups = reactive<Record<string, boolean>>({})
 menus.value.forEach((menu) => {
@@ -135,9 +134,9 @@ menus.value.forEach((menu) => {
     openGroups[menu.title] = isGroupActive(menu)
 })
 
-// Restore the user's last open/closed state after mount so a refresh
-// doesn't force a group open again just because its route is active,
-// and restore whether the sidebar itself was collapsed (icon-only) too.
+// Restore the user's last open/closed group state after mount so a refresh
+// doesn't force a group open again just because its route is active.
+// (Collapsed state itself is owned by the sidebar store, not here.)
 onMounted(() => {
   try {
     const saved = JSON.parse(localStorage.getItem(OPEN_GROUPS_STORAGE_KEY) ?? '{}')
@@ -147,19 +146,11 @@ onMounted(() => {
     })
   }
   catch {}
-
-  const savedCollapsed = localStorage.getItem(COLLAPSED_STORAGE_KEY)
-  if (savedCollapsed !== null && (savedCollapsed === 'true') !== isCollapsed.value)
-    toggleCollapse()
 })
 
 watch(openGroups, (value) => {
   localStorage.setItem(OPEN_GROUPS_STORAGE_KEY, JSON.stringify(value))
 }, { deep: true })
-
-watch(isCollapsed, (value) => {
-  localStorage.setItem(COLLAPSED_STORAGE_KEY, String(value))
-})
 
 function toggleGroup(title: string) {
   if (isCollapsed.value)
