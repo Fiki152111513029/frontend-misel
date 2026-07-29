@@ -13,8 +13,10 @@ import {
   Truck,
   Wifi,
 } from 'lucide-vue-next'
-import { fetchTasks as fetchTasksSvc } from '~/services/task.service'
+import { fetchTaskSequence, fetchTasks as fetchTasksSvc } from '~/services/task.service'
+import { fetchLatestWebhookStatus } from '~/services/webhook-log.service'
 import type { RcsOrderRequest, Task, TaskAction } from '~/types/task'
+import type { LatestWebhookStatus } from '~/types/webhook-log'
 
 definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'Mainline — Misel' })
@@ -36,6 +38,27 @@ const releasing = ref(false)
 const lastReleasedTask = ref<Task | null>(null)
 const queueNumber = ref<number | null>(null)
 const lastUpdatedAt = ref(new Date())
+
+// Live off the raw webhook payload — never persisted to Task, so it's
+// fetched fresh on the same 5-second cadence as the task-status poll.
+const webhookStatus = ref<LatestWebhookStatus | null>(null)
+
+async function refreshQueueNumber(taskDbId: string) {
+  try {
+    const { sequenceNumber } = await fetchTaskSequence(taskDbId)
+    queueNumber.value = sequenceNumber
+  } catch {
+    // Non-fatal — "No urut" just stays blank this tick.
+  }
+}
+
+async function refreshWebhookStatus(taskId: string) {
+  try {
+    webhookStatus.value = await fetchLatestWebhookStatus(taskId)
+  } catch {
+    // Non-fatal — the webhook-derived fields just stay stale this tick.
+  }
+}
 
 // What we actually sent to / got back from the RCS system for the last
 // released task, so it can be inspected from the page instead of the
@@ -75,9 +98,10 @@ function advanceToNextArea() {
   }
 }
 
-function startPolling(taskDbId: string) {
+function startPolling(taskDbId: string, taskId: string) {
   stopPolling()
   pollTimer = setInterval(async () => {
+    await refreshWebhookStatus(taskId)
     try {
       const result = await fetchTasksSvc({
         operatorId: user.value?.id,
@@ -126,7 +150,11 @@ async function restoreActiveTask() {
       if (active.productionLineAreaId) {
         workingAreaId.value = active.productionLineAreaId
       }
-      startPolling(active.id)
+      await Promise.all([
+        refreshQueueNumber(active.id),
+        refreshWebhookStatus(active.taskId),
+      ])
+      startPolling(active.id, active.taskId)
     }
   } catch {
     // Non-fatal — worst case the page just starts as if it were a fresh session.
@@ -259,8 +287,12 @@ async function handleReleaseTask() {
     lastRcsExchange.value = result.rcsRequest
       ? { request: result.rcsRequest, response: result.rcsResponse }
       : null
-    queueNumber.value = (queueNumber.value ?? 0) + 1
-    startPolling(result.task.id)
+    webhookStatus.value = null
+    await Promise.all([
+      refreshQueueNumber(result.task.id),
+      refreshWebhookStatus(result.task.taskId),
+    ])
+    startPolling(result.task.id, result.task.taskId)
   }
 }
 
@@ -430,7 +462,16 @@ function viewQueue() {
         </p>
         <p class="font-medium text-slate-500">
           Status :
-          <span class="font-semibold text-[#01ADEF]">{{ lastReleasedTask ? taskStatusLabel(lastReleasedTask.status) : '-' }}</span>
+          <span class="font-semibold text-[#01ADEF]">
+            {{ webhookStatus?.status ? taskStatusLabel(webhookStatus.status) : lastReleasedTask ? taskStatusLabel(lastReleasedTask.status) : '-' }}
+          </span>
+        </p>
+        <p class="font-medium text-slate-500">
+          subTaskSeq :
+          <span class="font-medium text-[#0F1F52]">
+            {{ webhookStatus?.subTaskSeq ?? '-' }}
+            <template v-if="webhookStatus?.statusComment"> — {{ webhookStatus.statusComment }}</template>
+          </span>
         </p>
       </div>
       <button

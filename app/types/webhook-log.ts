@@ -32,3 +32,13 @@ export interface WebhookLogListResult {
   items: WebhookLog[]
   meta: WebhookLogListMeta
 }
+
+export interface LatestWebhookStatus {
+  status: string | null
+  subTaskSeq: string | null
+  // ModelCodeProcess.statusComment{subTaskSeq} for the Model Code Process
+  // actually used by this task — wording differs per process, so this is
+  // resolved server-side rather than shown as a bare 1-8 number.
+  statusComment: string | null
+  receivedAt: string
+}

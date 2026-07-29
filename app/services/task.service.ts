@@ -37,6 +37,14 @@ export async function fetchTaskOperators(): Promise<TaskOperatorOption[]> {
   return (await $http.get('/tasks/operators')) as TaskOperatorOption[]
 }
 
+// This task's position among everything its operator has ever released —
+// computed live from createdAt/operatorId, so it survives a page refresh
+// instead of resetting like a client-side counter would.
+export async function fetchTaskSequence(id: string): Promise<{ sequenceNumber: number }> {
+  const { $http } = useNuxtApp()
+  return (await $http.get(`/tasks/${id}/sequence`)) as { sequenceNumber: number }
+}
+
 export async function cancelTask(id: string): Promise<Task> {
   const { $http } = useNuxtApp()
   return (await $http.patch(`/tasks/${id}/cancel`)) as Task

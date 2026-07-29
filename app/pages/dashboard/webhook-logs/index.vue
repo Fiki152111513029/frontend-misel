@@ -6,8 +6,20 @@ useHead({ title: 'ICS Webhook Logs — Misel' })
 
 const { webhookLogs, loading, fetchWebhookLogs } = useWebhookLogs()
 
+let refreshTimer: ReturnType<typeof setInterval> | null = null
+
 onMounted(() => {
   fetchWebhookLogs()
+  refreshTimer = setInterval(() => {
+    fetchWebhookLogs()
+  }, 5000)
+})
+
+onBeforeUnmount(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
 })
 
 const dateFrom = ref('')

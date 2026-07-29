@@ -9,7 +9,10 @@ export const useWebhookLogsStore = defineStore('webhook-logs', () => {
   const error = ref<string | null>(null)
 
   async function loadWebhookLogs(query?: WebhookLogQuery) {
-    loading.value = true
+    // Only show the loading state on a genuine first load — this store gets
+    // polled every 5s for auto-refresh, and re-blanking the table on every
+    // tick would flash distractingly instead of just swapping in fresh rows.
+    if (items.value.length === 0) loading.value = true
     error.value = null
     try {
       const result = await webhookLogService.fetchWebhookLogs(query)
