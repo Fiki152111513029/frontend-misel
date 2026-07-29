@@ -9,6 +9,7 @@ definePageMeta({
 useHead({ title: 'Sign In — Misel' })
 
 const { login } = useAuth()
+const { collapse } = useSidebar()
 const router = useRouter()
 
 const serverError = ref<string | null>(null)
@@ -19,7 +20,12 @@ async function handleLogin(credentials: { identifier: string; password: string; 
   isSubmitting.value = true
   const result = await login(credentials)
   if (result.success) {
-    await router.push('/dashboard')
+    if (result.user?.role === 'Operator') {
+      collapse()
+      await router.push('/dashboard/mainline')
+    } else {
+      await router.push('/dashboard')
+    }
   } else {
     serverError.value = result.message ?? 'Login failed. Please try again.'
   }

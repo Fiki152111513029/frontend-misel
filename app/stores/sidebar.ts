@@ -6,6 +6,10 @@ export const useSidebarStore = defineStore('sidebar', () => {
     isCollapsed.value = !isCollapsed.value
   }
 
+  function collapse() {
+    isCollapsed.value = true
+  }
+
   function openMobile() {
     isMobileOpen.value = true
   }
@@ -18,5 +22,5 @@ export const useSidebarStore = defineStore('sidebar', () => {
     isMobileOpen.value = !isMobileOpen.value
   }
 
-  return { isCollapsed, isMobileOpen, toggleCollapse, openMobile, closeMobile, toggleMobile }
+  return { isCollapsed, isMobileOpen, toggleCollapse, collapse, openMobile, closeMobile, toggleMobile }
 })
