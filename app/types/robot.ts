@@ -50,3 +50,38 @@ export interface RobotListResult {
   items: Robot[]
   meta: RobotListMeta
 }
+
+export interface RobotActivityLog {
+  id: string
+  robotId: string | null
+  deviceCode: string
+  deviceName: string
+  speed: number | null
+  battery: number | null
+  status: number | null
+  state: string | null
+  position: string | null
+  payload: string | null
+  orientation: number | null
+  recordedAt: string
+}
+
+export interface RobotActivityQuery {
+  page?: number
+  limit?: number
+  startDate?: string
+  endDate?: string
+}
+
+export interface RobotActivityListMeta {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
+export interface RobotActivityResult {
+  robot: { id: string, name: string }
+  items: RobotActivityLog[]
+  meta: RobotActivityListMeta
+}

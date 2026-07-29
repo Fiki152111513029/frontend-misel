@@ -1,6 +1,8 @@
 import type {
   CreateRobotInput,
   Robot,
+  RobotActivityQuery,
+  RobotActivityResult,
   RobotListResult,
   RobotQuery,
   UpdateRobotInput,
@@ -29,4 +31,12 @@ export async function updateRobot(id: string, input: UpdateRobotInput): Promise<
 export async function deleteRobot(id: string): Promise<null> {
   const { $http } = useNuxtApp()
   return (await $http.delete(`/robots/${id}`)) as null
+}
+
+export async function fetchRobotActivity(
+  id: string,
+  query: RobotActivityQuery = {},
+): Promise<RobotActivityResult> {
+  const { $http } = useNuxtApp()
+  return (await $http.get(`/robots/${id}/activity`, { params: query })) as RobotActivityResult
 }

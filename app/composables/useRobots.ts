@@ -64,8 +64,9 @@ export function useRobots() {
     return store.pollRobots()
   }
 
-  // Reset and Suspend are UI placeholders for now — real behavior comes with the
-  // telemetry/control API that will replace the manual Speed/Battery/State fields.
+  // Reset/Suspend are UI placeholders for now — real behavior comes with the
+  // telemetry/control API that will replace the manual Speed/Battery/State
+  // fields. ("Act" navigates to the real Robot Activity page instead.)
   function resetRobot(robot: Robot) {
     toast.success(`Reset requested for ${robot.name} (not wired to a real action yet)`)
   }

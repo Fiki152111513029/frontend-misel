@@ -25,6 +25,10 @@ const {
   setFilters,
 } = useRobots()
 
+function viewActivity(robot: Robot) {
+  navigateTo(`/dashboard/robots/${robot.id}/activity`)
+}
+
 // Only name and createdAt are sortable server-side — the remaining columns
 // are sorted client-side over the currently loaded page only.
 const clientSort = ref<{ key: RobotSortKey, order: 'asc' | 'desc' } | null>(null)
@@ -151,6 +155,7 @@ function handleSort(patch: { sortBy: RobotSortKey, sortOrder: 'asc' | 'desc' }) 
       :sort-order="clientSort?.order ?? filters.sortOrder"
       @edit="openEdit"
       @delete="openDelete"
+      @view-activity="viewActivity"
       @reset="resetRobot"
       @suspend="suspendRobot"
       @sort="handleSort"
