@@ -65,6 +65,11 @@ const deletingRobot = ref<Robot | null>(null)
 const submitting = ref(false)
 const deleting = ref(false)
 
+const showControlDialog = ref(false)
+const controlAction = ref<'suspend' | 'restore'>('suspend')
+const controllingRobot = ref<Robot | null>(null)
+const controlling = ref(false)
+
 onMounted(() => {
   fetchRobots()
 })
@@ -102,6 +107,28 @@ async function handleDeleteConfirm() {
   const ok = await deleteRobot(deletingRobot.value.id)
   deleting.value = false
   if (ok) showDeleteDialog.value = false
+}
+
+function openSuspend(robot: Robot) {
+  controllingRobot.value = robot
+  controlAction.value = 'suspend'
+  showControlDialog.value = true
+}
+
+function openReset(robot: Robot) {
+  controllingRobot.value = robot
+  controlAction.value = 'restore'
+  showControlDialog.value = true
+}
+
+async function handleControlConfirm() {
+  if (!controllingRobot.value) return
+  controlling.value = true
+  const ok = controlAction.value === 'suspend'
+    ? await suspendRobot(controllingRobot.value)
+    : await resetRobot(controllingRobot.value)
+  controlling.value = false
+  if (ok) showControlDialog.value = false
 }
 
 function handleFilterChange(patch: Partial<typeof filters.value>) {
@@ -156,8 +183,8 @@ function handleSort(patch: { sortBy: RobotSortKey, sortOrder: 'asc' | 'desc' }) 
       @edit="openEdit"
       @delete="openDelete"
       @view-activity="viewActivity"
-      @reset="resetRobot"
-      @suspend="suspendRobot"
+      @reset="openReset"
+      @suspend="openSuspend"
       @sort="handleSort"
     />
 
@@ -186,6 +213,15 @@ function handleSort(patch: { sortBy: RobotSortKey, sortOrder: 'asc' | 'desc' }) 
       :deleting="deleting"
       @confirm="handleDeleteConfirm"
       @cancel="showDeleteDialog = false"
+    />
+
+    <RobotsControlDialog
+      v-model="showControlDialog"
+      :robot="controllingRobot"
+      :action="controlAction"
+      :submitting="controlling"
+      @confirm="handleControlConfirm"
+      @cancel="showControlDialog = false"
     />
   </div>
 </template>

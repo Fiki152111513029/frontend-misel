@@ -40,8 +40,16 @@ const queueNumber = ref<number | null>(null)
 const lastUpdatedAt = ref(new Date())
 
 // Live off the raw webhook payload — never persisted to Task, so it's
-// fetched fresh on the same 5-second cadence as the task-status poll.
+// fetched fresh on the same cadence as the task-status poll.
 const webhookStatus = ref<LatestWebhookStatus | null>(null)
+
+// How often we poll, and how long we keep polling after the task goes
+// terminal before giving up and blanking the Current Queue back to "-".
+// The faster cadence is because the last webhook update sometimes arrives a
+// beat late — RCS's status occasionally still shows the step before the
+// truly final one for a moment.
+const POLL_INTERVAL_MS = 3000
+const TERMINAL_GRACE_MS = 5000
 
 async function refreshQueueNumber(taskDbId: string) {
   try {
@@ -75,12 +83,23 @@ const isTaskActive = computed(
 )
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
+let terminalSince: number | null = null
 
 function stopPolling() {
   if (pollTimer) {
     clearInterval(pollTimer)
     pollTimer = null
   }
+  terminalSince = null
+}
+
+// Reset the Current Queue card back to its blank "-" state once a finished
+// task's grace period has elapsed with no further update.
+function clearCurrentQueue() {
+  lastReleasedTask.value = null
+  webhookStatus.value = null
+  queueNumber.value = null
+  lastRcsExchange.value = null
 }
 
 // On completion, automatically move to the next Line Area in the list
@@ -113,16 +132,27 @@ function startPolling(taskDbId: string, taskId: string) {
       if (match) {
         lastReleasedTask.value = match
         if (isTaskTerminal(match.status)) {
-          stopPolling()
-          if (isTaskCompleted(match.status)) {
-            advanceToNextArea()
+          if (terminalSince === null) {
+            // First tick we've seen this task as finished — run the
+            // one-time completion side effect, then start the grace window
+            // (a slightly late webhook update can still land after this).
+            terminalSince = Date.now()
+            if (isTaskCompleted(match.status)) {
+              advanceToNextArea()
+            }
           }
+          if (Date.now() - terminalSince >= TERMINAL_GRACE_MS) {
+            stopPolling()
+            clearCurrentQueue()
+          }
+        } else {
+          terminalSince = null
         }
       }
     } catch {
       // Transient error — the next tick retries.
     }
-  }, 5000)
+  }, POLL_INTERVAL_MS)
 }
 
 onBeforeUnmount(() => stopPolling())

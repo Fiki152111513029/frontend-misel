@@ -33,6 +33,11 @@ export async function deleteRobot(id: string): Promise<null> {
   return (await $http.delete(`/robots/${id}`)) as null
 }
 
+export async function controlRobot(id: string, controlWay: 0 | 1): Promise<unknown> {
+  const { $http } = useNuxtApp()
+  return await $http.post(`/robots/${id}/control`, { controlWay })
+}
+
 export async function fetchRobotActivity(
   id: string,
   query: RobotActivityQuery = {},

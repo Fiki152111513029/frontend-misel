@@ -1,4 +1,4 @@
-import { fetchRobot as fetchRobotSvc } from '~/services/robot.service'
+import { controlRobot as controlRobotSvc, fetchRobot as fetchRobotSvc } from '~/services/robot.service'
 import { ApiError } from '~/types/api'
 import type { CreateRobotInput, Robot, RobotQuery, UpdateRobotInput } from '~/types/robot'
 
@@ -64,15 +64,29 @@ export function useRobots() {
     return store.pollRobots()
   }
 
-  // Reset/Suspend are UI placeholders for now — real behavior comes with the
-  // telemetry/control API that will replace the manual Speed/Battery/State
-  // fields. ("Act" navigates to the real Robot Activity page instead.)
-  function resetRobot(robot: Robot) {
-    toast.success(`Reset requested for ${robot.name} (not wired to a real action yet)`)
+  // Susp/Rest call the external AMR fleet's controlDevice API directly
+  // (controlWay 0 = suspend, 1 = restore). ("Act" navigates to the real
+  // Robot Activity page instead.)
+  async function suspendRobot(robot: Robot) {
+    try {
+      await controlRobotSvc(robot.id, 0)
+      toast.success(`Suspend command sent to ${robot.name}`)
+      return true
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to suspend robot')
+      return false
+    }
   }
 
-  function suspendRobot(robot: Robot) {
-    toast.success(`Suspend requested for ${robot.name} (not wired to a real action yet)`)
+  async function resetRobot(robot: Robot) {
+    try {
+      await controlRobotSvc(robot.id, 1)
+      toast.success(`Restore command sent to ${robot.name}`)
+      return true
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to restore robot')
+      return false
+    }
   }
 
   return {
