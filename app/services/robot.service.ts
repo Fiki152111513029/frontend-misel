@@ -1,6 +1,5 @@
 import type {
   CreateRobotInput,
-  FactoryMapData,
   Robot,
   RobotActivityQuery,
   RobotActivityResult,
@@ -43,11 +42,6 @@ export async function controlRobot(id: string, controlWay: 0 | 1): Promise<unkno
 export async function fetchRobotSystemStatus(): Promise<RobotSystemStatus> {
   const { $http } = useNuxtApp()
   return (await $http.get('/robots/system-status')) as RobotSystemStatus
-}
-
-export async function fetchFactoryMap(): Promise<FactoryMapData> {
-  const { $http } = useNuxtApp()
-  return (await $http.get('/robots/factory-map')) as FactoryMapData
 }
 
 export async function fetchRobotActivity(
