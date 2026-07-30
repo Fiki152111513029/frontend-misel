@@ -85,3 +85,8 @@ export interface RobotActivityResult {
   items: RobotActivityLog[]
   meta: RobotActivityListMeta
 }
+
+export interface RobotSystemStatus {
+  online: boolean
+  checkedAt: string
+}

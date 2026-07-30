@@ -5,6 +5,7 @@ import type {
   RobotActivityResult,
   RobotListResult,
   RobotQuery,
+  RobotSystemStatus,
   UpdateRobotInput,
 } from '~/types/robot'
 
@@ -36,6 +37,11 @@ export async function deleteRobot(id: string): Promise<null> {
 export async function controlRobot(id: string, controlWay: 0 | 1): Promise<unknown> {
   const { $http } = useNuxtApp()
   return await $http.post(`/robots/${id}/control`, { controlWay })
+}
+
+export async function fetchRobotSystemStatus(): Promise<RobotSystemStatus> {
+  const { $http } = useNuxtApp()
+  return (await $http.get('/robots/system-status')) as RobotSystemStatus
 }
 
 export async function fetchRobotActivity(

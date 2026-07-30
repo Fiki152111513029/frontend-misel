@@ -13,8 +13,10 @@ import {
   Truck,
   Wifi,
 } from 'lucide-vue-next'
+import { fetchRobotSystemStatus } from '~/services/robot.service'
 import { fetchTaskSequence, fetchTasks as fetchTasksSvc } from '~/services/task.service'
 import { fetchLatestWebhookStatus } from '~/services/webhook-log.service'
+import type { RobotSystemStatus } from '~/types/robot'
 import type { RcsOrderRequest, Task, TaskAction } from '~/types/task'
 import type { LatestWebhookStatus } from '~/types/webhook-log'
 
@@ -38,6 +40,25 @@ const releasing = ref(false)
 const lastReleasedTask = ref<Task | null>(null)
 const queueNumber = ref<number | null>(null)
 const lastUpdatedAt = ref(new Date())
+
+// System Status: offline if the AMR telemetry endpoint can't be reached at
+// all, OR it's reachable but every known robot is reporting "Offline".
+// Online requires the endpoint to be reachable AND at least one robot in a
+// non-Offline state.
+const systemStatus = ref<RobotSystemStatus | null>(null)
+const isSystemOnline = computed(() => systemStatus.value?.online ?? false)
+const SYSTEM_STATUS_POLL_MS = 5000
+
+async function refreshSystemStatus() {
+  try {
+    systemStatus.value = await fetchRobotSystemStatus()
+  } catch {
+    systemStatus.value = { online: false, checkedAt: new Date().toISOString() }
+  }
+  lastUpdatedAt.value = new Date()
+}
+
+let systemStatusTimer: ReturnType<typeof setInterval> | null = null
 
 // Live off the raw webhook payload — never persisted to Task, so it's
 // fetched fresh on the same cadence as the task-status poll.
@@ -155,7 +176,13 @@ function startPolling(taskDbId: string, taskId: string) {
   }, POLL_INTERVAL_MS)
 }
 
-onBeforeUnmount(() => stopPolling())
+onBeforeUnmount(() => {
+  stopPolling()
+  if (systemStatusTimer) {
+    clearInterval(systemStatusTimer)
+    systemStatusTimer = null
+  }
+})
 
 const lastUpdatedLabel = computed(() =>
   lastUpdatedAt.value.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
@@ -204,7 +231,8 @@ onMounted(async () => {
   if (!selectedBoxTypeId.value && boxTypes.value[0]) {
     selectedBoxTypeId.value = boxTypes.value[0].id
   }
-  await Promise.all([restoreActiveTask(), refreshQuarantineProgress()])
+  await Promise.all([restoreActiveTask(), refreshQuarantineProgress(), refreshSystemStatus()])
+  systemStatusTimer = setInterval(refreshSystemStatus, SYSTEM_STATUS_POLL_MS)
 })
 
 // Super Admin can act on any production line; everyone else is restricted to
@@ -343,14 +371,17 @@ function viewQueue() {
 
       <div class="rounded-2xl border border-[#E2E8F0] bg-white px-4 py-2.5 shadow-sm">
         <div class="flex items-center gap-2 text-sm">
-          <Wifi class="h-4 w-4 text-slate-400" />
+          <Wifi class="h-4 w-4" :class="isSystemOnline ? 'text-emerald-500' : 'text-slate-400'" />
           <span class="font-medium text-slate-500">System Status</span>
-          <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-500">
-            Offline
+          <span
+            class="rounded-full px-2 py-0.5 text-xs font-semibold"
+            :class="isSystemOnline ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'"
+          >
+            {{ isSystemOnline ? 'Online' : 'Offline' }}
           </span>
         </div>
         <p class="font-medium mt-1 text-xs text-slate-400">
-          Last updated: just now | {{ lastUpdatedLabel }}
+          Last updated: {{ lastUpdatedLabel }}
         </p>
       </div>
     </div>
