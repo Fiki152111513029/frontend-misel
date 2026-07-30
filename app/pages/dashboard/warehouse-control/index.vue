@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { AlertTriangle, Building2, ClipboardList, LayoutGrid, RefreshCw, Signal, Wifi } from 'lucide-vue-next'
+import { fetchRobotSystemStatus } from '~/services/robot.service'
+import type { RobotSystemStatus } from '~/types/robot'
 import type { WarehouseCartTaskStatus } from '~/types/warehouse-cart-task'
 
 definePageMeta({ layout: 'dashboard' })
@@ -18,6 +20,25 @@ const lastUpdatedLabel = computed(() =>
   lastUpdatedAt.value.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
 )
 
+// Same System Status rule as Mainline: offline if the AMR telemetry endpoint
+// can't be reached at all, OR it's reachable but every known robot is
+// reporting "Offline". Online requires the endpoint to be reachable AND at
+// least one robot in a non-Offline state.
+const systemStatus = ref<RobotSystemStatus | null>(null)
+const isSystemOnline = computed(() => systemStatus.value?.online ?? false)
+const SYSTEM_STATUS_POLL_MS = 5000
+
+async function refreshSystemStatus() {
+  try {
+    systemStatus.value = await fetchRobotSystemStatus()
+  } catch {
+    systemStatus.value = { online: false, checkedAt: new Date().toISOString() }
+  }
+  lastUpdatedAt.value = new Date()
+}
+
+let systemStatusTimer: ReturnType<typeof setInterval> | null = null
+
 const workingLineLocation = computed(
   () => lineLocations.value.find(location => location.id === workingLineLocationId.value) ?? null,
 )
@@ -26,9 +47,18 @@ onMounted(async () => {
   await Promise.all([
     fetchWarehouseLineLocations({ limit: 100 }),
     fetchWarehouseCartTasks({ limit: 10 }),
+    refreshSystemStatus(),
   ])
   if (!workingLineLocationId.value && lineLocations.value[0]) {
     workingLineLocationId.value = lineLocations.value[0].id
+  }
+  systemStatusTimer = setInterval(refreshSystemStatus, SYSTEM_STATUS_POLL_MS)
+})
+
+onBeforeUnmount(() => {
+  if (systemStatusTimer) {
+    clearInterval(systemStatusTimer)
+    systemStatusTimer = null
   }
 })
 
@@ -91,14 +121,17 @@ function formatDate(value: string) {
 
       <div class="rounded-2xl border border-[#E2E8F0] bg-white px-4 py-2.5 shadow-sm">
         <div class="flex items-center gap-2 text-sm">
-          <Wifi class="h-4 w-4 text-slate-400" />
+          <Wifi class="h-4 w-4" :class="isSystemOnline ? 'text-emerald-500' : 'text-slate-400'" />
           <span class="font-medium text-slate-500">System Status</span>
-          <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-500">
-            Offline
+          <span
+            class="rounded-full px-2 py-0.5 text-xs font-semibold"
+            :class="isSystemOnline ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'"
+          >
+            {{ isSystemOnline ? 'Online' : 'Offline' }}
           </span>
         </div>
         <p class="font-medium mt-1 text-xs text-slate-400">
-          Last updated: just now | {{ lastUpdatedLabel }}
+          Last updated: {{ lastUpdatedLabel }}
         </p>
       </div>
     </div>

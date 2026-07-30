@@ -90,3 +90,20 @@ export interface RobotSystemStatus {
   online: boolean
   checkedAt: string
 }
+
+export interface FactoryMapChargeStation {
+  id: string
+  x: number
+  y: number
+}
+
+export interface FactoryMapData {
+  mapId: number
+  width: number
+  height: number
+  xAttrMin: number
+  yAttrMin: number
+  /** Each entry is a travel-path polyline: an array of [x, y] points. */
+  allPath: number[][][]
+  chargeStations: FactoryMapChargeStation[]
+}
