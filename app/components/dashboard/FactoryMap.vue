@@ -1,16 +1,209 @@
-﻿<script setup lang="ts">
-interface MapUnit {
-  id: string
-  top: string
-  left: string
-  status: 'normal' | 'error'
+<script setup lang="ts">
+import { Maximize, RotateCw, ZoomIn, ZoomOut } from 'lucide-vue-next'
+
+interface ChargeCoorEntry {
+  x: number
+  y: number
 }
 
-const units: MapUnit[] = [
-  { id: 'AMR-15', top: '28%', left: '78%', status: 'normal' },
-  { id: 'AMR-21', top: '48%', left: '48%', status: 'normal' },
-  { id: 'AMR-04', top: '68%', left: '62%', status: 'error' },
-]
+interface TopologyData {
+  width: number
+  height: number
+  xAttrMin: number
+  yAttrMin: number
+  allPath: number[][][]
+  chargeCoor: Array<[string, ChargeCoorEntry]>
+}
+
+interface ChargeStation {
+  id: string
+  x: number
+  y: number
+}
+
+interface ViewBox {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+// Exported straight from the RCS map editor (same files it keeps under
+// .../Maps/common/): background.jpg is the floor-plan raster, topology.json
+// is its allPath/chargeCoor data. Both are bundled as static assets, so this
+// card never depends on the AMR fleet network being reachable.
+const BACKGROUND_URL = '/factory-map/background.jpg'
+const TOPOLOGY_URL = '/factory-map/topology.json'
+
+const topology = ref<TopologyData | null>(null)
+const loading = ref(true)
+const loadError = ref(false)
+const svgRef = ref<SVGSVGElement | null>(null)
+
+// The RCS coordinate system is Y-up; SVG is Y-down, so every point's Y gets
+// flipped to render right-side-up (matches background.jpg, whose top row is
+// the map's max-Y edge per its ROS-style origin/resolution metadata).
+function flipY(y: number) {
+  return -y
+}
+
+const baseBox = computed<ViewBox | null>(() => {
+  const topo = topology.value
+  if (!topo) return null
+  return { x: topo.xAttrMin, y: flipY(topo.yAttrMin + topo.height), w: topo.width, h: topo.height }
+})
+
+// Current pan/zoom window, in the same coordinate space as baseBox. Starts
+// equal to baseBox (the whole map fitted to the container) and is mutated by
+// the toolbar, wheel, and drag handlers below — the viewBox itself, not a
+// CSS transform, so panning/zooming never distorts stroke widths.
+const view = reactive<ViewBox>({ x: 0, y: 0, w: 1, h: 1 })
+const rotation = ref(0)
+
+function resetView() {
+  const box = baseBox.value
+  if (!box) return
+  view.x = box.x
+  view.y = box.y
+  view.w = box.w
+  view.h = box.h
+  rotation.value = 0
+}
+
+watch(baseBox, (box) => {
+  if (box) resetView()
+})
+
+const viewBoxAttr = computed(() => `${view.x} ${view.y} ${view.w} ${view.h}`)
+const rotateOrigin = computed(() => `${view.x + view.w / 2} ${view.y + view.h / 2}`)
+
+const imageBox = computed(() => {
+  const topo = topology.value
+  if (!topo) return null
+  return {
+    x: topo.xAttrMin,
+    y: flipY(topo.yAttrMin + topo.height),
+    width: topo.width,
+    height: topo.height,
+  }
+})
+
+function pathPoints(path: number[][]) {
+  return path.map(([x, y]) => `${x},${flipY(y)}`).join(' ')
+}
+
+const chargeStations = computed<ChargeStation[]>(() =>
+  (topology.value?.chargeCoor ?? []).map(([id, coor]) => ({ id, x: coor.x, y: coor.y })),
+)
+
+const chargeRadius = computed(() => {
+  const topo = topology.value
+  if (!topo) return 0
+  return Math.max(topo.width, topo.height) / 150
+})
+
+// Zoom bounds, relative to the fitted (base) size — can zoom in to 5% of the
+// original span (20x) or out to 4x the original span.
+const MIN_SPAN_RATIO = 0.05
+const MAX_SPAN_RATIO = 4
+
+function zoomAt(factor: number, centerX?: number, centerY?: number) {
+  const box = baseBox.value
+  if (!box) return
+  const cx = centerX ?? view.x + view.w / 2
+  const cy = centerY ?? view.y + view.h / 2
+  const minW = box.w * MIN_SPAN_RATIO
+  const maxW = box.w * MAX_SPAN_RATIO
+  const newW = Math.min(maxW, Math.max(minW, view.w * factor))
+  const actualFactor = newW / view.w
+  const newH = view.h * actualFactor
+  view.x = cx - (cx - view.x) * actualFactor
+  view.y = cy - (cy - view.y) * actualFactor
+  view.w = newW
+  view.h = newH
+}
+
+function zoomIn() {
+  zoomAt(0.8)
+}
+
+function zoomOut() {
+  zoomAt(1.25)
+}
+
+function rotateView() {
+  rotation.value = (rotation.value + 90) % 360
+}
+
+// Converts a mouse/pointer screen position to the SVG's own user-space
+// (viewBox) coordinates, accounting for preserveAspectRatio letterboxing —
+// used so wheel-zoom stays centered under the cursor instead of the box center.
+function screenToViewBoxPoint(clientX: number, clientY: number) {
+  const svg = svgRef.value
+  if (!svg) return null
+  const ctm = svg.getScreenCTM()
+  if (!ctm) return null
+  const point = svg.createSVGPoint()
+  point.x = clientX
+  point.y = clientY
+  const transformed = point.matrixTransform(ctm.inverse())
+  return { x: transformed.x, y: transformed.y }
+}
+
+function onWheel(event: WheelEvent) {
+  event.preventDefault()
+  const point = screenToViewBoxPoint(event.clientX, event.clientY)
+  const factor = event.deltaY < 0 ? 0.9 : 1.1
+  zoomAt(factor, point?.x, point?.y)
+}
+
+let dragging = false
+let dragScale = 1
+let lastClientX = 0
+let lastClientY = 0
+
+function onPointerDown(event: PointerEvent) {
+  const svg = svgRef.value
+  if (!svg) return
+  const ctm = svg.getScreenCTM()
+  if (!ctm) return
+  dragging = true
+  dragScale = ctm.a || 1
+  lastClientX = event.clientX
+  lastClientY = event.clientY
+  svg.setPointerCapture(event.pointerId)
+}
+
+function onPointerMove(event: PointerEvent) {
+  if (!dragging) return
+  const dx = (event.clientX - lastClientX) / dragScale
+  const dy = (event.clientY - lastClientY) / dragScale
+  view.x -= dx
+  view.y -= dy
+  lastClientX = event.clientX
+  lastClientY = event.clientY
+}
+
+function onPointerUp(event: PointerEvent) {
+  dragging = false
+  svgRef.value?.releasePointerCapture(event.pointerId)
+}
+
+async function load() {
+  loading.value = true
+  loadError.value = false
+  try {
+    const response = await fetch(TOPOLOGY_URL)
+    if (!response.ok) throw new Error(`status ${response.status}`)
+    topology.value = await response.json()
+  } catch {
+    loadError.value = true
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(load)
 </script>
 
 <template>
@@ -23,53 +216,114 @@ const units: MapUnit[] = [
         </svg>
         <p class="text-lg font-semibold text-[#0F1F52]">Factory Map</p>
       </div>
-      <span class="text-sm font-medium text-slate-400">ZOOM: 100%</span>
     </div>
 
     <div class="relative h-[460px] w-full overflow-hidden bg-slate-50 2xl:h-[600px]">
-      <!-- Zones -->
-      <div class="absolute left-[15%] top-[20%] h-[55%] w-[20%] rounded-xl border border-[#E2E8F0] bg-white/60">
-        <span class="absolute left-3 top-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Zone A</span>
-      </div>
-      <div class="absolute left-[30%] top-[35%] h-[38%] w-[26%] rounded-xl border border-[#E2E8F0] bg-white/80">
-        <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-base font-semibold uppercase tracking-wide text-slate-400">
-          Storage Hub
-        </span>
+      <div v-if="loading" class="flex h-full items-center justify-center text-sm font-medium text-slate-400">
+        Loading map…
       </div>
 
-      <!-- AMR markers -->
-      <div
-        v-for="unit in units"
-        :key="unit.id"
-        class="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5"
-        :style="{ top: unit.top, left: unit.left }"
-      >
-        <div
-          class="flex h-10 w-10 items-center justify-center rounded-lg shadow-sm"
-          :class="unit.status === 'error' ? 'bg-red-500' : 'bg-[#2F6FED]'"
-        >
-          <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <rect x="4" y="7" width="16" height="11" rx="2" stroke-linecap="round" stroke-linejoin="round" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 7V5a3 3 0 016 0v2" />
-          </svg>
-        </div>
-        <span class="rounded bg-white/90 px-1.5 py-0.5 text-sm font-semibold text-slate-600">
-          {{ unit.id }}
-        </span>
+      <div v-else-if="loadError || !topology" class="flex h-full flex-col items-center justify-center gap-1 text-slate-400">
+        <p class="text-sm font-semibold">Map unavailable</p>
+        <p class="text-xs">Couldn't load the factory map assets</p>
       </div>
 
-      <!-- Charging stations -->
-      <div class="absolute bottom-4 left-4 flex gap-2">
-        <div
-          v-for="n in 3"
-          :key="n"
-          class="flex h-8 w-8 items-center justify-center rounded-md border border-[#01ADEF]/40 text-[#01ADEF]"
+      <template v-else>
+        <svg
+          ref="svgRef"
+          class="h-full w-full cursor-grab touch-none select-none active:cursor-grabbing"
+          :viewBox="viewBoxAttr"
+          preserveAspectRatio="xMidYMid meet"
+          @wheel="onWheel"
+          @pointerdown="onPointerDown"
+          @pointermove="onPointerMove"
+          @pointerup="onPointerUp"
+          @pointerleave="onPointerUp"
         >
-          <svg class="h-4.5 w-4.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M11.983 1.907a.75.75 0 00-1.292-.657l-8.5 9.5A.75.75 0 002.75 12h4.146l-1.879 6.093a.75.75 0 001.292.657l8.5-9.5a.75.75 0 00-.559-1.25h-4.146l1.879-6.093z" clip-rule="evenodd" />
-          </svg>
+          <g :transform="`rotate(${rotation} ${rotateOrigin})`">
+            <image
+              v-if="imageBox"
+              :href="BACKGROUND_URL"
+              :x="imageBox.x"
+              :y="imageBox.y"
+              :width="imageBox.width"
+              :height="imageBox.height"
+              preserveAspectRatio="none"
+            />
+
+            <polyline
+              v-for="(path, index) in topology.allPath"
+              :key="index"
+              :points="pathPoints(path)"
+              fill="none"
+              stroke="#01ADEF"
+              stroke-opacity="0.75"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              vector-effect="non-scaling-stroke"
+            />
+
+            <g v-for="station in chargeStations" :key="station.id">
+              <circle
+                :cx="station.x"
+                :cy="flipY(station.y)"
+                :r="chargeRadius"
+                fill="#01ADEF"
+                fill-opacity="0.2"
+                stroke="#01ADEF"
+                stroke-width="1.5"
+                vector-effect="non-scaling-stroke"
+              />
+              <text
+                :x="station.x"
+                :y="flipY(station.y)"
+                fill="#01ADEF"
+                text-anchor="middle"
+                dominant-baseline="central"
+                :font-size="chargeRadius"
+              >
+                ⚡
+              </text>
+            </g>
+          </g>
+        </svg>
+
+        <div class="absolute right-3 top-3 flex flex-col overflow-hidden rounded-xl border border-[#E2E8F0] bg-white shadow-sm">
+          <button
+            type="button"
+            class="flex h-8 w-8 items-center justify-center text-slate-500 transition-colors hover:bg-slate-50 hover:text-[#01ADEF]"
+            title="Zoom in"
+            @click="zoomIn"
+          >
+            <ZoomIn class="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            class="flex h-8 w-8 items-center justify-center border-t border-[#E2E8F0] text-slate-500 transition-colors hover:bg-slate-50 hover:text-[#01ADEF]"
+            title="Zoom out"
+            @click="zoomOut"
+          >
+            <ZoomOut class="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            class="flex h-8 w-8 items-center justify-center border-t border-[#E2E8F0] text-slate-500 transition-colors hover:bg-slate-50 hover:text-[#01ADEF]"
+            title="Rotate"
+            @click="rotateView"
+          >
+            <RotateCw class="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            class="flex h-8 w-8 items-center justify-center border-t border-[#E2E8F0] text-slate-500 transition-colors hover:bg-slate-50 hover:text-[#01ADEF]"
+            title="Reset view"
+            @click="resetView"
+          >
+            <Maximize class="h-4 w-4" />
+          </button>
         </div>
-      </div>
+      </template>
     </div>
   </UiBaseCard>
 </template>

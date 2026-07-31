@@ -90,3 +90,12 @@ export interface RobotSystemStatus {
   online: boolean
   checkedAt: string
 }
+
+export interface FleetStatusRow {
+  unitId: string
+  status: string | null
+  /** Resolved from the robot's active task's subTaskSeq — null if it has no mission right now. */
+  mission: string | null
+  load: string | null
+  battery: number | null
+}

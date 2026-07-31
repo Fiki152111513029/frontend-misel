@@ -1,5 +1,6 @@
 import type {
   CreateRobotInput,
+  FleetStatusRow,
   Robot,
   RobotActivityQuery,
   RobotActivityResult,
@@ -42,6 +43,11 @@ export async function controlRobot(id: string, controlWay: 0 | 1): Promise<unkno
 export async function fetchRobotSystemStatus(): Promise<RobotSystemStatus> {
   const { $http } = useNuxtApp()
   return (await $http.get('/robots/system-status')) as RobotSystemStatus
+}
+
+export async function fetchFleetStatus(): Promise<FleetStatusRow[]> {
+  const { $http } = useNuxtApp()
+  return (await $http.get('/robots/fleet-status')) as FleetStatusRow[]
 }
 
 export async function fetchRobotActivity(
