@@ -413,12 +413,12 @@ function viewQueue() {
             v-for="area in myAreas"
             :key="area.id"
             type="button"
-            class="group relative flex items-center gap-4 overflow-hidden rounded-2xl border px-4 py-4 text-left shadow-sm transition-all hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-sm"
+            class="group relative flex items-center gap-4 overflow-hidden rounded-2xl px-4 py-4 text-left shadow-sm transition-all hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-sm"
             :class="[
               workingAreaId === area.id
                 ? 'border-emerald-200 bg-emerald-50/60'
                 : 'border-blue-200 bg-blue-50/60 hover:border-[#01ADEF]/40',
-              workingAreaId === area.id && isTaskActive ? 'border-dashed' : '',
+              workingAreaId === area.id && isTaskActive ? 'border-4 border-dashed' : 'border',
             ]"
             :disabled="isTaskActive && workingAreaId !== area.id"
             @click="setWorkingArea(area.id)"

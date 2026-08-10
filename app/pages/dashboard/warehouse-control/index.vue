@@ -244,13 +244,5 @@ function formatDate(value: string) {
         View Queue
       </button>
     </div>
-
-    <div class="flex justify-center pt-1">
-      <div class="inline-flex items-center gap-2 rounded-full border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs text-slate-400 shadow-sm">
-        <Signal class="h-3.5 w-3.5 text-emerald-500" />
-        42 ms
-        <RefreshCw class="h-3.5 w-3.5 text-slate-300" />
-      </div>
-    </div>
   </div>
 </template>
