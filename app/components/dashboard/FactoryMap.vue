@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { Maximize, RotateCw, ZoomIn, ZoomOut } from 'lucide-vue-next'
+import { fetchLocationCodes } from '~/services/factory-map.service'
+import { fetchRobots as fetchRobotsSvc } from '~/services/robot.service'
+import type { Robot } from '~/types/robot'
 
 interface ChargeCoorEntry {
   x: number
@@ -13,12 +16,30 @@ interface TopologyData {
   yAttrMin: number
   allPath: number[][][]
   chargeCoor: Array<[string, ChargeCoorEntry]>
+  nodeArr?: unknown[][]
+  nodeKeys?: string[]
 }
 
 interface ChargeStation {
   id: string
   x: number
   y: number
+}
+
+interface NamedNode {
+  id: string
+  x: number
+  y: number
+  content: string
+}
+
+interface RobotMarker {
+  id: string
+  x: number
+  y: number
+  name: string
+  state: string | null
+  battery: number | null
 }
 
 interface ViewBox {
@@ -28,12 +49,15 @@ interface ViewBox {
   h: number
 }
 
-// Exported straight from the RCS map editor (same files it keeps under
-// .../Maps/common/): background.jpg is the floor-plan raster, topology.json
-// is its allPath/chargeCoor data. Both are bundled as static assets, so this
-// card never depends on the AMR fleet network being reachable.
-const BACKGROUND_URL = '/factory-map/background.jpg'
-const TOPOLOGY_URL = '/factory-map/topology.json'
+// Maps are managed via the Factory Maps CRUD (Dashboard sidebar) — each one
+// has its own uploaded floor-plan image + topology JSON. This card just
+// lists them and lets the operator switch between areas, like the "Map
+// Display" dropdown in the RCS's own map viewer.
+const { items: factoryMaps, fetchFactoryMaps } = useFactoryMaps()
+const selectedMapId = ref<string | null>(null)
+const selectedMap = computed(
+  () => factoryMaps.value.find(m => m.id === selectedMapId.value) ?? null,
+)
 
 const topology = ref<TopologyData | null>(null)
 const loading = ref(true)
@@ -100,6 +124,116 @@ const chargeRadius = computed(() => {
   const topo = topology.value
   if (!topo) return 0
   return Math.max(topo.width, topo.height) / 150
+})
+
+// Real location codes (Quarantine Areas, EXIM Locations, Empty Pallet
+// Locations, Production Line Areas) — a topology node only gets a marker if
+// its content exactly matches one of these, instead of every
+// alphanumeric-looking node (which also includes internal ids like
+// "BASE0000" that aren't real locations).
+const locationCodes = ref<Set<string>>(new Set())
+
+const namedNodes = computed<NamedNode[]>(() => {
+  const topo = topology.value
+  if (!topo?.nodeArr || !topo.nodeKeys) return []
+  const xIdx = topo.nodeKeys.indexOf('x')
+  const yIdx = topo.nodeKeys.indexOf('y')
+  const contentIdx = topo.nodeKeys.indexOf('content')
+  if (xIdx === -1 || yIdx === -1 || contentIdx === -1) return []
+
+  return topo.nodeArr
+    .map((node, index): NamedNode => ({
+      id: `node-${index}`,
+      x: Number(node[xIdx]),
+      y: Number(node[yIdx]),
+      content: String(node[contentIdx] ?? ''),
+    }))
+    .filter(node => locationCodes.value.has(node.content))
+})
+
+const nodeIconSize = computed(() => {
+  const topo = topology.value
+  if (!topo) return 0
+  return Math.max(topo.width, topo.height) / 110
+})
+
+const hoveredNodeId = ref<string | null>(null)
+const selectedNodeId = ref<string | null>(null)
+
+const activeNode = computed(() => {
+  const id = hoveredNodeId.value ?? selectedNodeId.value
+  return namedNodes.value.find(node => node.id === id) ?? null
+})
+
+function toggleNodeSelection(node: NamedNode) {
+  selectedNodeId.value = selectedNodeId.value === node.id ? null : node.id
+}
+
+function clearSelection() {
+  selectedNodeId.value = null
+}
+
+// Live robot positions — plotted directly in the topology's own coordinate
+// space (devicePostionRec from the AMR telemetry API), so the marker moves
+// as the robot moves without any path-following logic of our own. Fetched
+// via the plain service function (not the shared Robots-page store/composable)
+// so this widget's polling doesn't disturb that page's pagination state.
+const liveRobots = ref<Robot[]>([])
+const ROBOT_POLL_MS = 1000
+let robotPollTimer: ReturnType<typeof setInterval> | null = null
+// Guards against overlapping fetches — if a telemetry request runs longer
+// than the 1s tick (RCS telemetry has been observed to time out), skip the
+// next tick instead of piling up concurrent requests.
+let isLoadingLiveRobots = false
+
+async function loadLiveRobots() {
+  if (isLoadingLiveRobots) return
+  isLoadingLiveRobots = true
+  try {
+    const result = await fetchRobotsSvc({ limit: 100 })
+    liveRobots.value = result.items
+  } catch {
+    // Non-fatal — markers just stay at their last known position this tick.
+  } finally {
+    isLoadingLiveRobots = false
+  }
+}
+
+const robotMarkers = computed<RobotMarker[]>(() => {
+  const areaNumber = selectedMap.value?.areaNumber
+  if (areaNumber == null) return []
+  return liveRobots.value
+    .filter(robot => robot.areaId === areaNumber && robot.positionX != null && robot.positionY != null)
+    .map(robot => ({
+      id: robot.id,
+      x: robot.positionX as number,
+      y: robot.positionY as number,
+      name: robot.name,
+      state: robot.state,
+      battery: robot.battery,
+    }))
+})
+
+const robotIconSize = computed(() => {
+  const topo = topology.value
+  if (!topo) return 0
+  return Math.max(topo.width, topo.height) / 70
+})
+
+const hoveredRobotId = ref<string | null>(null)
+const activeRobot = computed(() => robotMarkers.value.find(robot => robot.id === hoveredRobotId.value) ?? null)
+
+// Paths render at a constant on-screen width (non-scaling-stroke) — but that
+// width itself grows as the operator zooms in, so lines get thicker rather
+// than staying hairline-thin at high zoom. Zooming out past the fitted view
+// is clamped back to the base width instead of shrinking further.
+const PATH_STROKE_WIDTH_PX = 2
+
+const pathStrokeWidth = computed(() => {
+  const box = baseBox.value
+  if (!box || view.w <= 0) return PATH_STROKE_WIDTH_PX
+  const zoomRatio = box.w / view.w
+  return PATH_STROKE_WIDTH_PX * Math.max(1, zoomRatio)
 })
 
 // Zoom bounds, relative to the fitted (base) size — can zoom in to 5% of the
@@ -189,11 +323,11 @@ function onPointerUp(event: PointerEvent) {
   svgRef.value?.releasePointerCapture(event.pointerId)
 }
 
-async function load() {
+async function loadTopology(topologyUrl: string) {
   loading.value = true
   loadError.value = false
   try {
-    const response = await fetch(TOPOLOGY_URL)
+    const response = await fetch(topologyUrl)
     if (!response.ok) throw new Error(`status ${response.status}`)
     topology.value = await response.json()
   } catch {
@@ -203,7 +337,42 @@ async function load() {
   }
 }
 
-onMounted(load)
+watch(selectedMap, (map) => {
+  if (map) loadTopology(map.topologyUrl)
+})
+
+function selectMap(id: string) {
+  selectedMapId.value = id
+}
+
+async function loadLocationCodes() {
+  try {
+    locationCodes.value = new Set(await fetchLocationCodes())
+  } catch {
+    // Non-fatal — the map still renders, just without line/dock markers.
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([
+    fetchFactoryMaps({ limit: 100 }),
+    loadLocationCodes(),
+    loadLiveRobots(),
+  ])
+  if (factoryMaps.value[0]) {
+    selectedMapId.value = factoryMaps.value[0].id
+  } else {
+    loading.value = false
+  }
+  robotPollTimer = setInterval(loadLiveRobots, ROBOT_POLL_MS)
+})
+
+onBeforeUnmount(() => {
+  if (robotPollTimer) {
+    clearInterval(robotPollTimer)
+    robotPollTimer = null
+  }
+})
 </script>
 
 <template>
@@ -216,11 +385,32 @@ onMounted(load)
         </svg>
         <p class="text-lg font-semibold text-[#0F1F52]">Factory Map</p>
       </div>
+
+      <select
+        v-if="factoryMaps.length > 0"
+        :value="selectedMapId"
+        class="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-sm font-medium text-[#0F1F52] outline-none focus:border-[#01ADEF]"
+        @change="selectMap(($event.target as HTMLSelectElement).value)"
+      >
+        <option v-for="map in factoryMaps" :key="map.id" :value="map.id">
+          {{ map.name }}
+        </option>
+      </select>
     </div>
 
     <div class="relative h-[460px] w-full overflow-hidden bg-slate-50 2xl:h-[600px]">
       <div v-if="loading" class="flex h-full items-center justify-center text-sm font-medium text-slate-400">
         Loading map…
+      </div>
+
+      <div v-else-if="factoryMaps.length === 0" class="flex h-full flex-col items-center justify-center gap-1 text-slate-400">
+        <p class="text-sm font-semibold">No factory maps yet</p>
+        <p class="text-xs">
+          Add one from
+          <NuxtLink to="/dashboard/factory-maps" class="text-[#01ADEF] hover:underline">
+            Factory Maps
+          </NuxtLink>
+        </p>
       </div>
 
       <div v-else-if="loadError || !topology" class="flex h-full flex-col items-center justify-center gap-1 text-slate-400">
@@ -239,11 +429,12 @@ onMounted(load)
           @pointermove="onPointerMove"
           @pointerup="onPointerUp"
           @pointerleave="onPointerUp"
+          @click="clearSelection"
         >
           <g :transform="`rotate(${rotation} ${rotateOrigin})`">
             <image
-              v-if="imageBox"
-              :href="BACKGROUND_URL"
+              v-if="imageBox && selectedMap?.imageUrl"
+              :href="selectedMap.imageUrl"
               :x="imageBox.x"
               :y="imageBox.y"
               :width="imageBox.width"
@@ -256,11 +447,10 @@ onMounted(load)
               :key="index"
               :points="pathPoints(path)"
               fill="none"
-              stroke="#01ADEF"
-              stroke-opacity="0.75"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+              stroke="#BFC6C4"
+              :stroke-width="pathStrokeWidth"
+              stroke-linecap="square"
+              stroke-linejoin="miter"
               vector-effect="non-scaling-stroke"
             />
 
@@ -284,6 +474,127 @@ onMounted(load)
                 :font-size="chargeRadius"
               >
                 ⚡
+              </text>
+            </g>
+
+            <!-- Named line/dock markers (e.g. "L3CPA") — hover or click to see the code. -->
+            <g
+              v-for="node in namedNodes"
+              :key="node.id"
+              class="cursor-pointer"
+              @pointerdown.stop
+              @pointerenter="hoveredNodeId = node.id"
+              @pointerleave="hoveredNodeId = null"
+              @click.stop="toggleNodeSelection(node)"
+            >
+              <svg
+                :x="node.x - nodeIconSize / 2"
+                :y="flipY(node.y) - nodeIconSize / 2"
+                :width="nodeIconSize"
+                :height="nodeIconSize"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#0F1F52"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="0" y="0" width="24" height="24" fill="white" fill-opacity="0.001" />
+                <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+              </svg>
+            </g>
+
+            <!-- Tooltip for the hovered/selected named node, counter-rotated so
+                 its text stays upright regardless of the map's own rotation. -->
+            <g
+              v-if="activeNode"
+              :transform="`rotate(${-rotation} ${activeNode.x} ${flipY(activeNode.y)})`"
+            >
+              <rect
+                :x="activeNode.x - (activeNode.content.length * nodeIconSize * 0.32 + nodeIconSize * 0.5)"
+                :y="flipY(activeNode.y) - nodeIconSize * 1.9"
+                :width="activeNode.content.length * nodeIconSize * 0.64 + nodeIconSize"
+                :height="nodeIconSize * 1.1"
+                :rx="nodeIconSize * 0.25"
+                fill="#0F1F52"
+              />
+              <text
+                :x="activeNode.x"
+                :y="flipY(activeNode.y) - nodeIconSize * 1.35"
+                fill="white"
+                text-anchor="middle"
+                dominant-baseline="central"
+                :font-size="nodeIconSize * 0.55"
+                font-weight="600"
+              >
+                Line {{ activeNode.content }}
+              </text>
+            </g>
+
+            <!-- Live robot positions, straight off the AMR telemetry API's
+                 devicePostionRec — same coordinate space as the topology, so
+                 no path-following math is needed, just re-plot on each poll. -->
+            <g
+              v-for="robot in robotMarkers"
+              :key="robot.id"
+              class="robot-marker"
+              :style="{ transform: `translate(${robot.x}px, ${flipY(robot.y)}px)` }"
+              @pointerdown.stop
+              @pointerenter="hoveredRobotId = robot.id"
+              @pointerleave="hoveredRobotId = null"
+            >
+              <svg
+                class="robot-marker__bob"
+                :x="-robotIconSize / 2"
+                :y="-robotIconSize / 2"
+                :width="robotIconSize"
+                :height="robotIconSize"
+                viewBox="0 0 100 100"
+              >
+                <rect x="0" y="0" width="100" height="100" fill="white" fill-opacity="0.001" />
+                <!-- arms -->
+                <path d="M25 30 Q8 30 8 20" fill="none" stroke="#0F1F52" stroke-width="5" stroke-linecap="round" />
+                <rect x="2" y="12" width="12" height="10" rx="5" fill="#0F1F52" />
+                <path d="M75 30 Q92 30 92 20" fill="none" stroke="#0F1F52" stroke-width="5" stroke-linecap="round" />
+                <rect x="86" y="12" width="12" height="10" rx="5" fill="#0F1F52" />
+                <!-- head -->
+                <rect x="22" y="8" width="56" height="46" rx="22" fill="white" stroke="#01ADEF" stroke-width="5" />
+                <rect x="37" y="18" width="26" height="18" rx="4" fill="#0F1F52" />
+                <circle cx="50" cy="27" r="2.5" fill="white" />
+                <rect x="42" y="42" width="16" height="4" rx="2" fill="#0F1F52" />
+                <!-- neck + base -->
+                <rect x="42" y="54" width="16" height="10" fill="#0F1F52" />
+                <rect x="18" y="70" width="12" height="24" rx="6" fill="white" stroke="#01ADEF" stroke-width="5" />
+                <rect x="70" y="70" width="12" height="24" rx="6" fill="white" stroke="#01ADEF" stroke-width="5" />
+                <rect x="24" y="78" width="52" height="8" rx="3" fill="#0F1F52" />
+              </svg>
+            </g>
+
+            <g
+              v-if="activeRobot"
+              :transform="`rotate(${-rotation} ${activeRobot.x} ${flipY(activeRobot.y)})`"
+            >
+              <rect
+                :x="activeRobot.x - (activeRobot.name.length * robotIconSize * 0.22 + robotIconSize * 0.4)"
+                :y="flipY(activeRobot.y) - robotIconSize * 1.05"
+                :width="activeRobot.name.length * robotIconSize * 0.44 + robotIconSize * 0.8"
+                :height="robotIconSize * 0.6"
+                :rx="robotIconSize * 0.15"
+                fill="#0F1F52"
+              />
+              <text
+                :x="activeRobot.x"
+                :y="flipY(activeRobot.y) - robotIconSize * 0.75"
+                fill="white"
+                text-anchor="middle"
+                dominant-baseline="central"
+                :font-size="robotIconSize * 0.32"
+                font-weight="600"
+              >
+                {{ activeRobot.name }}{{ activeRobot.battery != null ? ` · ${activeRobot.battery}%` : '' }}
               </text>
             </g>
           </g>
@@ -327,3 +638,26 @@ onMounted(load)
     </div>
   </UiBaseCard>
 </template>
+
+<style scoped>
+/* Glides to its new spot on each position poll instead of jumping. */
+.robot-marker {
+  transition: transform 1s linear;
+}
+
+/* Small idle bob so the marker reads as "live" even between polls. */
+.robot-marker__bob {
+  animation: robot-marker-bob 1.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes robot-marker-bob {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4%);
+  }
+}
+</style>

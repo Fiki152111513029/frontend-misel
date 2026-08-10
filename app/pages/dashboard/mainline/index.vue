@@ -651,16 +651,7 @@ function viewQueue() {
         View Queue
       </button>
     </div>
-
-    <!-- Connection status -->
-    <div class="flex justify-center pt-1">
-      <div class="inline-flex items-center gap-2 rounded-full border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs text-slate-400 shadow-sm">
-        <Signal class="h-3.5 w-3.5 text-emerald-500" />
-        42 ms
-        <RefreshCw class="h-3.5 w-3.5 text-slate-300" />
-      </div>
-    </div>
-
+    
     <!-- Box type modal -->
     <UiBaseModal v-model="showBoxTypeModal" title="Select Box Type" size="sm">
       <p v-if="boxTypes.length === 0" class="font-medium py-6 text-center text-sm text-slate-400">

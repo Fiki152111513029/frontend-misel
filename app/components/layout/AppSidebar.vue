@@ -3,6 +3,7 @@ import {
   LayoutDashboard, Users, FolderKanban,
   BarChart3, Bell, Settings, Package, Cpu, Truck,
   HelpCircle, ChevronLeft, ChevronRight, ChevronDown,
+  Map as MapIcon,
 } from 'lucide-vue-next'
 import logoSrc from '~/assets/images/logomisbot.png'
 import robotPromoSrc from '~/assets/images/irayplay.png'
@@ -60,6 +61,7 @@ const ALL_MENUS: MenuEntry[] = [
       { title: 'Production Line Areas', path: '/dashboard/production-line-areas' },
       { title: 'EXIM Locations', path: '/dashboard/exim-location' },
       { title: 'Empty Pallet Location', path: '/dashboard/empty-pallet-location' },
+      { title: 'Charger Areas', path: '/dashboard/charger-areas' },
       { title: 'Model Code Process', path: '/dashboard/model-code-process' },
     ],
   },
@@ -100,6 +102,7 @@ const ALL_MENUS: MenuEntry[] = [
   },
   { title: 'Robots', icon: Bell, path: '/dashboard/robots' },
   { title: 'Box Types', icon: Package, path: '/dashboard/box-types' },
+  { title: 'Factory Maps', icon: MapIcon, path: '/dashboard/factory-maps' },
   // { title: 'Settings', icon: Settings, path: '/dashboard/settings' },
   // { title: 'Help Center', icon: HelpCircle, path: '/dashboard/help' },
 ]

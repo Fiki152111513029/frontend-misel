@@ -12,6 +12,10 @@ export interface Robot {
   state: string | null
   /** Live value from the AMR telemetry API, null if the device isn't reporting */
   lastUpdate: string | null
+  /** Live map x/y from the AMR telemetry API (same coordinate space as Factory Map topology), null if not reporting */
+  positionX: number | null
+  /** Live map x/y from the AMR telemetry API (same coordinate space as Factory Map topology), null if not reporting */
+  positionY: number | null
   isActive: boolean
   createdAt: string
   updatedAt: string

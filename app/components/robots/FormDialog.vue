@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import type { CreateRobotInput, Robot } from '~/types/robot'
 
 interface Props {
@@ -18,6 +18,11 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const { items: factoryMaps, fetchFactoryMaps } = useFactoryMaps()
+// Only maps with an Area Number assigned are selectable — a robot's areaId
+// is now taken from its Factory Map, not typed in by hand.
+const availableFactoryMaps = computed(() => factoryMaps.value.filter(map => map.areaNumber != null))
+
 const name = ref('')
 const amrDeviceSerialNo = ref('')
 const amrDeviceNo = ref('')
@@ -29,6 +34,14 @@ const errors = reactive<{
   amrDeviceNo?: string
   areaId?: string
 }>({})
+
+// Editing a robot whose areaId doesn't match any current Factory Map's Area
+// Number (e.g. legacy data, or the map was deleted) — keep it selectable
+// as a fallback so opening the form doesn't silently blank it out.
+const hasUnmatchedAreaId = computed(() => {
+  if (!props.robot) return false
+  return !availableFactoryMaps.value.some(map => map.areaNumber === props.robot!.areaId)
+})
 
 function resetFields() {
   name.value = props.robot?.name ?? ''
@@ -45,7 +58,10 @@ function resetFields() {
 watch(
   () => props.modelValue,
   (isOpen) => {
-    if (isOpen) resetFields()
+    if (isOpen) {
+      resetFields()
+      fetchFactoryMaps({ limit: 100 })
+    }
   },
   { immediate: true },
 )
@@ -72,11 +88,8 @@ function validate(): boolean {
     errors.amrDeviceNo = 'AMR Device No is required'
   }
 
-  const areaIdValue = Number(areaIdText.value)
   if (!areaIdText.value.trim()) {
-    errors.areaId = 'Area ID is required'
-  } else if (!Number.isInteger(areaIdValue) || areaIdValue < 1) {
-    errors.areaId = 'Area ID must be an integer starting from 1'
+    errors.areaId = 'Area is required'
   }
 
   return (
@@ -98,6 +111,9 @@ function handleSubmit() {
 function handleCancel() {
   emit('cancel')
 }
+
+const selectClass =
+  'w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#0F1F52] outline-none focus:border-[#01ADEF] focus:ring-2 focus:ring-[#01ADEF]/15'
 </script>
 
 <template>
@@ -121,7 +137,29 @@ function handleCancel() {
         required
         :error="errors.amrDeviceNo"
       />
-      <UiBaseInput v-model="areaIdText" label="Area ID" required :error="errors.areaId" />
+
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-slate-700">
+          Area
+          <span class="ml-0.5 text-[#01ADEF]">*</span>
+        </label>
+        <select v-model="areaIdText" :class="selectClass">
+          <option value="" disabled>Select a Factory Map</option>
+          <option v-if="hasUnmatchedAreaId" :value="areaIdText">
+            Area {{ areaIdText }} (no matching Factory Map)
+          </option>
+          <option v-for="map in availableFactoryMaps" :key="map.id" :value="String(map.areaNumber)">
+            {{ map.name }} (Area {{ map.areaNumber }})
+          </option>
+        </select>
+        <p v-if="availableFactoryMaps.length === 0" class="font-medium text-xs text-slate-400">
+          No Factory Maps with an Area Number yet — add one from Factory Maps first.
+        </p>
+        <p v-if="errors.areaId" role="alert" class="font-medium flex items-center gap-1.5 text-xs text-red-500">
+          {{ errors.areaId }}
+        </p>
+      </div>
+
       <UiBaseCheckbox v-model="isActive" label="Active" />
     </div>
 
