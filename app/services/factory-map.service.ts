@@ -41,10 +41,17 @@ export async function deleteFactoryMap(id: string): Promise<null> {
   return (await $http.delete(`/factory-maps/${id}`)) as null
 }
 
+export interface LocationCodesResult {
+  codes: string[]
+  chargerCodes: string[]
+}
+
 // Real location codes (Quarantine Areas, EXIM Locations, Empty Pallet
-// Locations, Production Line Areas) — used to filter which topology nodes
-// get a marker on the Factory Map, instead of every alphanumeric-looking node.
-export async function fetchLocationCodes(): Promise<string[]> {
+// Locations, Production Line Areas, Charger Areas) — used to filter which
+// topology nodes get a marker on the Factory Map, instead of every
+// alphanumeric-looking node. `chargerCodes` is the Charger Area subset, used
+// to pick which icon a matched node gets.
+export async function fetchLocationCodes(): Promise<LocationCodesResult> {
   const { $http } = useNuxtApp()
-  return (await $http.get('/factory-maps/location-codes')) as string[]
+  return (await $http.get('/factory-maps/location-codes')) as LocationCodesResult
 }

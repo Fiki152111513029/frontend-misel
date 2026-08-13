@@ -3,6 +3,11 @@ import { Maximize, RotateCw, ZoomIn, ZoomOut } from 'lucide-vue-next'
 import { fetchLocationCodes } from '~/services/factory-map.service'
 import { fetchRobots as fetchRobotsSvc } from '~/services/robot.service'
 import type { Robot } from '~/types/robot'
+import robotIdleSrc from '~/assets/images/robot/Idle.png'
+import robotChargingSrc from '~/assets/images/robot/Charging.png'
+import robotOfflineSrc from '~/assets/images/robot/Offline.png'
+import chargerNodeSrc from '~/assets/images/location-node/charger-node.png'
+import locationNodeSrc from '~/assets/images/location-node/node.png'
 
 interface ChargeCoorEntry {
   x: number
@@ -31,6 +36,7 @@ interface NamedNode {
   x: number
   y: number
   content: string
+  isCharger: boolean
 }
 
 interface RobotMarker {
@@ -127,11 +133,13 @@ const chargeRadius = computed(() => {
 })
 
 // Real location codes (Quarantine Areas, EXIM Locations, Empty Pallet
-// Locations, Production Line Areas) — a topology node only gets a marker if
-// its content exactly matches one of these, instead of every
-// alphanumeric-looking node (which also includes internal ids like
-// "BASE0000" that aren't real locations).
+// Locations, Production Line Areas, Charger Areas) — a topology node only
+// gets a marker if its content exactly matches one of these, instead of
+// every alphanumeric-looking node (which also includes internal ids like
+// "BASE0000" that aren't real locations). chargerLocationCodes is the
+// Charger Area subset, used to pick the charger icon over the generic one.
 const locationCodes = ref<Set<string>>(new Set())
+const chargerLocationCodes = ref<Set<string>>(new Set())
 
 const namedNodes = computed<NamedNode[]>(() => {
   const topo = topology.value
@@ -142,12 +150,16 @@ const namedNodes = computed<NamedNode[]>(() => {
   if (xIdx === -1 || yIdx === -1 || contentIdx === -1) return []
 
   return topo.nodeArr
-    .map((node, index): NamedNode => ({
-      id: `node-${index}`,
-      x: Number(node[xIdx]),
-      y: Number(node[yIdx]),
-      content: String(node[contentIdx] ?? ''),
-    }))
+    .map((node, index): NamedNode => {
+      const content = String(node[contentIdx] ?? '')
+      return {
+        id: `node-${index}`,
+        x: Number(node[xIdx]),
+        y: Number(node[yIdx]),
+        content,
+        isCharger: chargerLocationCodes.value.has(content),
+      }
+    })
     .filter(node => locationCodes.value.has(node.content))
 })
 
@@ -219,6 +231,19 @@ const robotIconSize = computed(() => {
   if (!topo) return 0
   return Math.max(topo.width, topo.height) / 70
 })
+
+// Matches the loose, case-insensitive state matching used by the Robots
+// table (state strings come straight from the AMR telemetry API, e.g.
+// "Idle", "Charging", "Offline") — states without a dedicated image
+// (Fault/Initializing/In task/Upgrading/unknown) fall back to the hand-drawn
+// mascot below.
+function robotImageSrc(state: string | null): string | null {
+  const value = state?.toLowerCase() ?? ''
+  if (value.includes('charging')) return robotChargingSrc
+  if (value.includes('offline')) return robotOfflineSrc
+  if (value.includes('idle')) return robotIdleSrc
+  return null
+}
 
 const hoveredRobotId = ref<string | null>(null)
 const activeRobot = computed(() => robotMarkers.value.find(robot => robot.id === hoveredRobotId.value) ?? null)
@@ -335,6 +360,7 @@ async function loadTopology(topologyUrl: string) {
   } finally {
     loading.value = false
   }
+
 }
 
 watch(selectedMap, (map) => {
@@ -347,7 +373,9 @@ function selectMap(id: string) {
 
 async function loadLocationCodes() {
   try {
-    locationCodes.value = new Set(await fetchLocationCodes())
+    const result = await fetchLocationCodes()
+    locationCodes.value = new Set(result.codes)
+    chargerLocationCodes.value = new Set(result.chargerCodes)
   } catch {
     // Non-fatal — the map still renders, just without line/dock markers.
   }
@@ -492,18 +520,16 @@ onBeforeUnmount(() => {
                 :y="flipY(node.y) - nodeIconSize / 2"
                 :width="nodeIconSize"
                 :height="nodeIconSize"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#0F1F52"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+                viewBox="0 0 100 100"
               >
-                <rect x="0" y="0" width="24" height="24" fill="white" fill-opacity="0.001" />
-                <path d="M3 7V5a2 2 0 0 1 2-2h2" />
-                <path d="M17 3h2a2 2 0 0 1 2 2v2" />
-                <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
-                <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                <image
+                  :href="node.isCharger ? chargerNodeSrc : locationNodeSrc"
+                  x="0"
+                  y="0"
+                  width="100"
+                  height="100"
+                  preserveAspectRatio="xMidYMid meet"
+                />
               </svg>
             </g>
 
@@ -547,6 +573,25 @@ onBeforeUnmount(() => {
               @pointerleave="hoveredRobotId = null"
             >
               <svg
+                v-if="robotImageSrc(robot.state)"
+                class="robot-marker__bob"
+                :x="-robotIconSize / 2"
+                :y="-robotIconSize / 2"
+                :width="robotIconSize"
+                :height="robotIconSize"
+                viewBox="0 0 100 100"
+              >
+                <image
+                  :href="robotImageSrc(robot.state) as string"
+                  x="0"
+                  y="0"
+                  width="100"
+                  height="100"
+                  preserveAspectRatio="xMidYMid meet"
+                />
+              </svg>
+              <svg
+                v-else
                 class="robot-marker__bob"
                 :x="-robotIconSize / 2"
                 :y="-robotIconSize / 2"

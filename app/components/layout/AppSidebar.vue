@@ -80,6 +80,7 @@ const ALL_MENUS: MenuEntry[] = [
     children: [
       { title: 'Operator Locations', path: '/dashboard/operator-locations' },
       { title: 'Line Locations', path: '/dashboard/line-locations' },
+      { title: 'Trolleys', path: '/dashboard/trolleys' },
     ],
   },
   { title: 'Trouble Shot', icon: LayoutDashboard, path: '/dashboard/trouble-shot' },
