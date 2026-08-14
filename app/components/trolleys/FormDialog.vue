@@ -22,15 +22,19 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const { items: trolleyCategories, fetchTrolleyCategories } = useTrolleyCategories()
+
 const name = ref('')
 const code = ref('')
 const status = ref<TrolleyStatus>('EMPTY')
+const trolleyCategoryId = ref('')
 const errors = reactive<{ name?: string; code?: string }>({})
 
 function resetFields() {
   name.value = props.trolley?.name ?? ''
   code.value = props.trolley?.code ?? ''
   status.value = props.trolley?.status ?? 'EMPTY'
+  trolleyCategoryId.value = props.trolley?.trolleyCategoryId ?? ''
   errors.name = undefined
   errors.code = undefined
 }
@@ -38,7 +42,10 @@ function resetFields() {
 watch(
   () => props.modelValue,
   (isOpen) => {
-    if (isOpen) resetFields()
+    if (isOpen) {
+      resetFields()
+      fetchTrolleyCategories({ limit: 100 })
+    }
   },
   { immediate: true },
 )
@@ -68,6 +75,7 @@ function handleSubmit() {
     name: name.value.trim(),
     code: code.value.trim(),
     status: status.value,
+    trolleyCategoryId: trolleyCategoryId.value || undefined,
   })
 }
 
@@ -98,6 +106,18 @@ const selectClass =
         <select v-model="status" :class="selectClass">
           <option value="EMPTY">Empty</option>
           <option value="FULL">Full</option>
+        </select>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-slate-700">
+          Category
+        </label>
+        <select v-model="trolleyCategoryId" :class="selectClass">
+          <option value="">No Category</option>
+          <option v-for="category in trolleyCategories" :key="category.id" :value="category.id">
+            {{ category.name }}
+          </option>
         </select>
       </div>
     </div>

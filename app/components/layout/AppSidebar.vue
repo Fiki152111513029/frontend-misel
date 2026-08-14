@@ -24,6 +24,7 @@ const OPERATOR_MENUS: MenuEntry[] = [
   { title: 'Mainline', icon: Cpu, path: '/dashboard/mainline' },
   { title: 'Quarantines Tasks', icon: FolderKanban, path: '/dashboard/quarantines-tasks' },
   { title: 'Request Box', icon: LayoutDashboard, path: '/dashboard/request-box' },
+  { title: 'Operator Trolley Task', icon: Truck, path: '/dashboard/operator-trolley-task' },
 ]
 
 // Exim is a line-staff role restricted to docking visibility and its own
@@ -40,6 +41,7 @@ const WAREHOUSE_MENUS: MenuEntry[] = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { title: 'Warehouse Control', icon: Cpu, path: '/dashboard/warehouse-control' },
   { title: 'Warehouse Tasks', icon: FolderKanban, path: '/dashboard/warehouse-tasks' },
+  { title: 'Warehouse Trolley Task', icon: Truck, path: '/dashboard/warehouse-trolley-task' },
 ]
 
 const ALL_MENUS: MenuEntry[] = [
@@ -51,6 +53,8 @@ const ALL_MENUS: MenuEntry[] = [
       { title: 'Tasks', path: '/dashboard/tasks' },
       { title: 'Quarantines Tasks', path: '/dashboard/quarantines-tasks' },
       { title: 'Warehouse Tasks', path: '/dashboard/warehouse-tasks' },
+      { title: 'Warehouse Trolley Task', path: '/dashboard/warehouse-trolley-task' },
+      { title: 'Operator Trolley Task', path: '/dashboard/operator-trolley-task' },
     ],
   },
   {
@@ -80,7 +84,9 @@ const ALL_MENUS: MenuEntry[] = [
     children: [
       { title: 'Operator Locations', path: '/dashboard/operator-locations' },
       { title: 'Line Locations', path: '/dashboard/line-locations' },
+      { title: 'Warehouse Locations', path: '/dashboard/warehouse-locations' },
       { title: 'Trolleys', path: '/dashboard/trolleys' },
+      { title: 'Trolley Categories', path: '/dashboard/trolley-categories' },
     ],
   },
   { title: 'Trouble Shot', icon: LayoutDashboard, path: '/dashboard/trouble-shot' },
