@@ -23,11 +23,14 @@ const emit = defineEmits<{
 }>()
 
 const { items: trolleyCategories, fetchTrolleyCategories } = useTrolleyCategories()
+const { items: productionLocations, fetchProductionLocations } = useProductionLocations()
+const activeProductionLocations = computed(() => productionLocations.value.filter(location => location.isActive))
 
 const name = ref('')
 const code = ref('')
 const status = ref<TrolleyStatus>('EMPTY')
 const trolleyCategoryId = ref('')
+const droppingLocationCode = ref('')
 const errors = reactive<{ name?: string; code?: string }>({})
 
 function resetFields() {
@@ -35,6 +38,7 @@ function resetFields() {
   code.value = props.trolley?.code ?? ''
   status.value = props.trolley?.status ?? 'EMPTY'
   trolleyCategoryId.value = props.trolley?.trolleyCategoryId ?? ''
+  droppingLocationCode.value = props.trolley?.droppingLocationCode ?? ''
   errors.name = undefined
   errors.code = undefined
 }
@@ -45,6 +49,7 @@ watch(
     if (isOpen) {
       resetFields()
       fetchTrolleyCategories({ limit: 100 })
+      fetchProductionLocations({ limit: 100 })
     }
   },
   { immediate: true },
@@ -76,6 +81,7 @@ function handleSubmit() {
     code: code.value.trim(),
     status: status.value,
     trolleyCategoryId: trolleyCategoryId.value || undefined,
+    droppingLocationCode: droppingLocationCode.value || undefined,
   })
 }
 
@@ -117,6 +123,18 @@ const selectClass =
           <option value="">No Category</option>
           <option v-for="category in trolleyCategories" :key="category.id" :value="category.id">
             {{ category.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-slate-700">
+          Dropping Location Code
+        </label>
+        <select v-model="droppingLocationCode" :class="selectClass">
+          <option value="">None</option>
+          <option v-for="location in activeProductionLocations" :key="location.id" :value="location.iRaypleLocationCode">
+            {{ location.name }} ({{ location.iRaypleLocationCode }})
           </option>
         </select>
       </div>

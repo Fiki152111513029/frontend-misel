@@ -24,13 +24,15 @@ const {
   setFilters,
 } = useTrolleys()
 
-// Code, Category, and Status aren't sortable server-side, so those columns
-// are sorted client-side over the currently loaded page only.
+// Code, Category, Dropping Location Code, and Status aren't sortable
+// server-side, so those columns are sorted client-side over the currently
+// loaded page only.
 const clientSort = ref<{ key: TrolleySortKey, order: 'asc' | 'desc' } | null>(null)
 
 const CLIENT_SORT_ACCESSORS: Record<string, (item: Trolley) => string | number> = {
   code: item => item.code.toLowerCase(),
   category: item => (item.category?.name ?? '').toLowerCase(),
+  droppingLocationCode: item => (item.droppingLocationCode ?? '').toLowerCase(),
   status: item => (item.status === 'FULL' ? 1 : 0),
 }
 

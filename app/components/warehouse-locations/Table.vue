@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-vue-next'
+import { ChevronDown, ChevronUp, Pencil, QrCode, Trash2 } from 'lucide-vue-next'
 import type {
   WarehouseLocation,
   WarehouseLocationSortBy,
@@ -47,6 +47,17 @@ function toggleSort(key: WarehouseLocationSortKey) {
   const order: WarehouseLocationSortOrder = activeSort.value.key === key && activeSort.value.order === 'asc' ? 'desc' : 'asc'
   activeSort.value = { key, order }
   emit('sort', { sortBy: key, sortOrder: order })
+}
+
+// QR encodes the location's own "iRaypleLocationCode" — same location
+// always produces the same QR, so it can be printed once and reused
+// indefinitely.
+const showQrModal = ref(false)
+const qrLocation = ref<WarehouseLocation | null>(null)
+
+function openQr(item: WarehouseLocation) {
+  qrLocation.value = item
+  showQrModal.value = true
 }
 </script>
 
@@ -106,6 +117,14 @@ function toggleSort(key: WarehouseLocationSortKey) {
           <td class="px-4 py-3">
             <div class="flex items-center gap-2">
               <button
+                type="button"
+                class="rounded-lg bg-slate-100 p-1.5 text-[#0F1F52] hover:bg-slate-200 transition-colors"
+                aria-label="QR Code"
+                @click="openQr(item)"
+              >
+                <QrCode class="h-4 w-4" />
+              </button>
+              <button
                 v-if="hasPermission('warehouse-location.update')"
                 type="button"
                 class="rounded-lg bg-slate-100 p-1.5 text-[#01ADEF] hover:bg-slate-200 transition-colors"
@@ -128,5 +147,11 @@ function toggleSort(key: WarehouseLocationSortKey) {
         </tr>
       </template>
     </UiBaseTable>
+
+    <UiQrCodeModal
+      v-model="showQrModal"
+      :title="qrLocation ? `${qrLocation.name} · QR Code` : 'QR Code'"
+      :value="qrLocation?.iRaypleLocationCode ?? ''"
+    />
   </UiBaseCard>
 </template>
