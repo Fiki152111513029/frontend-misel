@@ -1,59 +1,52 @@
 <script setup lang="ts">
-import { ChevronDown, ChevronUp, Pencil, QrCode, Trash2 } from 'lucide-vue-next'
+import { ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-vue-next'
 import type {
-  WarehouseLineLocation,
-  WarehouseLineLocationSortBy,
-  WarehouseLineLocationSortOrder,
-} from '~/types/warehouse-line-location'
+  ProductionLocation,
+  ProductionLocationSortBy,
+  ProductionLocationSortOrder,
+} from '~/types/production-location'
 
-export type WarehouseLineLocationSortKey = WarehouseLineLocationSortBy | 'droppingLocationCode' | 'pickingLocationCode'
+export type ProductionLocationSortKey = ProductionLocationSortBy | 'iRaypleLocationCode' | 'isActive'
 
 interface Props {
-  items: WarehouseLineLocation[]
+  items: ProductionLocation[]
   loading: boolean
-  sortBy?: WarehouseLineLocationSortKey
-  sortOrder?: WarehouseLineLocationSortOrder
+  sortBy?: ProductionLocationSortKey
+  sortOrder?: ProductionLocationSortOrder
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  edit: [warehouseLineLocation: WarehouseLineLocation]
-  delete: [warehouseLineLocation: WarehouseLineLocation]
-  sort: [patch: { sortBy: WarehouseLineLocationSortKey, sortOrder: WarehouseLineLocationSortOrder }]
+  edit: [productionLocation: ProductionLocation]
+  delete: [productionLocation: ProductionLocation]
+  sort: [patch: { sortBy: ProductionLocationSortKey, sortOrder: ProductionLocationSortOrder }]
 }>()
 
 const { hasPermission } = useAuth()
 
 const columns = [
   { key: 'name', label: 'Name' },
-  { key: 'droppingLocationCode', label: 'Dropping Location Code' },
-  { key: 'pickingLocationCode', label: 'Picking Location Code' },
-  { key: 'modelCodeProcess', label: 'Model Code Process' },
+  { key: 'iRaypleLocationCode', label: 'iRayple Location Code' },
+  { key: 'isActive', label: 'Status', width: '90px' },
   { key: 'actions', label: 'Actions', width: '120px' },
 ]
 
-const sortableColumns = columns.filter(col => col.key !== 'actions' && col.key !== 'modelCodeProcess')
+const sortableColumns = [
+  { key: 'name', label: 'Name' },
+  { key: 'iRaypleLocationCode', label: 'iRayple Location Code' },
+  { key: 'isActive', label: 'Status', width: '90px' },
+]
 
-const activeSort = ref<{ key: WarehouseLineLocationSortKey, order: WarehouseLineLocationSortOrder }>({
+const activeSort = ref<{ key: ProductionLocationSortKey, order: ProductionLocationSortOrder }>({
   key: props.sortBy ?? 'name',
   order: props.sortOrder ?? 'asc',
 })
 
-function toggleSort(key: WarehouseLineLocationSortKey) {
-  const order: WarehouseLineLocationSortOrder = activeSort.value.key === key && activeSort.value.order === 'asc' ? 'desc' : 'asc'
+function toggleSort(key: ProductionLocationSortKey) {
+  const order: ProductionLocationSortOrder = activeSort.value.key === key && activeSort.value.order === 'asc' ? 'desc' : 'asc'
   activeSort.value = { key, order }
   emit('sort', { sortBy: key, sortOrder: order })
-}
-
-// QR encodes the line location's own "name" — same location always
-// produces the same QR, so it can be printed once and reused indefinitely.
-const showQrModal = ref(false)
-const qrLineLocation = ref<WarehouseLineLocation | null>(null)
-
-function openQr(item: WarehouseLineLocation) {
-  qrLineLocation.value = item
-  showQrModal.value = true
 }
 </script>
 
@@ -70,16 +63,13 @@ function openQr(item: WarehouseLineLocation) {
           <button
             type="button"
             class="inline-flex items-center gap-1 hover:text-[#01ADEF]"
-            @click="toggleSort(col.key as WarehouseLineLocationSortKey)"
+            @click="toggleSort(col.key as ProductionLocationSortKey)"
           >
             {{ col.label }}
             <ChevronUp v-if="activeSort.key === col.key && activeSort.order === 'asc'" class="h-3.5 w-3.5" />
             <ChevronDown v-else-if="activeSort.key === col.key && activeSort.order === 'desc'" class="h-3.5 w-3.5" />
             <ChevronDown v-else class="h-3.5 w-3.5 opacity-30" />
           </button>
-        </th>
-        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Model Code Process
         </th>
         <th style="width: 120px" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
           Actions
@@ -88,7 +78,7 @@ function openQr(item: WarehouseLineLocation) {
 
       <tr v-if="!loading && items.length === 0">
         <td :colspan="columns.length" class="py-12 text-center text-slate-400">
-          No warehouse line locations found
+          No production locations found
         </td>
       </tr>
       <template v-if="!loading">
@@ -101,26 +91,22 @@ function openQr(item: WarehouseLineLocation) {
             {{ item.name }}
           </td>
           <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52]">
-            {{ item.droppingLocationCode }}
+            {{ item.iRaypleLocationCode }}
           </td>
-          <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52]">
-            {{ item.pickingLocationCode }}
-          </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
-            {{ item.modelCodeProcess?.name ?? '—' }}
+          <td class="px-4 py-3">
+            <span
+              class="rounded-full px-2 py-0.5 text-xs font-medium"
+              :class="item.isActive
+ ? 'bg-emerald-50 text-emerald-600 '
+ : 'bg-slate-100 text-slate-500 '"
+            >
+              {{ item.isActive ? 'Active' : 'Inactive' }}
+            </span>
           </td>
           <td class="px-4 py-3">
             <div class="flex items-center gap-2">
               <button
-                type="button"
-                class="rounded-lg bg-slate-100 p-1.5 text-[#0F1F52] hover:bg-slate-200 transition-colors"
-                aria-label="QR Code"
-                @click="openQr(item)"
-              >
-                <QrCode class="h-4 w-4" />
-              </button>
-              <button
-                v-if="hasPermission('warehouse-line-location.update')"
+                v-if="hasPermission('production-location.update')"
                 type="button"
                 class="rounded-lg bg-slate-100 p-1.5 text-[#01ADEF] hover:bg-slate-200 transition-colors"
                 aria-label="Edit"
@@ -129,7 +115,7 @@ function openQr(item: WarehouseLineLocation) {
                 <Pencil class="h-4 w-4" />
               </button>
               <button
-                v-if="hasPermission('warehouse-line-location.delete')"
+                v-if="hasPermission('production-location.delete')"
                 type="button"
                 class="rounded-lg bg-red-50 p-1.5 text-red-500 hover:bg-red-100 transition-colors"
                 aria-label="Delete"
@@ -142,11 +128,5 @@ function openQr(item: WarehouseLineLocation) {
         </tr>
       </template>
     </UiBaseTable>
-
-    <UiQrCodeModal
-      v-model="showQrModal"
-      :title="qrLineLocation ? `${qrLineLocation.name} · QR Code` : 'QR Code'"
-      :value="qrLineLocation?.name ?? ''"
-    />
   </UiBaseCard>
 </template>

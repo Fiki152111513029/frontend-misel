@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-vue-next'
+import { ChevronDown, ChevronUp, Pencil, QrCode, Trash2 } from 'lucide-vue-next'
 import type {
   Trolley,
   TrolleySortBy,
@@ -49,6 +49,16 @@ function toggleSort(key: TrolleySortKey) {
   const order: TrolleySortOrder = activeSort.value.key === key && activeSort.value.order === 'asc' ? 'desc' : 'asc'
   activeSort.value = { key, order }
   emit('sort', { sortBy: key, sortOrder: order })
+}
+
+// QR encodes the trolley's own "code" — same trolley always produces the
+// same QR, so it can be printed once and reused indefinitely.
+const showQrModal = ref(false)
+const qrTrolley = ref<Trolley | null>(null)
+
+function openQr(trolley: Trolley) {
+  qrTrolley.value = trolley
+  showQrModal.value = true
 }
 </script>
 
@@ -111,6 +121,14 @@ function toggleSort(key: TrolleySortKey) {
           <td class="px-4 py-3">
             <div class="flex items-center gap-2">
               <button
+                type="button"
+                class="rounded-lg bg-slate-100 p-1.5 text-[#0F1F52] hover:bg-slate-200 transition-colors"
+                aria-label="QR Code"
+                @click="openQr(item)"
+              >
+                <QrCode class="h-4 w-4" />
+              </button>
+              <button
                 v-if="hasPermission('trolley.update')"
                 type="button"
                 class="rounded-lg bg-slate-100 p-1.5 text-[#01ADEF] hover:bg-slate-200 transition-colors"
@@ -133,5 +151,11 @@ function toggleSort(key: TrolleySortKey) {
         </tr>
       </template>
     </UiBaseTable>
+
+    <UiQrCodeModal
+      v-model="showQrModal"
+      :title="qrTrolley ? `${qrTrolley.name} · QR Code` : 'QR Code'"
+      :value="qrTrolley?.code ?? ''"
+    />
   </UiBaseCard>
 </template>

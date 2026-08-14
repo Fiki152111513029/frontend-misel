@@ -65,6 +65,7 @@ const ALL_MENUS: MenuEntry[] = [
       { title: 'Production Line Areas', path: '/dashboard/production-line-areas' },
       { title: 'EXIM Locations', path: '/dashboard/exim-location' },
       { title: 'Empty Pallet Location', path: '/dashboard/empty-pallet-location' },
+      { title: 'Production Locations', path: '/dashboard/production-locations' },
       { title: 'Charger Areas', path: '/dashboard/charger-areas' },
       { title: 'Model Code Process', path: '/dashboard/model-code-process' },
     ],
