@@ -55,6 +55,7 @@ const ALL_MENUS: MenuEntry[] = [
       { title: 'Warehouse Tasks', path: '/dashboard/warehouse-tasks' },
       { title: 'Warehouse Trolley Task', path: '/dashboard/warehouse-trolley-task' },
       { title: 'Operator Trolley Task', path: '/dashboard/operator-trolley-task' },
+      { title: 'Trolley Activities', path: '/dashboard/trolley-activities' },
     ],
   },
   {

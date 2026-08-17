@@ -25,12 +25,15 @@ const emit = defineEmits<{
 const { items: trolleyCategories, fetchTrolleyCategories } = useTrolleyCategories()
 const { items: productionLocations, fetchProductionLocations } = useProductionLocations()
 const activeProductionLocations = computed(() => productionLocations.value.filter(location => location.isActive))
+const { items: modelCodeProcesses, fetchModelCodeProcesses } = useModelCodeProcesses()
+const activeModelCodeProcesses = computed(() => modelCodeProcesses.value.filter(process => process.isActive))
 
 const name = ref('')
 const code = ref('')
 const status = ref<TrolleyStatus>('EMPTY')
 const trolleyCategoryId = ref('')
 const droppingLocationCode = ref('')
+const modelCodeProcessId = ref('')
 const errors = reactive<{ name?: string; code?: string }>({})
 
 function resetFields() {
@@ -39,6 +42,7 @@ function resetFields() {
   status.value = props.trolley?.status ?? 'EMPTY'
   trolleyCategoryId.value = props.trolley?.trolleyCategoryId ?? ''
   droppingLocationCode.value = props.trolley?.droppingLocationCode ?? ''
+  modelCodeProcessId.value = props.trolley?.modelCodeProcessId ?? ''
   errors.name = undefined
   errors.code = undefined
 }
@@ -50,6 +54,7 @@ watch(
       resetFields()
       fetchTrolleyCategories({ limit: 100 })
       fetchProductionLocations({ limit: 100 })
+      fetchModelCodeProcesses({ limit: 100 })
     }
   },
   { immediate: true },
@@ -82,6 +87,7 @@ function handleSubmit() {
     status: status.value,
     trolleyCategoryId: trolleyCategoryId.value || undefined,
     droppingLocationCode: droppingLocationCode.value || undefined,
+    modelCodeProcessId: modelCodeProcessId.value || undefined,
   })
 }
 
@@ -137,6 +143,21 @@ const selectClass =
             {{ location.name }} ({{ location.iRaypleLocationCode }})
           </option>
         </select>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-slate-700">
+          Model Code Process
+        </label>
+        <select v-model="modelCodeProcessId" :class="selectClass">
+          <option value="">None</option>
+          <option v-for="process in activeModelCodeProcesses" :key="process.id" :value="process.id">
+            {{ process.name }}
+          </option>
+        </select>
+        <p class="font-medium mt-1.5 text-xs text-slate-400">
+          Used to build the RCS task order when a Trolley Activity is submitted for this trolley.
+        </p>
       </div>
     </div>
 

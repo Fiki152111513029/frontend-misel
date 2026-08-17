@@ -8,6 +8,8 @@ export interface Trolley {
   trolleyCategoryId: string | null
   category: { id: string, name: string } | null
   droppingLocationCode: string | null
+  modelCodeProcessId: string | null
+  modelCodeProcess: { id: string, name: string } | null
   createdAt: string
   updatedAt: string
   deletedAt: string | null
@@ -19,6 +21,7 @@ export interface CreateTrolleyInput {
   status?: TrolleyStatus
   trolleyCategoryId?: string
   droppingLocationCode?: string
+  modelCodeProcessId?: string
 }
 
 export type UpdateTrolleyInput = Partial<CreateTrolleyInput>

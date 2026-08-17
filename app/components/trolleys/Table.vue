@@ -6,7 +6,7 @@ import type {
   TrolleySortOrder,
 } from '~/types/trolley'
 
-export type TrolleySortKey = TrolleySortBy | 'code' | 'status' | 'category' | 'droppingLocationCode'
+export type TrolleySortKey = TrolleySortBy | 'code' | 'status' | 'category' | 'droppingLocationCode' | 'modelCodeProcess'
 
 interface Props {
   items: Trolley[]
@@ -30,6 +30,7 @@ const columns = [
   { key: 'code', label: 'Code' },
   { key: 'category', label: 'Category' },
   { key: 'droppingLocationCode', label: 'Dropping Location Code' },
+  { key: 'modelCodeProcess', label: 'Model Code Process' },
   { key: 'status', label: 'Status', width: '110px' },
   { key: 'actions', label: 'Actions', width: '120px' },
 ]
@@ -39,6 +40,7 @@ const sortableColumns = [
   { key: 'code', label: 'Code' },
   { key: 'category', label: 'Category' },
   { key: 'droppingLocationCode', label: 'Dropping Location Code' },
+  { key: 'modelCodeProcess', label: 'Model Code Process' },
   { key: 'status', label: 'Status', width: '110px' },
 ]
 
@@ -112,6 +114,9 @@ function openQr(trolley: Trolley) {
           </td>
           <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52]">
             {{ item.droppingLocationCode ?? '-' }}
+          </td>
+          <td class="px-4 py-3 text-sm text-slate-600">
+            {{ item.modelCodeProcess?.name ?? '-' }}
           </td>
           <td class="px-4 py-3">
             <span
