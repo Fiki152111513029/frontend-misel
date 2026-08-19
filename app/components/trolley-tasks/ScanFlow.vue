@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { Truck } from 'lucide-vue-next'
-import { fetchLatestWebhookStatus } from '~/services/webhook-log.service'
-import { isTaskCompleted, isTaskTerminal, taskStatusLabel } from '~/utils/taskStatus'
-import type { LatestWebhookStatus } from '~/types/webhook-log'
+import { taskStatusLabel } from '~/utils/taskStatus'
 
 // Real backend flow (no more mock data):
 // 1. Scan Trolley  -> POST /trolley-activities/lookup-trolley
@@ -13,7 +11,9 @@ import type { LatestWebhookStatus } from '~/types/webhook-log'
 //    Unlike Mainline, submitting doesn't lock the scan flow — the operator
 //    can immediately start scanning the next trolley while earlier ones are
 //    still in flight, so several Current Queue cards can be active at once,
-//    each disappearing independently once its own task finishes.
+//    each disappearing independently once its own task finishes. The queue
+//    itself lives in a Pinia store (see stores/trolley-task-queue.ts), not
+//    page-local state, so it survives navigating to another page and back.
 interface Props {
   roleLabel: string
 }
@@ -25,8 +25,8 @@ const {
   lookupTrolley,
   lookupLocation,
   createTrolleyActivity,
-  fetchTrolleyActivitySequence,
 } = useTrolleyActivities()
+const queue = useTrolleyTaskQueueStore()
 
 type Step = 'trolley' | 'location' | 'ready'
 
@@ -115,71 +115,6 @@ function changeLocation() {
   focusScanInput()
 }
 
-// Current Queue — one card per trolley task in flight, each polled
-// independently and removed on its own once finished.
-interface QueueItem {
-  activityId: string
-  taskId: string
-  trolleyCode: string
-  trolleyName: string
-  queueNumber: number | null
-  webhookStatus: LatestWebhookStatus | null
-}
-
-const queueItems = ref<QueueItem[]>([])
-
-const POLL_INTERVAL_MS = 3000
-const TERMINAL_GRACE_MS = 5000
-let pollTimer: ReturnType<typeof setInterval> | null = null
-// How long each item's task has been terminal, keyed by activityId — a
-// brief grace period covers a webhook update that arrives a beat late,
-// same as Mainline.
-const terminalSince = new Map<string, number>()
-
-async function refreshItem(item: QueueItem) {
-  try {
-    item.webhookStatus = await fetchLatestWebhookStatus(item.taskId)
-  } catch {
-    // Non-fatal — stays stale this tick.
-  }
-}
-
-function ensurePolling() {
-  if (pollTimer) return
-  pollTimer = setInterval(async () => {
-    const toRemove = new Set<string>()
-    await Promise.all(queueItems.value.map(async (item) => {
-      await refreshItem(item)
-      const status = item.webhookStatus?.status
-      if (status && isTaskTerminal(status)) {
-        if (!terminalSince.has(item.activityId)) {
-          terminalSince.set(item.activityId, Date.now())
-          if (isTaskCompleted(status)) {
-            toast.success(`Trolley task ${item.trolleyCode} completed`)
-          }
-        }
-        if (Date.now() - terminalSince.get(item.activityId)! >= TERMINAL_GRACE_MS) {
-          terminalSince.delete(item.activityId)
-          toRemove.add(item.activityId)
-        }
-      } else {
-        terminalSince.delete(item.activityId)
-      }
-    }))
-    if (toRemove.size > 0) {
-      queueItems.value = queueItems.value.filter(item => !toRemove.has(item.activityId))
-    }
-    if (queueItems.value.length === 0 && pollTimer) {
-      clearInterval(pollTimer)
-      pollTimer = null
-    }
-  }, POLL_INTERVAL_MS)
-}
-
-onBeforeUnmount(() => {
-  if (pollTimer) clearInterval(pollTimer)
-})
-
 async function handleSubmit() {
   submitting.value = true
   const result = await createTrolleyActivity({
@@ -192,24 +127,18 @@ async function handleSubmit() {
 
   toast.success('Trolley task submitted')
 
-  const item: QueueItem = {
+  // Fire-and-forget — the store owns sequence/webhook fetching and polling,
+  // so this doesn't need to block the scan flow from resetting below.
+  queue.addTask({
     activityId: result.activity.id,
     taskId: result.activity.taskId,
     trolleyCode: result.activity.trolley.code,
     trolleyName: result.activity.trolley.name,
-    queueNumber: null,
-    webhookStatus: null,
-  }
-  queueItems.value.push(item)
-  ensurePolling()
+  })
 
   // Free up the scan flow right away so the next trolley can be scanned
   // without waiting for this one to finish.
   changeTrolley()
-
-  const sequence = await fetchTrolleyActivitySequence(item.activityId)
-  item.queueNumber = sequence?.sequenceNumber ?? null
-  await refreshItem(item)
 }
 </script>
 
@@ -227,7 +156,7 @@ async function handleSubmit() {
     <!-- Current Queue — same fields/polling behavior as Mainline, one card
          per trolley task still in flight. -->
     <div
-      v-for="item in queueItems"
+      v-for="item in queue.items"
       :key="item.activityId"
       class="flex items-center gap-4 rounded-2xl border border-[#01ADEF]/20 bg-gradient-to-r from-[#01ADEF]/10 to-transparent px-5 py-4"
     >
