@@ -8,9 +8,12 @@ import type { LatestWebhookStatus } from '~/types/webhook-log'
 // 1. Scan Trolley  -> POST /trolley-activities/lookup-trolley
 // 2. Scan Location -> POST /trolley-activities/lookup-location
 // 3. Submit         -> POST /trolley-activities (flips the trolley's status,
-//    records the activity, forwards a task order to RCS) -> Current Queue
-//    (No urut / Task ID / Status / subTaskSeq), polled the same way Mainline
-//    polls its own released task.
+//    records the activity, forwards a task order to RCS) -> a new Current
+//    Queue card, polled the same way Mainline polls its own released task.
+//    Unlike Mainline, submitting doesn't lock the scan flow — the operator
+//    can immediately start scanning the next trolley while earlier ones are
+//    still in flight, so several Current Queue cards can be active at once,
+//    each disappearing independently once its own task finishes.
 interface Props {
   roleLabel: string
 }
@@ -25,7 +28,7 @@ const {
   fetchTrolleyActivitySequence,
 } = useTrolleyActivities()
 
-type Step = 'trolley' | 'location' | 'ready' | 'submitted'
+type Step = 'trolley' | 'location' | 'ready'
 
 const step = ref<Step>('trolley')
 const scanValue = ref('')
@@ -112,89 +115,70 @@ function changeLocation() {
   focusScanInput()
 }
 
-// Live "now" for the duration display on the review step — start_date is
-// server-stamped (from the trolley scan), end_date/duration are only
-// authoritative once actually submitted, this is just an indicative preview.
-const nowTick = ref(Date.now())
-let nowTimer: ReturnType<typeof setInterval> | null = null
-onMounted(() => {
-  nowTimer = setInterval(() => { nowTick.value = Date.now() }, 1000)
-})
-onBeforeUnmount(() => {
-  if (nowTimer) clearInterval(nowTimer)
-})
-
-function formatDuration(ms: number) {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000))
-  const minutes = Math.floor(totalSeconds / 60)
-  const seconds = totalSeconds % 60
-  return `${minutes}m ${seconds}s`
+// Current Queue — one card per trolley task in flight, each polled
+// independently and removed on its own once finished.
+interface QueueItem {
+  activityId: string
+  taskId: string
+  trolleyCode: string
+  trolleyName: string
+  queueNumber: number | null
+  webhookStatus: LatestWebhookStatus | null
 }
 
-const durationPreview = computed(() => {
-  if (!startDate.value) return '-'
-  return formatDuration(nowTick.value - new Date(startDate.value).getTime())
-})
-
-// --- Current Queue (post-submit), polled exactly like Mainline ---
-const queueNumber = ref<number | null>(null)
-const submittedTaskId = ref<string | null>(null)
-const submittedActivityId = ref<string | null>(null)
-const webhookStatus = ref<LatestWebhookStatus | null>(null)
+const queueItems = ref<QueueItem[]>([])
 
 const POLL_INTERVAL_MS = 3000
 const TERMINAL_GRACE_MS = 5000
 let pollTimer: ReturnType<typeof setInterval> | null = null
-let terminalSince: number | null = null
+// How long each item's task has been terminal, keyed by activityId — a
+// brief grace period covers a webhook update that arrives a beat late,
+// same as Mainline.
+const terminalSince = new Map<string, number>()
 
-function stopPolling() {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
-  terminalSince = null
-}
-
-function clearCurrentQueue() {
-  queueNumber.value = null
-  submittedTaskId.value = null
-  submittedActivityId.value = null
-  webhookStatus.value = null
-  changeTrolley()
-  step.value = 'trolley'
-}
-
-async function refreshWebhookStatus(taskId: string) {
+async function refreshItem(item: QueueItem) {
   try {
-    webhookStatus.value = await fetchLatestWebhookStatus(taskId)
+    item.webhookStatus = await fetchLatestWebhookStatus(item.taskId)
   } catch {
     // Non-fatal — stays stale this tick.
   }
 }
 
-function startPolling(activityId: string, taskId: string) {
-  stopPolling()
+function ensurePolling() {
+  if (pollTimer) return
   pollTimer = setInterval(async () => {
-    await refreshWebhookStatus(taskId)
-    const status = webhookStatus.value?.status
-    if (status && isTaskTerminal(status)) {
-      if (terminalSince === null) {
-        terminalSince = Date.now()
-        if (isTaskCompleted(status)) {
-          toast.success('Trolley task completed')
+    const toRemove = new Set<string>()
+    await Promise.all(queueItems.value.map(async (item) => {
+      await refreshItem(item)
+      const status = item.webhookStatus?.status
+      if (status && isTaskTerminal(status)) {
+        if (!terminalSince.has(item.activityId)) {
+          terminalSince.set(item.activityId, Date.now())
+          if (isTaskCompleted(status)) {
+            toast.success(`Trolley task ${item.trolleyCode} completed`)
+          }
         }
+        if (Date.now() - terminalSince.get(item.activityId)! >= TERMINAL_GRACE_MS) {
+          terminalSince.delete(item.activityId)
+          toRemove.add(item.activityId)
+        }
+      } else {
+        terminalSince.delete(item.activityId)
       }
-      if (Date.now() - terminalSince >= TERMINAL_GRACE_MS) {
-        stopPolling()
-        clearCurrentQueue()
-      }
-    } else {
-      terminalSince = null
+    }))
+    if (toRemove.size > 0) {
+      queueItems.value = queueItems.value.filter(item => !toRemove.has(item.activityId))
+    }
+    if (queueItems.value.length === 0 && pollTimer) {
+      clearInterval(pollTimer)
+      pollTimer = null
     }
   }, POLL_INTERVAL_MS)
 }
 
-onBeforeUnmount(stopPolling)
+onBeforeUnmount(() => {
+  if (pollTimer) clearInterval(pollTimer)
+})
 
 async function handleSubmit() {
   submitting.value = true
@@ -207,14 +191,25 @@ async function handleSubmit() {
   if (!result) return
 
   toast.success('Trolley task submitted')
-  submittedActivityId.value = result.activity.id
-  submittedTaskId.value = result.activity.taskId
-  step.value = 'submitted'
 
-  const sequence = await fetchTrolleyActivitySequence(result.activity.id)
-  queueNumber.value = sequence?.sequenceNumber ?? null
-  await refreshWebhookStatus(result.activity.taskId)
-  startPolling(result.activity.id, result.activity.taskId)
+  const item: QueueItem = {
+    activityId: result.activity.id,
+    taskId: result.activity.taskId,
+    trolleyCode: result.activity.trolley.code,
+    trolleyName: result.activity.trolley.name,
+    queueNumber: null,
+    webhookStatus: null,
+  }
+  queueItems.value.push(item)
+  ensurePolling()
+
+  // Free up the scan flow right away so the next trolley can be scanned
+  // without waiting for this one to finish.
+  changeTrolley()
+
+  const sequence = await fetchTrolleyActivitySequence(item.activityId)
+  item.queueNumber = sequence?.sequenceNumber ?? null
+  await refreshItem(item)
 }
 </script>
 
@@ -229,8 +224,48 @@ async function handleSubmit() {
       </p>
     </div>
 
+    <!-- Current Queue — same fields/polling behavior as Mainline, one card
+         per trolley task still in flight. -->
+    <div
+      v-for="item in queueItems"
+      :key="item.activityId"
+      class="flex items-center gap-4 rounded-2xl border border-[#01ADEF]/20 bg-gradient-to-r from-[#01ADEF]/10 to-transparent px-5 py-4"
+    >
+      <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-sm">
+        <Truck class="h-5 w-5" />
+      </div>
+      <div class="flex-1 space-y-1 text-sm">
+        <p class="font-semibold uppercase tracking-wide text-[#01ADEF]">Current Queue</p>
+        <p class="font-medium text-slate-500">
+          Trolley :
+          <span class="font-medium text-[#0F1F52]">{{ item.trolleyName }} ({{ item.trolleyCode }})</span>
+        </p>
+        <p class="font-medium text-slate-500">
+          No urut :
+          <span class="font-medium text-[#0F1F52]">{{ item.queueNumber ?? '-' }}</span>
+        </p>
+        <p class="font-medium text-slate-500">
+          Task ID :
+          <span class="font-medium text-[#0F1F52]">{{ item.taskId }}</span>
+        </p>
+        <p class="font-medium text-slate-500">
+          Status :
+          <span class="font-semibold text-[#01ADEF]">
+            {{ item.webhookStatus?.status ? taskStatusLabel(item.webhookStatus.status) : '-' }}
+          </span>
+        </p>
+        <p class="font-medium text-slate-500">
+          subTaskSeq :
+          <span class="font-medium text-[#0F1F52]">
+            {{ item.webhookStatus?.subTaskSeq ?? '-' }}
+            <template v-if="item.webhookStatus?.statusComment"> — {{ item.webhookStatus.statusComment }}</template>
+          </span>
+        </p>
+      </div>
+    </div>
+
     <!-- Confirmed scans so far, each re-scannable -->
-    <div v-if="trolleyCode && step !== 'submitted'" class="flex flex-wrap items-center gap-2">
+    <div v-if="trolleyCode" class="flex flex-wrap items-center gap-2">
       <button
         type="button"
         class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-600 transition-colors hover:bg-emerald-100"
@@ -275,45 +310,10 @@ async function handleSubmit() {
       <UiBaseInput :model-value="statusBeginning" label="Status Beginning" disabled />
       <UiBaseInput :model-value="pickupLocationName ? `${pickupLocationName} (${pickupLocationCode})` : ''" label="Pickup Location" disabled />
       <UiBaseInput :model-value="droppingLocationPreview" label="Dropping Location Code" disabled />
-      <UiBaseInput :model-value="durationPreview" label="Duration (so far)" disabled />
 
       <UiBaseButton full-width variant="gradient" :loading="submitting" @click="handleSubmit">
         Submit
       </UiBaseButton>
     </UiBaseCard>
-
-    <!-- Current Queue — same fields/polling behavior as Mainline. -->
-    <div
-      v-else-if="step === 'submitted'"
-      class="flex items-center gap-4 rounded-2xl border border-[#01ADEF]/20 bg-gradient-to-r from-[#01ADEF]/10 to-transparent px-5 py-4"
-    >
-      <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-sm">
-        <Truck class="h-5 w-5" />
-      </div>
-      <div class="flex-1 space-y-1 text-sm">
-        <p class="font-semibold uppercase tracking-wide text-[#01ADEF]">Current Queue</p>
-        <p class="font-medium text-slate-500">
-          No urut :
-          <span class="font-medium text-[#0F1F52]">{{ queueNumber ?? '-' }}</span>
-        </p>
-        <p class="font-medium text-slate-500">
-          Task ID :
-          <span class="font-medium text-[#0F1F52]">{{ submittedTaskId ?? '-' }}</span>
-        </p>
-        <p class="font-medium text-slate-500">
-          Status :
-          <span class="font-semibold text-[#01ADEF]">
-            {{ webhookStatus?.status ? taskStatusLabel(webhookStatus.status) : '-' }}
-          </span>
-        </p>
-        <p class="font-medium text-slate-500">
-          subTaskSeq :
-          <span class="font-medium text-[#0F1F52]">
-            {{ webhookStatus?.subTaskSeq ?? '-' }}
-            <template v-if="webhookStatus?.statusComment"> — {{ webhookStatus.statusComment }}</template>
-          </span>
-        </p>
-      </div>
-    </div>
   </div>
 </template>
