@@ -2,12 +2,17 @@
 import { Maximize, RotateCw, ZoomIn, ZoomOut } from 'lucide-vue-next'
 import { fetchLocationCodes } from '~/services/factory-map.service'
 import { fetchRobots as fetchRobotsSvc } from '~/services/robot.service'
+import { fetchActiveTrolleyActivitiesByRobot } from '~/services/trolley-activity.service'
 import type { Robot } from '~/types/robot'
 import robotIdleSrc from '~/assets/images/robot/Idle.png'
 import robotChargingSrc from '~/assets/images/robot/Charging.png'
 import robotOfflineSrc from '~/assets/images/robot/Offline.png'
+import robotPickupEmptySrc from '~/assets/images/robot/pickup-empty.png'
+import robotPickupFullSrc from '~/assets/images/robot/pickup-full.png'
 import chargerNodeSrc from '~/assets/images/location-node/charger-node.png'
 import locationNodeSrc from '~/assets/images/location-node/node.png'
+import locationNodeEmptySrc from '~/assets/images/location-node/node-empty.png'
+import locationNodeFullSrc from '~/assets/images/location-node/node-full.png'
 
 interface ChargeCoorEntry {
   x: number
@@ -37,6 +42,7 @@ interface NamedNode {
   y: number
   content: string
   isCharger: boolean
+  warehouseStatus: 'EMPTY' | 'FULL' | null
 }
 
 interface RobotMarker {
@@ -46,6 +52,7 @@ interface RobotMarker {
   name: string
   state: string | null
   battery: number | null
+  payload: string | null
 }
 
 interface ViewBox {
@@ -140,6 +147,9 @@ const chargeRadius = computed(() => {
 // Charger Area subset, used to pick the charger icon over the generic one.
 const locationCodes = ref<Set<string>>(new Set())
 const chargerLocationCodes = ref<Set<string>>(new Set())
+// Warehouse Location occupancy (see CreateTrolleyActivityUseCase) — drives
+// the full/empty-trolley icon on these nodes specifically.
+const warehouseLocationStatuses = ref<Map<string, 'EMPTY' | 'FULL'>>(new Map())
 
 const namedNodes = computed<NamedNode[]>(() => {
   const topo = topology.value
@@ -158,10 +168,20 @@ const namedNodes = computed<NamedNode[]>(() => {
         y: Number(node[yIdx]),
         content,
         isCharger: chargerLocationCodes.value.has(content),
+        warehouseStatus: warehouseLocationStatuses.value.get(content) ?? null,
       }
     })
     .filter(node => locationCodes.value.has(node.content))
 })
+
+// Charger takes priority (it's a distinct icon regardless of trolley
+// occupancy), then Warehouse Location occupancy, then the generic marker.
+function nodeImageSrc(node: NamedNode): string {
+  if (node.isCharger) return chargerNodeSrc
+  if (node.warehouseStatus === 'FULL') return locationNodeFullSrc
+  if (node.warehouseStatus === 'EMPTY') return locationNodeEmptySrc
+  return locationNodeSrc
+}
 
 const nodeIconSize = computed(() => {
   const topo = topology.value
@@ -223,8 +243,25 @@ const robotMarkers = computed<RobotMarker[]>(() => {
       name: robot.name,
       state: robot.state,
       battery: robot.battery,
+      payload: robot.payload,
     }))
 })
+
+// Which Trolley Task each robot is currently carrying out (PENDING/
+// IN_PROGRESS only) — `carrying` is what's physically on the trolley right
+// now (see ActiveTrolleyActivityByRobot), not the trolley's own live
+// `status`, which already flips to its post-delivery value the instant the
+// task order is accepted.
+const activeTrolleyByRobot = ref<Map<string, 'EMPTY' | 'FULL'>>(new Map())
+
+async function loadActiveTrolleyActivitiesByRobot() {
+  try {
+    const rows = await fetchActiveTrolleyActivitiesByRobot()
+    activeTrolleyByRobot.value = new Map(rows.map(row => [row.robotId, row.carrying]))
+  } catch {
+    // Non-fatal — robot markers just fall back to their usual Idle/Charging icon.
+  }
+}
 
 const robotIconSize = computed(() => {
   const topo = topology.value
@@ -234,13 +271,22 @@ const robotIconSize = computed(() => {
 
 // Matches the loose, case-insensitive state matching used by the Robots
 // table (state strings come straight from the AMR telemetry API, e.g.
-// "Idle", "Charging", "Offline") — states without a dedicated image
-// (Fault/Initializing/In task/Upgrading/unknown) fall back to the hand-drawn
-// mascot below.
-function robotImageSrc(state: string | null): string | null {
-  const value = state?.toLowerCase() ?? ''
-  if (value.includes('charging')) return robotChargingSrc
+// "Idle", "Charging", "Offline", "InTask") — states without a dedicated
+// image (Fault/Initializing/Upgrading/unknown) fall back to the hand-drawn
+// mascot below. Offline always wins regardless of payload/carrying, since a
+// robot that's stopped reporting can't be trusted to still be mid-delivery.
+function robotImageSrc(robot: RobotMarker): string | null {
+  const value = robot.state?.toLowerCase() ?? ''
   if (value.includes('offline')) return robotOfflineSrc
+
+  const isCarrying = Number(robot.payload ?? '0') > 0
+  if (isCarrying) {
+    const carrying = activeTrolleyByRobot.value.get(robot.id)
+    if (carrying === 'FULL') return robotPickupFullSrc
+    if (carrying === 'EMPTY') return robotPickupEmptySrc
+  }
+
+  if (value.includes('charging')) return robotChargingSrc
   if (value.includes('idle')) return robotIdleSrc
   return null
 }
@@ -376,16 +422,32 @@ async function loadLocationCodes() {
     const result = await fetchLocationCodes()
     locationCodes.value = new Set(result.codes)
     chargerLocationCodes.value = new Set(result.chargerCodes)
+    warehouseLocationStatuses.value = new Map(
+      result.warehouseLocationStatuses.map(entry => [entry.code, entry.status]),
+    )
   } catch {
     // Non-fatal — the map still renders, just without line/dock markers.
   }
 }
+
+// Warehouse Location occupancy changes whenever a Trolley Task is submitted
+// elsewhere — polled at a much lighter cadence than robot telemetry since
+// it's not nearly as time-sensitive.
+const LOCATION_CODES_POLL_MS = 5000
+let locationCodesPollTimer: ReturnType<typeof setInterval> | null = null
+
+// Which robots are mid-Trolley-Task — lighter cadence than robot position,
+// but tighter than location codes since it drives the marker icon while a
+// delivery is visibly in progress.
+const ACTIVE_TROLLEY_POLL_MS = 3000
+let activeTrolleyPollTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(async () => {
   await Promise.all([
     fetchFactoryMaps({ limit: 100 }),
     loadLocationCodes(),
     loadLiveRobots(),
+    loadActiveTrolleyActivitiesByRobot(),
   ])
   if (factoryMaps.value[0]) {
     selectedMapId.value = factoryMaps.value[0].id
@@ -393,12 +455,22 @@ onMounted(async () => {
     loading.value = false
   }
   robotPollTimer = setInterval(loadLiveRobots, ROBOT_POLL_MS)
+  locationCodesPollTimer = setInterval(loadLocationCodes, LOCATION_CODES_POLL_MS)
+  activeTrolleyPollTimer = setInterval(loadActiveTrolleyActivitiesByRobot, ACTIVE_TROLLEY_POLL_MS)
 })
 
 onBeforeUnmount(() => {
   if (robotPollTimer) {
     clearInterval(robotPollTimer)
     robotPollTimer = null
+  }
+  if (locationCodesPollTimer) {
+    clearInterval(locationCodesPollTimer)
+    locationCodesPollTimer = null
+  }
+  if (activeTrolleyPollTimer) {
+    clearInterval(activeTrolleyPollTimer)
+    activeTrolleyPollTimer = null
   }
 })
 </script>
@@ -523,7 +595,7 @@ onBeforeUnmount(() => {
                 viewBox="0 0 100 100"
               >
                 <image
-                  :href="node.isCharger ? chargerNodeSrc : locationNodeSrc"
+                  :href="nodeImageSrc(node)"
                   x="0"
                   y="0"
                   width="100"
@@ -573,7 +645,7 @@ onBeforeUnmount(() => {
               @pointerleave="hoveredRobotId = null"
             >
               <svg
-                v-if="robotImageSrc(robot.state)"
+                v-if="robotImageSrc(robot)"
                 class="robot-marker__bob"
                 :x="-robotIconSize / 2"
                 :y="-robotIconSize / 2"
@@ -582,7 +654,7 @@ onBeforeUnmount(() => {
                 viewBox="0 0 100 100"
               >
                 <image
-                  :href="robotImageSrc(robot.state) as string"
+                  :href="robotImageSrc(robot) as string"
                   x="0"
                   y="0"
                   width="100"

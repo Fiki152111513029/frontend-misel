@@ -15,6 +15,10 @@ export interface LookupTrolleyResult {
 export interface LookupLocationResult {
   pickupLocationCode: string
   pickupLocationName: string
+  // WAREHOUSE: dropping is the trolley's own fixed droppingLocationCode.
+  // PRODUCTION: dropping is auto-picked from an EMPTY Warehouse Location at
+  // submit time, so it isn't known yet on this review step.
+  pickupLocationSource: 'WAREHOUSE' | 'PRODUCTION'
 }
 
 export interface CreateTrolleyActivityInput {

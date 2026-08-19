@@ -37,3 +37,13 @@ export async function fetchTrolleyActivitySequence(id: string): Promise<{ sequen
   const { $http } = useNuxtApp()
   return (await $http.get(`/trolley-activities/${id}/sequence`)) as { sequenceNumber: number }
 }
+
+export interface ActiveTrolleyActivityByRobot {
+  robotId: string
+  carrying: 'EMPTY' | 'FULL'
+}
+
+export async function fetchActiveTrolleyActivitiesByRobot(): Promise<ActiveTrolleyActivityByRobot[]> {
+  const { $http } = useNuxtApp()
+  return (await $http.get('/trolley-activities/active-by-robot')) as ActiveTrolleyActivityByRobot[]
+}

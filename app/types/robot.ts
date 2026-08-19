@@ -16,6 +16,8 @@ export interface Robot {
   positionX: number | null
   /** Live map x/y from the AMR telemetry API (same coordinate space as Factory Map topology), null if not reporting */
   positionY: number | null
+  /** Raw "payLoad" from the AMR telemetry API — "0.0" (idle) or "1.0" (carrying something); never distinguishes what's being carried. Null if not reporting. */
+  payload: string | null
   isActive: boolean
   createdAt: string
   updatedAt: string

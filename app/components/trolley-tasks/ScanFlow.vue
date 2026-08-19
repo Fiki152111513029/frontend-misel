@@ -41,6 +41,15 @@ const startDate = ref('')
 
 const pickupLocationCode = ref('')
 const pickupLocationName = ref('')
+const pickupLocationSource = ref<'WAREHOUSE' | 'PRODUCTION' | ''>('')
+
+// Warehouse->Production: dropping is the trolley's own fixed code, already
+// known. Production->Warehouse: dropping is auto-picked from an EMPTY
+// Warehouse Location only at submit time, so there's nothing to preview yet.
+const droppingLocationPreview = computed(() => {
+  if (pickupLocationSource.value === 'PRODUCTION') return 'Auto-assigned (empty Warehouse Location) on submit'
+  return droppingLocationCode.value ?? '-'
+})
 
 const scanLabel = computed(() => (step.value === 'location' ? 'Scan Area' : 'Scan Trolley'))
 
@@ -71,6 +80,7 @@ async function handleScanSubmit() {
     if (!result) return
     pickupLocationCode.value = result.pickupLocationCode
     pickupLocationName.value = result.pickupLocationName
+    pickupLocationSource.value = result.pickupLocationSource
     step.value = 'ready'
   }
 
@@ -88,6 +98,7 @@ function changeTrolley() {
   startDate.value = ''
   pickupLocationCode.value = ''
   pickupLocationName.value = ''
+  pickupLocationSource.value = ''
   scanValue.value = ''
   focusScanInput()
 }
@@ -96,6 +107,7 @@ function changeLocation() {
   step.value = 'location'
   pickupLocationCode.value = ''
   pickupLocationName.value = ''
+  pickupLocationSource.value = ''
   scanValue.value = ''
   focusScanInput()
 }
@@ -262,7 +274,7 @@ async function handleSubmit() {
       <UiBaseInput :model-value="trolleyCode" label="Trolley Code" disabled />
       <UiBaseInput :model-value="statusBeginning" label="Status Beginning" disabled />
       <UiBaseInput :model-value="pickupLocationName ? `${pickupLocationName} (${pickupLocationCode})` : ''" label="Pickup Location" disabled />
-      <UiBaseInput :model-value="droppingLocationCode ?? '-'" label="Dropping Location Code" disabled />
+      <UiBaseInput :model-value="droppingLocationPreview" label="Dropping Location Code" disabled />
       <UiBaseInput :model-value="durationPreview" label="Duration (so far)" disabled />
 
       <UiBaseButton full-width variant="gradient" :loading="submitting" @click="handleSubmit">
