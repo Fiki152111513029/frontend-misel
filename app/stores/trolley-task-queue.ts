@@ -70,6 +70,11 @@ function defineTrolleyTaskQueueStore(role: string) {
       trolleyCode: string
       trolleyName: string
     }) {
+      // Idempotent — restoring from the backend on mount (see
+      // fetchMyActiveTrolleyActivities) must not duplicate a card that a
+      // live submit in this same session already added.
+      if (items.value.some(item => item.activityId === input.activityId)) return
+
       const item: TrolleyQueueItem = { ...input, queueNumber: null, webhookStatus: null }
       items.value.push(item)
       ensurePolling()

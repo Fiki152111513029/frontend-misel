@@ -47,3 +47,19 @@ export async function fetchActiveTrolleyActivitiesByRobot(): Promise<ActiveTroll
   const { $http } = useNuxtApp()
   return (await $http.get('/trolley-activities/active-by-robot')) as ActiveTrolleyActivityByRobot[]
 }
+
+export interface MyActiveTrolleyActivity {
+  activityId: string
+  taskId: string
+  trolleyCode: string
+  trolleyName: string
+  // Which direction the pickup was — used to restore into the right page's
+  // Current Queue (Warehouse Trolley Task vs Operator Trolley Task) without
+  // mixing the two.
+  pickupSource: 'WAREHOUSE' | 'PRODUCTION'
+}
+
+export async function fetchMyActiveTrolleyActivities(): Promise<MyActiveTrolleyActivity[]> {
+  const { $http } = useNuxtApp()
+  return (await $http.get('/trolley-activities/active-mine')) as MyActiveTrolleyActivity[]
+}

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Truck } from 'lucide-vue-next'
 import { taskStatusLabel } from '~/utils/taskStatus'
+import { fetchMyActiveTrolleyActivities } from '~/services/trolley-activity.service'
 
 // Real backend flow (no more mock data):
 // 1. Scan Trolley  -> POST /trolley-activities/lookup-trolley
@@ -63,6 +64,36 @@ function focusScanInput() {
 }
 
 onMounted(focusScanInput)
+
+// The Pinia queue store only lives in browser memory — a page reload (or a
+// backend/webserver restart forcing a reconnect) wipes it even though the
+// underlying Trolley Activity is safely persisted server-side. Restore this
+// user's own still-in-flight tasks on mount so the Current Queue card comes
+// back. Warehouse Trolley Task only restores WAREHOUSE-pickup tasks and
+// Operator Trolley Task only PRODUCTION-pickup ones — the same split
+// CreateTrolleyActivityUseCase derives at submit time — so a task never
+// resurfaces on the other page. addTask() is idempotent, so this is safe to
+// run every time this component mounts, not just after a real reload.
+const expectedPickupSource = props.roleLabel === 'Warehouse' ? 'WAREHOUSE' : 'PRODUCTION'
+
+async function restoreActiveQueue() {
+  try {
+    const activities = await fetchMyActiveTrolleyActivities()
+    for (const activity of activities) {
+      if (activity.pickupSource !== expectedPickupSource) continue
+      queue.addTask({
+        activityId: activity.activityId,
+        taskId: activity.taskId,
+        trolleyCode: activity.trolleyCode,
+        trolleyName: activity.trolleyName,
+      })
+    }
+  } catch {
+    // Non-fatal — worst case the queue just starts empty this session.
+  }
+}
+
+onMounted(restoreActiveQueue)
 
 async function handleScanSubmit() {
   const value = scanValue.value.trim()
