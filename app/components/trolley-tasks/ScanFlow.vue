@@ -18,7 +18,7 @@ interface Props {
   roleLabel: string
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const toast = useToast()
 const {
@@ -26,7 +26,7 @@ const {
   lookupLocation,
   createTrolleyActivity,
 } = useTrolleyActivities()
-const queue = useTrolleyTaskQueueStore()
+const queue = useTrolleyTaskQueueStore(props.roleLabel)
 
 type Step = 'trolley' | 'location' | 'ready'
 

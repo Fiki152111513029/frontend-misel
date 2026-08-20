@@ -42,7 +42,10 @@ interface NamedNode {
   y: number
   content: string
   isCharger: boolean
-  warehouseStatus: 'EMPTY' | 'FULL' | null
+  // Occupancy from whichever side this node is (Warehouse Location or
+  // Production Location — a code only ever matches one), null if it's
+  // neither (e.g. a Quarantine Area or EXIM Location node).
+  occupancyStatus: 'EMPTY' | 'FULL' | null
 }
 
 interface RobotMarker {
@@ -147,9 +150,10 @@ const chargeRadius = computed(() => {
 // Charger Area subset, used to pick the charger icon over the generic one.
 const locationCodes = ref<Set<string>>(new Set())
 const chargerLocationCodes = ref<Set<string>>(new Set())
-// Warehouse Location occupancy (see CreateTrolleyActivityUseCase) — drives
-// the full/empty-trolley icon on these nodes specifically.
-const warehouseLocationStatuses = ref<Map<string, 'EMPTY' | 'FULL'>>(new Map())
+// Warehouse/Production Location occupancy (see CreateTrolleyActivityUseCase)
+// — drives the full/empty-trolley icon on these nodes specifically. A code
+// only ever belongs to one side, so this is one merged lookup.
+const locationOccupancyStatuses = ref<Map<string, 'EMPTY' | 'FULL'>>(new Map())
 
 const namedNodes = computed<NamedNode[]>(() => {
   const topo = topology.value
@@ -168,18 +172,19 @@ const namedNodes = computed<NamedNode[]>(() => {
         y: Number(node[yIdx]),
         content,
         isCharger: chargerLocationCodes.value.has(content),
-        warehouseStatus: warehouseLocationStatuses.value.get(content) ?? null,
+        occupancyStatus: locationOccupancyStatuses.value.get(content) ?? null,
       }
     })
     .filter(node => locationCodes.value.has(node.content))
 })
 
 // Charger takes priority (it's a distinct icon regardless of trolley
-// occupancy), then Warehouse Location occupancy, then the generic marker.
+// occupancy), then Warehouse/Production Location occupancy, then the
+// generic marker.
 function nodeImageSrc(node: NamedNode): string {
   if (node.isCharger) return chargerNodeSrc
-  if (node.warehouseStatus === 'FULL') return locationNodeFullSrc
-  if (node.warehouseStatus === 'EMPTY') return locationNodeEmptySrc
+  if (node.occupancyStatus === 'FULL') return locationNodeFullSrc
+  if (node.occupancyStatus === 'EMPTY') return locationNodeEmptySrc
   return locationNodeSrc
 }
 
@@ -422,9 +427,10 @@ async function loadLocationCodes() {
     const result = await fetchLocationCodes()
     locationCodes.value = new Set(result.codes)
     chargerLocationCodes.value = new Set(result.chargerCodes)
-    warehouseLocationStatuses.value = new Map(
-      result.warehouseLocationStatuses.map(entry => [entry.code, entry.status]),
-    )
+    locationOccupancyStatuses.value = new Map([
+      ...result.warehouseLocationStatuses.map((entry): [string, 'EMPTY' | 'FULL'] => [entry.code, entry.status]),
+      ...result.productionLocationStatuses.map((entry): [string, 'EMPTY' | 'FULL'] => [entry.code, entry.status]),
+    ])
   } catch {
     // Non-fatal — the map still renders, just without line/dock markers.
   }
