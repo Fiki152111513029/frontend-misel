@@ -11,7 +11,6 @@ import robotPickupEmptySrc from '~/assets/images/robot/pickup-empty.png'
 import robotPickupFullSrc from '~/assets/images/robot/pickup-full.png'
 import chargerNodeSrc from '~/assets/images/location-node/charger-node.png'
 import locationNodeSrc from '~/assets/images/location-node/node.png'
-import locationNodeEmptySrc from '~/assets/images/location-node/node-empty.png'
 import locationNodeFullSrc from '~/assets/images/location-node/node-full.png'
 
 interface ChargeCoorEntry {
@@ -180,12 +179,11 @@ const namedNodes = computed<NamedNode[]>(() => {
 })
 
 // Charger takes priority (it's a distinct icon regardless of trolley
-// occupancy), then Warehouse/Production Location occupancy, then the
-// generic marker.
+// occupancy). Only FULL gets its own icon — EMPTY and "no data from RCS
+// yet" both just render the plain default marker.
 function nodeImageSrc(node: NamedNode): string {
   if (node.isCharger) return chargerNodeSrc
   if (node.occupancyStatus === 'FULL') return locationNodeFullSrc
-  if (node.occupancyStatus === 'EMPTY') return locationNodeEmptySrc
   return locationNodeSrc
 }
 
