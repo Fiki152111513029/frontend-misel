@@ -277,11 +277,14 @@ const robotIconSize = computed(() => {
 
 // Matches the loose, case-insensitive state matching used by the Robots
 // table (state strings come straight from the AMR telemetry API, e.g.
-// "Idle", "Charging", "Offline", "InTask") — states without a dedicated
-// image (Fault/Initializing/Upgrading/unknown) fall back to the hand-drawn
-// mascot below. Offline always wins regardless of payload/carrying, since a
-// robot that's stopped reporting can't be trusted to still be mid-delivery.
-function robotImageSrc(robot: RobotMarker): string | null {
+// "Idle", "Charging", "Offline", "InTask"). Offline always wins regardless
+// of payload/carrying, since a robot that's stopped reporting can't be
+// trusted to still be mid-delivery. Idle.png is the default fallback for
+// everything else — including "InTask" while the robot is moving but not
+// yet carrying anything (e.g. still on its way to a pickup) — not just the
+// literal "Idle" state, so the marker always has a real robot icon instead
+// of the hand-drawn placeholder.
+function robotImageSrc(robot: RobotMarker): string {
   const value = robot.state?.toLowerCase() ?? ''
   if (value.includes('offline')) return robotOfflineSrc
 
@@ -293,8 +296,7 @@ function robotImageSrc(robot: RobotMarker): string | null {
   }
 
   if (value.includes('charging')) return robotChargingSrc
-  if (value.includes('idle')) return robotIdleSrc
-  return null
+  return robotIdleSrc
 }
 
 const hoveredRobotId = ref<string | null>(null)
@@ -674,7 +676,6 @@ onBeforeUnmount(() => {
               @pointerleave="hoveredRobotId = null"
             >
               <svg
-                v-if="robotImageSrc(robot)"
                 class="robot-marker__bob"
                 :x="-robotIconSize / 2"
                 :y="-robotIconSize / 2"
@@ -683,39 +684,13 @@ onBeforeUnmount(() => {
                 viewBox="0 0 100 100"
               >
                 <image
-                  :href="robotImageSrc(robot) as string"
+                  :href="robotImageSrc(robot)"
                   x="0"
                   y="0"
                   width="100"
                   height="100"
                   preserveAspectRatio="xMidYMid meet"
                 />
-              </svg>
-              <svg
-                v-else
-                class="robot-marker__bob"
-                :x="-robotIconSize / 2"
-                :y="-robotIconSize / 2"
-                :width="robotIconSize"
-                :height="robotIconSize"
-                viewBox="0 0 100 100"
-              >
-                <rect x="0" y="0" width="100" height="100" fill="white" fill-opacity="0.001" />
-                <!-- arms -->
-                <path d="M25 30 Q8 30 8 20" fill="none" stroke="#0F1F52" stroke-width="5" stroke-linecap="round" />
-                <rect x="2" y="12" width="12" height="10" rx="5" fill="#0F1F52" />
-                <path d="M75 30 Q92 30 92 20" fill="none" stroke="#0F1F52" stroke-width="5" stroke-linecap="round" />
-                <rect x="86" y="12" width="12" height="10" rx="5" fill="#0F1F52" />
-                <!-- head -->
-                <rect x="22" y="8" width="56" height="46" rx="22" fill="white" stroke="#01ADEF" stroke-width="5" />
-                <rect x="37" y="18" width="26" height="18" rx="4" fill="#0F1F52" />
-                <circle cx="50" cy="27" r="2.5" fill="white" />
-                <rect x="42" y="42" width="16" height="4" rx="2" fill="#0F1F52" />
-                <!-- neck + base -->
-                <rect x="42" y="54" width="16" height="10" fill="#0F1F52" />
-                <rect x="18" y="70" width="12" height="24" rx="6" fill="white" stroke="#01ADEF" stroke-width="5" />
-                <rect x="70" y="70" width="12" height="24" rx="6" fill="white" stroke="#01ADEF" stroke-width="5" />
-                <rect x="24" y="78" width="52" height="8" rx="3" fill="#0F1F52" />
               </svg>
             </g>
 
