@@ -51,9 +51,25 @@ export interface LocationCodesResult {
 // Locations, Production Line Areas, Charger Areas) — used to filter which
 // topology nodes get a marker on the Factory Map, instead of every
 // alphanumeric-looking node. `chargerCodes` is the Charger Area subset, used
-// to pick which icon a matched node gets. `warehouseLocationStatuses` drives
-// the full/empty-trolley icon on Warehouse Location nodes specifically.
+// to pick which icon a matched node gets. `warehouseLocationStatuses` is our
+// own DB's occupancy tracking — kept for reference, but the Factory Map's
+// node icons are now driven by fetchStockStatus() (live off RCS) instead.
 export async function fetchLocationCodes(): Promise<LocationCodesResult> {
   const { $http } = useNuxtApp()
   return (await $http.get('/factory-maps/location-codes')) as LocationCodesResult
+}
+
+export interface StockStatusEntry {
+  code: string
+  status: 'EMPTY' | 'FULL'
+}
+
+// Live full/empty status per Warehouse/Production Location node, straight
+// off RCS's own getStockStatus for the given area — the Factory Map's node
+// icons (full/empty-trolley) are driven by this, not our own DB.
+export async function fetchStockStatus(areaId: number): Promise<StockStatusEntry[]> {
+  const { $http } = useNuxtApp()
+  return (await $http.get('/factory-maps/stock-status', {
+    params: { areaId },
+  })) as StockStatusEntry[]
 }

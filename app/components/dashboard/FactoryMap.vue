@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Maximize, RotateCw, ZoomIn, ZoomOut } from 'lucide-vue-next'
-import { fetchLocationCodes } from '~/services/factory-map.service'
+import { fetchLocationCodes, fetchStockStatus } from '~/services/factory-map.service'
 import { fetchRobots as fetchRobotsSvc } from '~/services/robot.service'
 import { fetchActiveTrolleyActivitiesByRobot } from '~/services/trolley-activity.service'
 import type { Robot } from '~/types/robot'
@@ -42,7 +42,10 @@ interface NamedNode {
   y: number
   content: string
   isCharger: boolean
-  warehouseStatus: 'EMPTY' | 'FULL' | null
+  // Live off RCS's own getStockStatus (see fetchStockStatus) — null if RCS
+  // hasn't reported a status for this node's code (or it isn't a
+  // Warehouse/Production Location at all, e.g. a Quarantine Area node).
+  occupancyStatus: 'EMPTY' | 'FULL' | null
 }
 
 interface RobotMarker {
@@ -147,9 +150,11 @@ const chargeRadius = computed(() => {
 // Charger Area subset, used to pick the charger icon over the generic one.
 const locationCodes = ref<Set<string>>(new Set())
 const chargerLocationCodes = ref<Set<string>>(new Set())
-// Warehouse Location occupancy (see CreateTrolleyActivityUseCase) — drives
-// the full/empty-trolley icon on these nodes specifically.
-const warehouseLocationStatuses = ref<Map<string, 'EMPTY' | 'FULL'>>(new Map())
+// Live Warehouse/Production Location occupancy, straight off RCS's own
+// getStockStatus for the selected map's area — drives the full/empty-
+// trolley icon on these nodes. A code only ever belongs to one side, so
+// this is one merged lookup.
+const locationOccupancyStatuses = ref<Map<string, 'EMPTY' | 'FULL'>>(new Map())
 
 const namedNodes = computed<NamedNode[]>(() => {
   const topo = topology.value
@@ -168,18 +173,19 @@ const namedNodes = computed<NamedNode[]>(() => {
         y: Number(node[yIdx]),
         content,
         isCharger: chargerLocationCodes.value.has(content),
-        warehouseStatus: warehouseLocationStatuses.value.get(content) ?? null,
+        occupancyStatus: locationOccupancyStatuses.value.get(content) ?? null,
       }
     })
     .filter(node => locationCodes.value.has(node.content))
 })
 
 // Charger takes priority (it's a distinct icon regardless of trolley
-// occupancy), then Warehouse Location occupancy, then the generic marker.
+// occupancy), then Warehouse/Production Location occupancy, then the
+// generic marker.
 function nodeImageSrc(node: NamedNode): string {
   if (node.isCharger) return chargerNodeSrc
-  if (node.warehouseStatus === 'FULL') return locationNodeFullSrc
-  if (node.warehouseStatus === 'EMPTY') return locationNodeEmptySrc
+  if (node.occupancyStatus === 'FULL') return locationNodeFullSrc
+  if (node.occupancyStatus === 'EMPTY') return locationNodeEmptySrc
   return locationNodeSrc
 }
 
@@ -422,19 +428,36 @@ async function loadLocationCodes() {
     const result = await fetchLocationCodes()
     locationCodes.value = new Set(result.codes)
     chargerLocationCodes.value = new Set(result.chargerCodes)
-    warehouseLocationStatuses.value = new Map(
-      result.warehouseLocationStatuses.map(entry => [entry.code, entry.status]),
-    )
   } catch {
     // Non-fatal — the map still renders, just without line/dock markers.
   }
 }
 
-// Warehouse Location occupancy changes whenever a Trolley Task is submitted
-// elsewhere — polled at a much lighter cadence than robot telemetry since
-// it's not nearly as time-sensitive.
+// Live off RCS, scoped to the currently selected map's area — refetched
+// whenever the operator switches maps, and polled at a much lighter cadence
+// than robot telemetry since occupancy isn't nearly as time-sensitive.
+async function loadStockStatus() {
+  const areaNumber = selectedMap.value?.areaNumber
+  if (areaNumber == null) {
+    locationOccupancyStatuses.value = new Map()
+    return
+  }
+  try {
+    const result = await fetchStockStatus(areaNumber)
+    locationOccupancyStatuses.value = new Map(result.map(entry => [entry.code, entry.status]))
+  } catch {
+    // Non-fatal — nodes just fall back to their plain icon this tick.
+  }
+}
+
+watch(selectedMap, () => {
+  loadStockStatus()
+})
+
 const LOCATION_CODES_POLL_MS = 5000
 let locationCodesPollTimer: ReturnType<typeof setInterval> | null = null
+const STOCK_STATUS_POLL_MS = 5000
+let stockStatusPollTimer: ReturnType<typeof setInterval> | null = null
 
 // Which robots are mid-Trolley-Task — lighter cadence than robot position,
 // but tighter than location codes since it drives the marker icon while a
@@ -454,9 +477,11 @@ onMounted(async () => {
   } else {
     loading.value = false
   }
+  await loadStockStatus()
   robotPollTimer = setInterval(loadLiveRobots, ROBOT_POLL_MS)
   locationCodesPollTimer = setInterval(loadLocationCodes, LOCATION_CODES_POLL_MS)
   activeTrolleyPollTimer = setInterval(loadActiveTrolleyActivitiesByRobot, ACTIVE_TROLLEY_POLL_MS)
+  stockStatusPollTimer = setInterval(loadStockStatus, STOCK_STATUS_POLL_MS)
 })
 
 onBeforeUnmount(() => {
@@ -471,6 +496,10 @@ onBeforeUnmount(() => {
   if (activeTrolleyPollTimer) {
     clearInterval(activeTrolleyPollTimer)
     activeTrolleyPollTimer = null
+  }
+  if (stockStatusPollTimer) {
+    clearInterval(stockStatusPollTimer)
+    stockStatusPollTimer = null
   }
 })
 </script>
