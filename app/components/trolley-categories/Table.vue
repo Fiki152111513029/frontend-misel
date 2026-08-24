@@ -27,6 +27,7 @@ const { hasPermission } = useAuth()
 
 const columns = [
   { key: 'name', label: 'Name' },
+  { key: 'modelCodeProcess', label: 'Model Code Process' },
   { key: 'actions', label: 'Actions', width: '120px' },
 ]
 
@@ -66,6 +67,9 @@ function toggleSort(key: TrolleyCategorySortKey) {
             <ChevronDown v-else class="h-3.5 w-3.5 opacity-30" />
           </button>
         </th>
+        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Model Code Process
+        </th>
         <th style="width: 120px" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
           Actions
         </th>
@@ -84,6 +88,9 @@ function toggleSort(key: TrolleyCategorySortKey) {
         >
           <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.name }}
+          </td>
+          <td class="px-4 py-3 text-sm text-slate-500">
+            {{ item.modelCodeProcess?.name ?? '-' }}
           </td>
           <td class="px-4 py-3">
             <div class="flex items-center gap-2">
