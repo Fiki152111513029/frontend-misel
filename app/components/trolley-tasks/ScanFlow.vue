@@ -46,6 +46,7 @@ const startDate = ref('')
 const pickupLocationCode = ref('')
 const pickupLocationName = ref('')
 const pickupLocationSource = ref<'WAREHOUSE' | 'PRODUCTION' | ''>('')
+const incomingWarning = ref<string | null>(null)
 
 // Warehouse->Production: dropping is the trolley's own fixed code, already
 // known. Production->Warehouse: dropping is auto-picked from an EMPTY
@@ -115,6 +116,8 @@ async function handleScanSubmit() {
     pickupLocationCode.value = result.pickupLocationCode
     pickupLocationName.value = result.pickupLocationName
     pickupLocationSource.value = result.pickupLocationSource
+    incomingWarning.value = result.incomingWarning
+    if (result.incomingWarning) toast.error(result.incomingWarning)
     step.value = 'ready'
   }
 
@@ -133,6 +136,7 @@ function changeTrolley() {
   pickupLocationCode.value = ''
   pickupLocationName.value = ''
   pickupLocationSource.value = ''
+  incomingWarning.value = null
   scanValue.value = ''
   focusScanInput()
 }
@@ -142,6 +146,7 @@ function changeLocation() {
   pickupLocationCode.value = ''
   pickupLocationName.value = ''
   pickupLocationSource.value = ''
+  incomingWarning.value = null
   scanValue.value = ''
   focusScanInput()
 }
@@ -225,6 +230,12 @@ async function handleSubmit() {
 
     <!-- Review + submit -->
     <UiBaseCard v-else-if="step === 'ready'" class="space-y-4">
+      <p
+        v-if="incomingWarning"
+        class="rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700"
+      >
+        {{ incomingWarning }}
+      </p>
       <UiBaseInput :model-value="userName" label="Name" disabled />
       <UiBaseInput :model-value="trolleyCode" label="Trolley Code" disabled />
       <UiBaseInput :model-value="statusBeginning" label="Status Beginning" disabled />

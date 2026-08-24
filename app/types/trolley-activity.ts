@@ -19,6 +19,9 @@ export interface LookupLocationResult {
   // PRODUCTION: dropping is auto-picked from an EMPTY Warehouse Location at
   // submit time, so it isn't known yet on this review step.
   pickupLocationSource: 'WAREHOUSE' | 'PRODUCTION'
+  // Set when some other in-flight Trolley Task is already heading to this
+  // exact node (an AMR incoming) — only ever populated for WAREHOUSE.
+  incomingWarning: string | null
 }
 
 export interface CreateTrolleyActivityInput {
