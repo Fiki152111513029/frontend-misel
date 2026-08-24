@@ -184,46 +184,6 @@ async function handleSubmit() {
       </p>
     </div>
 
-    <!-- Current Queue — same fields/polling behavior as Mainline, one card
-         per trolley task still in flight. -->
-    <div
-      v-for="item in queue.items"
-      :key="item.activityId"
-      class="flex items-center gap-4 rounded-2xl border border-[#01ADEF]/20 bg-gradient-to-r from-[#01ADEF]/10 to-transparent px-5 py-4"
-    >
-      <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-sm">
-        <Truck class="h-5 w-5" />
-      </div>
-      <div class="flex-1 space-y-1 text-sm">
-        <p class="font-semibold uppercase tracking-wide text-[#01ADEF]">Current Queue</p>
-        <p class="font-medium text-slate-500">
-          Trolley :
-          <span class="font-medium text-[#0F1F52]">{{ item.trolleyName }} ({{ item.trolleyCode }})</span>
-        </p>
-        <p class="font-medium text-slate-500">
-          No urut :
-          <span class="font-medium text-[#0F1F52]">{{ item.queueNumber ?? '-' }}</span>
-        </p>
-        <p class="font-medium text-slate-500">
-          Task ID :
-          <span class="font-medium text-[#0F1F52]">{{ item.taskId }}</span>
-        </p>
-        <p class="font-medium text-slate-500">
-          Status :
-          <span class="font-semibold text-[#01ADEF]">
-            {{ item.webhookStatus?.status ? taskStatusLabel(item.webhookStatus.status) : '-' }}
-          </span>
-        </p>
-        <p class="font-medium text-slate-500">
-          subTaskSeq :
-          <span class="font-medium text-[#0F1F52]">
-            {{ item.webhookStatus?.subTaskSeq ?? '-' }}
-            <template v-if="item.webhookStatus?.statusComment"> — {{ item.webhookStatus.statusComment }}</template>
-          </span>
-        </p>
-      </div>
-    </div>
-
     <!-- Confirmed scans so far, each re-scannable -->
     <div v-if="trolleyCode" class="flex flex-wrap items-center gap-2">
       <button
@@ -275,5 +235,45 @@ async function handleSubmit() {
         Submit
       </UiBaseButton>
     </UiBaseCard>
+
+    <!-- Current Queue — same fields/polling behavior as Mainline, one card
+         per trolley task still in flight. -->
+    <div
+      v-for="item in queue.items"
+      :key="item.activityId"
+      class="flex items-center gap-4 rounded-2xl border border-[#01ADEF]/20 bg-gradient-to-r from-[#01ADEF]/10 to-transparent px-5 py-4"
+    >
+      <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-sm">
+        <Truck class="h-5 w-5" />
+      </div>
+      <div class="flex-1 space-y-1 text-sm">
+        <p class="font-semibold uppercase tracking-wide text-[#01ADEF]">Current Queue</p>
+        <p class="font-medium text-slate-500">
+          Trolley :
+          <span class="font-medium text-[#0F1F52]">{{ item.trolleyName }} ({{ item.trolleyCode }})</span>
+        </p>
+        <p class="font-medium text-slate-500">
+          No urut :
+          <span class="font-medium text-[#0F1F52]">{{ item.queueNumber ?? '-' }}</span>
+        </p>
+        <p class="font-medium text-slate-500">
+          Task ID :
+          <span class="font-medium text-[#0F1F52]">{{ item.taskId }}</span>
+        </p>
+        <p class="font-medium text-slate-500">
+          Status :
+          <span class="font-semibold text-[#01ADEF]">
+            {{ item.webhookStatus?.status ? taskStatusLabel(item.webhookStatus.status) : '-' }}
+          </span>
+        </p>
+        <p class="font-medium text-slate-500">
+          subTaskSeq :
+          <span class="font-medium text-[#0F1F52]">
+            {{ item.webhookStatus?.subTaskSeq ?? '-' }}
+            <template v-if="item.webhookStatus?.statusComment"> — {{ item.webhookStatus.statusComment }}</template>
+          </span>
+        </p>
+      </div>
+    </div>
   </div>
 </template>
