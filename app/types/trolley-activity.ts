@@ -28,6 +28,10 @@ export interface CreateTrolleyActivityInput {
   trolleyId: string
   pickupLocationCode: string
   startDate: string
+  // Which page the operator is on — routes the Current Queue card back to
+  // that same page on reload, independent of which direction (Warehouse
+  // Location vs Production Location pickup) this submission turns out to be.
+  queueRole: 'Warehouse' | 'Operator'
 }
 
 export interface TakeTrolleyInput {
@@ -51,6 +55,7 @@ export interface TrolleyActivity {
   statusEnd: TrolleyStatus
   pickupLocationCode: string
   droppingLocationCode: string | null
+  queueRole: string | null
   startDate: string
   endDate: string
   taskId: string

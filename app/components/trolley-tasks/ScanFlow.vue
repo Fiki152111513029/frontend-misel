@@ -25,7 +25,7 @@ import { fetchMyActiveTrolleyActivities } from '~/services/trolley-activity.serv
 //   stores/trolley-task-queue.ts), not page-local state, so it survives
 //   navigating to another page and back.
 interface Props {
-  roleLabel: string
+  roleLabel: 'Warehouse' | 'Operator'
 }
 
 const props = defineProps<Props>()
@@ -210,6 +210,7 @@ async function handleSubmit() {
     trolleyId: trolleyId.value,
     pickupLocationCode: pickupLocationCode.value,
     startDate: startDate.value,
+    queueRole: props.roleLabel,
   })
   submitting.value = false
   if (!result) return
