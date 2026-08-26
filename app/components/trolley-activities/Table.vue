@@ -9,7 +9,14 @@ interface Props {
 
 defineProps<Props>()
 
-const columns = [
+const { user } = useAuth()
+
+// Warehouse/Operator get a trimmed-down view of their own history — the
+// timing columns are noise for line staff, they only care what/where.
+// Every other role (Super Admin, etc.) keeps the full audit view.
+const showTimingColumns = computed(() => !['Warehouse', 'Operator'].includes(user.value?.role ?? ''))
+
+const ALL_COLUMNS = [
   { key: 'user', label: 'Name' },
   { key: 'trolley', label: 'Code' },
   { key: 'statusBeginning', label: 'Status Beginning' },
@@ -21,13 +28,22 @@ const columns = [
   { key: 'duration', label: 'Duration' },
   { key: 'status', label: 'Task Status' },
 ]
+const TIMING_COLUMN_KEYS = new Set(['startDate', 'endDate', 'duration'])
 
-function formatDate(value: string) {
+const columns = computed(() =>
+  showTimingColumns.value
+    ? ALL_COLUMNS
+    : ALL_COLUMNS.filter(col => !TIMING_COLUMN_KEYS.has(col.key)),
+)
+
+function formatDate(value: string | null) {
+  if (!value) return '-'
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString()
 }
 
-function formatDuration(start: string, end: string) {
+function formatDuration(start: string, end: string | null) {
+  if (!end) return '-'
   const ms = new Date(end).getTime() - new Date(start).getTime()
   if (!Number.isFinite(ms) || ms < 0) return '-'
   const totalSeconds = Math.floor(ms / 1000)
@@ -71,7 +87,7 @@ function formatDuration(start: string, end: string) {
             {{ item.statusBeginning }}
           </td>
           <td class="px-4 py-3 text-sm text-slate-600">
-            {{ item.statusEnd }}
+            {{ item.statusEnd ?? '-' }}
           </td>
           <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52]">
             {{ item.pickupLocationCode }}
@@ -79,13 +95,13 @@ function formatDuration(start: string, end: string) {
           <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52]">
             {{ item.droppingLocationCode ?? '-' }}
           </td>
-          <td class="px-4 py-3 text-sm text-slate-600">
+          <td v-if="showTimingColumns" class="px-4 py-3 text-sm text-slate-600">
             {{ formatDate(item.startDate) }}
           </td>
-          <td class="px-4 py-3 text-sm text-slate-600">
+          <td v-if="showTimingColumns" class="px-4 py-3 text-sm text-slate-600">
             {{ formatDate(item.endDate) }}
           </td>
-          <td class="px-4 py-3 text-sm text-slate-600">
+          <td v-if="showTimingColumns" class="px-4 py-3 text-sm text-slate-600">
             {{ formatDuration(item.startDate, item.endDate) }}
           </td>
           <td class="px-4 py-3">
