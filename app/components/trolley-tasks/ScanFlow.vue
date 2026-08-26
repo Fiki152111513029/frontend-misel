@@ -200,7 +200,9 @@ async function handleSubmit() {
     submitting.value = false
     if (!result) return
     toast.success(`Trolley ${result.trolleyCode} taken — pickup area emptied, prep timer started`)
-    changeTrolley()
+    // Back to the choice screen (not straight into another Take Trolley
+    // scan) so the operator picks Drop Trolley next to continue.
+    backToChoice()
     return
   }
 
