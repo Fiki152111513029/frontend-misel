@@ -63,6 +63,30 @@ export function useTrolleyActivities() {
     }
   }
 
+  async function markTrolleyActivityFailed(id: string) {
+    try {
+      await trolleyActivityService.markTrolleyActivityFailed(id)
+      toast.success('Trolley activity marked as failed')
+      await store.loadTrolleyActivities()
+      return true
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to mark trolley activity as failed')
+      return false
+    }
+  }
+
+  async function deleteTrolleyActivity(id: string) {
+    try {
+      await trolleyActivityService.deleteTrolleyActivity(id)
+      toast.success('Trolley activity deleted')
+      await store.loadTrolleyActivities()
+      return true
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to delete trolley activity')
+      return false
+    }
+  }
+
   return {
     items: computed(() => store.items),
     meta: computed(() => store.meta),
@@ -74,6 +98,8 @@ export function useTrolleyActivities() {
     createTrolleyActivity,
     takeTrolley,
     fetchTrolleyActivitySequence,
+    markTrolleyActivityFailed,
+    deleteTrolleyActivity,
     setFilters: store.setFilters,
   }
 }
