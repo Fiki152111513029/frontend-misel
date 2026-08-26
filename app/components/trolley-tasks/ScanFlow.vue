@@ -196,6 +196,7 @@ async function handleSubmit() {
     const result = await takeTrolley({
       trolleyId: trolleyId.value,
       pickupLocationCode: pickupLocationCode.value,
+      queueRole: props.roleLabel,
     })
     submitting.value = false
     if (!result) return

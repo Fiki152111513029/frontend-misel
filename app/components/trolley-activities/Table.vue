@@ -36,12 +36,14 @@ const columns = computed(() =>
     : ALL_COLUMNS.filter(col => !TIMING_COLUMN_KEYS.has(col.key)),
 )
 
-function formatDate(value: string) {
+function formatDate(value: string | null) {
+  if (!value) return '-'
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString()
 }
 
-function formatDuration(start: string, end: string) {
+function formatDuration(start: string, end: string | null) {
+  if (!end) return '-'
   const ms = new Date(end).getTime() - new Date(start).getTime()
   if (!Number.isFinite(ms) || ms < 0) return '-'
   const totalSeconds = Math.floor(ms / 1000)
@@ -85,7 +87,7 @@ function formatDuration(start: string, end: string) {
             {{ item.statusBeginning }}
           </td>
           <td class="px-4 py-3 text-sm text-slate-600">
-            {{ item.statusEnd }}
+            {{ item.statusEnd ?? '-' }}
           </td>
           <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52]">
             {{ item.pickupLocationCode }}
