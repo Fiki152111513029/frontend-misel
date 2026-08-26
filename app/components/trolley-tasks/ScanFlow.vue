@@ -58,7 +58,6 @@ const startDate = ref('')
 const pickupLocationCode = ref('')
 const pickupLocationName = ref('')
 const pickupLocationSource = ref<'WAREHOUSE' | 'PRODUCTION' | ''>('')
-const incomingWarning = ref<string | null>(null)
 
 // Warehouse->Production: dropping is the trolley's own fixed code, already
 // known. Production->Warehouse: dropping is auto-picked from an EMPTY
@@ -94,7 +93,6 @@ function resetFlow() {
   pickupLocationCode.value = ''
   pickupLocationName.value = ''
   pickupLocationSource.value = ''
-  incomingWarning.value = null
   scanValue.value = ''
 }
 
@@ -165,8 +163,6 @@ async function handleScanSubmit() {
     pickupLocationCode.value = result.pickupLocationCode
     pickupLocationName.value = result.pickupLocationName
     pickupLocationSource.value = result.pickupLocationSource
-    incomingWarning.value = result.incomingWarning
-    if (result.incomingWarning) toast.error(result.incomingWarning)
     step.value = 'ready'
   }
 
@@ -184,7 +180,6 @@ function changeLocation() {
   pickupLocationCode.value = ''
   pickupLocationName.value = ''
   pickupLocationSource.value = ''
-  incomingWarning.value = null
   scanValue.value = ''
   focusScanInput()
 }
@@ -316,12 +311,6 @@ async function handleSubmit() {
         <span class="inline-flex items-center rounded-lg bg-slate-200 px-3 py-1.5 text-sm font-semibold text-[#0F1F52]">
           {{ flowLabel }}
         </span>
-        <p
-          v-if="incomingWarning"
-          class="rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700"
-        >
-          {{ incomingWarning }}
-        </p>
         <UiBaseInput :model-value="userName" label="Name" disabled />
         <UiBaseInput :model-value="trolleyCode" label="Trolley Code" disabled />
         <UiBaseInput :model-value="statusBeginning" label="Status Beginning" disabled />
