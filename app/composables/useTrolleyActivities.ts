@@ -2,6 +2,7 @@ import * as trolleyActivityService from '~/services/trolley-activity.service'
 import { ApiError } from '~/types/api'
 import type {
   CreateTrolleyActivityInput,
+  TakeTrolleyInput,
   TrolleyActivityQuery,
 } from '~/types/trolley-activity'
 
@@ -45,6 +46,15 @@ export function useTrolleyActivities() {
     }
   }
 
+  async function takeTrolley(input: TakeTrolleyInput) {
+    try {
+      return await trolleyActivityService.takeTrolley(input)
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to take trolley')
+      return null
+    }
+  }
+
   async function fetchTrolleyActivitySequence(id: string) {
     try {
       return await trolleyActivityService.fetchTrolleyActivitySequence(id)
@@ -62,6 +72,7 @@ export function useTrolleyActivities() {
     lookupTrolley,
     lookupLocation,
     createTrolleyActivity,
+    takeTrolley,
     fetchTrolleyActivitySequence,
     setFilters: store.setFilters,
   }

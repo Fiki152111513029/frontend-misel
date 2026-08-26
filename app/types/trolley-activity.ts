@@ -30,6 +30,19 @@ export interface CreateTrolleyActivityInput {
   startDate: string
 }
 
+export interface TakeTrolleyInput {
+  trolleyId: string
+  pickupLocationCode: string
+}
+
+export interface TakeTrolleyResult {
+  trolleyId: string
+  trolleyCode: string
+  trolleyName: string
+  pickupLocationCode: string
+  startDate: string
+}
+
 export interface TrolleyActivity {
   id: string
   userId: string

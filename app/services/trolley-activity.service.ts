@@ -3,6 +3,8 @@ import type {
   CreateTrolleyActivityResult,
   LookupLocationResult,
   LookupTrolleyResult,
+  TakeTrolleyInput,
+  TakeTrolleyResult,
   TrolleyActivityListResult,
   TrolleyActivityQuery,
 } from '~/types/trolley-activity'
@@ -22,6 +24,11 @@ export async function createTrolleyActivity(
 ): Promise<CreateTrolleyActivityResult> {
   const { $http } = useNuxtApp()
   return (await $http.post('/trolley-activities', input)) as CreateTrolleyActivityResult
+}
+
+export async function takeTrolley(input: TakeTrolleyInput): Promise<TakeTrolleyResult> {
+  const { $http } = useNuxtApp()
+  return (await $http.post('/trolley-activities/take-trolley', input)) as TakeTrolleyResult
 }
 
 export async function fetchTrolleyActivities(

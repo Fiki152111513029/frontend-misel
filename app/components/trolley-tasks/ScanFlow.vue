@@ -5,21 +5,23 @@ import { fetchMyActiveTrolleyActivities } from '~/services/trolley-activity.serv
 
 // Two independent, operator-picked actions (no auto-progression from one
 // into the other — the operator explicitly chooses which one they're doing
-// before any scanning starts):
-// - Take Trolley  -> POST /trolley-activities/lookup-trolley (empties the
-//   pickup node in RCS and starts a fresh start-date), a single scan+confirm
-//   with nothing further to submit.
-// - Drop Trolley  -> the full existing flow: scan trolley (same
-//   lookup-trolley call — its own independent empty-node/start-date, not
-//   reused from a prior Take Trolley) -> scan area -> review -> submit
-//   (POST /trolley-activities: flips the trolley's status, records the
-//   activity, fills the dropping node in RCS, forwards a task order to RCS)
-//   -> a new Current Queue card, polled the same way Mainline polls its own
-//   released task. Unlike Mainline, submitting doesn't lock the scan flow —
-//   the operator can immediately start scanning the next trolley while
-//   earlier ones are still in flight, so several Current Queue cards can be
-//   active at once, each disappearing independently once its own task
-//   finishes. The queue itself lives in a Pinia store (see
+// before any scanning starts), both with the exact same 3-step shape: scan
+// trolley -> scan area -> submit. Submit is what actually fires the RCS
+// call and any DB writes for whichever action was picked — the two earlier
+// scan steps (lookup-trolley, lookup-location) are pure read-only lookups,
+// shared by both actions.
+// - Take Trolley  -> submit POSTs /trolley-activities/take-trolley: empties
+//   the scanned area's node in RCS and starts a prep timer. Nothing is
+//   persisted — no Trolley Activity row, no RCS task order.
+// - Drop Trolley  -> submit POSTs /trolley-activities: flips the trolley's
+//   status, records the activity, empties the scanned pickup node then
+//   fills the (fixed or auto-picked) dropping node in RCS, forwards a task
+//   order to RCS -> a new Current Queue card, polled the same way Mainline
+//   polls its own released task. Unlike Mainline, submitting doesn't lock
+//   the scan flow — the operator can immediately start scanning the next
+//   trolley while earlier ones are still in flight, so several Current
+//   Queue cards can be active at once, each disappearing independently once
+//   its own task finishes. The queue itself lives in a Pinia store (see
 //   stores/trolley-task-queue.ts), not page-local state, so it survives
 //   navigating to another page and back.
 interface Props {
@@ -33,38 +35,14 @@ const {
   lookupTrolley,
   lookupLocation,
   createTrolleyActivity,
+  takeTrolley,
 } = useTrolleyActivities()
 const queue = useTrolleyTaskQueueStore(props.roleLabel)
 
 type Mode = 'choice' | 'take' | 'drop'
-const mode = ref<Mode>('choice')
-
-function focusInput(id: string) {
-  nextTick(() => {
-    document.getElementById(id)?.focus()
-  })
-}
-
-// --- Take Trolley — a single scan+confirm, nothing chained after it -----
-const TAKE_INPUT_ID = 'trolley-task-take-input'
-const takeScanValue = ref('')
-const takeSubmitting = ref(false)
-
-async function handleTakeConfirm() {
-  const value = takeScanValue.value.trim()
-  if (!value) return
-  takeSubmitting.value = true
-  const result = await lookupTrolley(value)
-  takeSubmitting.value = false
-  if (!result) return
-  toast.success(`Trolley ${result.trolleyCode} taken — pickup area emptied, prep timer started`)
-  takeScanValue.value = ''
-  focusInput(TAKE_INPUT_ID)
-}
-
-// --- Drop Trolley — the original 3-step scan/review/submit flow ---------
 type Step = 'trolley' | 'location' | 'ready'
 
+const mode = ref<Mode>('choice')
 const step = ref<Step>('trolley')
 const scanValue = ref('')
 const SCAN_INPUT_ID = 'trolley-task-scan-input'
@@ -90,15 +68,22 @@ const droppingLocationPreview = computed(() => {
   return droppingLocationCode.value ?? '-'
 })
 
+const flowLabel = computed(() => (mode.value === 'take' ? 'Take Trolley' : 'Drop Trolley'))
+
 const subtitle = computed(() => {
   if (mode.value === 'choice') return 'Choose an action to start'
-  if (mode.value === 'take') return 'Scan a trolley to take it'
-  if (step.value === 'trolley') return 'Scan a trolley to drop it off'
-  if (step.value === 'location') return 'Scan the drop-off area'
-  return 'Review and send the task'
+  if (step.value === 'trolley') return `Scan a trolley to ${mode.value === 'take' ? 'take' : 'drop off'} it`
+  if (step.value === 'location') return 'Scan the area'
+  return mode.value === 'take' ? 'Review and confirm the pickup area' : 'Review and send the task'
 })
 
-function resetDropFlow() {
+function focusScanInput() {
+  nextTick(() => {
+    document.getElementById(SCAN_INPUT_ID)?.focus()
+  })
+}
+
+function resetFlow() {
   step.value = 'trolley'
   trolleyId.value = ''
   trolleyCode.value = ''
@@ -115,19 +100,19 @@ function resetDropFlow() {
 
 function selectTake() {
   mode.value = 'take'
-  focusInput(TAKE_INPUT_ID)
+  resetFlow()
+  focusScanInput()
 }
 
 function selectDrop() {
   mode.value = 'drop'
-  resetDropFlow()
-  focusInput(SCAN_INPUT_ID)
+  resetFlow()
+  focusScanInput()
 }
 
 function backToChoice() {
   mode.value = 'choice'
-  resetDropFlow()
-  takeScanValue.value = ''
+  resetFlow()
 }
 
 // The Pinia queue store only lives in browser memory — a page reload (or a
@@ -186,12 +171,12 @@ async function handleScanSubmit() {
   }
 
   scanValue.value = ''
-  focusInput(SCAN_INPUT_ID)
+  focusScanInput()
 }
 
 function changeTrolley() {
-  resetDropFlow()
-  focusInput(SCAN_INPUT_ID)
+  resetFlow()
+  focusScanInput()
 }
 
 function changeLocation() {
@@ -201,11 +186,24 @@ function changeLocation() {
   pickupLocationSource.value = ''
   incomingWarning.value = null
   scanValue.value = ''
-  focusInput(SCAN_INPUT_ID)
+  focusScanInput()
 }
 
 async function handleSubmit() {
   submitting.value = true
+
+  if (mode.value === 'take') {
+    const result = await takeTrolley({
+      trolleyId: trolleyId.value,
+      pickupLocationCode: pickupLocationCode.value,
+    })
+    submitting.value = false
+    if (!result) return
+    toast.success(`Trolley ${result.trolleyCode} taken — pickup area emptied, prep timer started`)
+    changeTrolley()
+    return
+  }
+
   const result = await createTrolleyActivity({
     trolleyId: trolleyId.value,
     pickupLocationCode: pickupLocationCode.value,
@@ -244,42 +242,23 @@ async function handleSubmit() {
 
     <!-- Choice screen — the operator picks one before any scanning starts. -->
     <UiBaseCard v-if="mode === 'choice'" class="space-y-3">
-      <UiBaseButton full-width variant="primary" @click="selectTake">
-        Take Trolley
-      </UiBaseButton>
-      <UiBaseButton full-width variant="gradient" @click="selectDrop">
-        Drop Trolley
-      </UiBaseButton>
-    </UiBaseCard>
-
-    <!-- Take Trolley — single scan+confirm, no further steps. -->
-    <template v-else-if="mode === 'take'">
       <button
         type="button"
-        class="text-xs font-semibold text-slate-500 transition-colors hover:text-[#0F1F52]"
-        @click="backToChoice"
+        class="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm shadow-emerald-500/20 transition-all hover:shadow-md hover:shadow-emerald-500/30 active:scale-[0.99]"
+        @click="selectTake"
       >
-        ← Back
+        Take Trolley
       </button>
-      <UiBaseCard>
-        <form class="space-y-3" @submit.prevent="handleTakeConfirm">
-          <span class="inline-flex items-center rounded-lg bg-slate-200 px-3 py-1.5 text-sm font-semibold text-[#0F1F52]">
-            Take Trolley
-          </span>
-          <UiBaseInput
-            v-model="takeScanValue"
-            :id="TAKE_INPUT_ID"
-            label="Trolley Code"
-            placeholder="Waiting for scan…"
-          />
-          <UiBaseButton type="submit" full-width variant="primary" :loading="takeSubmitting">
-            Confirm
-          </UiBaseButton>
-        </form>
-      </UiBaseCard>
-    </template>
+      <button
+        type="button"
+        class="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm shadow-[#01ADEF]/20 transition-all hover:shadow-md hover:shadow-[#01ADEF]/30 active:scale-[0.99]"
+        @click="selectDrop"
+      >
+        Drop Trolley
+      </button>
+    </UiBaseCard>
 
-    <!-- Drop Trolley — the full scan/review/submit flow. -->
+    <!-- Take Trolley / Drop Trolley — the shared 3-step scan/review/submit flow. -->
     <template v-else>
       <button
         type="button"
@@ -314,7 +293,7 @@ async function handleSubmit() {
       <UiBaseCard v-if="step === 'trolley' || step === 'location'">
         <form class="space-y-3" @submit.prevent="handleScanSubmit">
           <span class="inline-flex items-center rounded-lg bg-slate-200 px-3 py-1.5 text-sm font-semibold text-[#0F1F52]">
-            Drop Trolley
+            {{ flowLabel }}
           </span>
           <UiBaseInput
             v-model="scanValue"
@@ -331,7 +310,7 @@ async function handleSubmit() {
       <!-- Review + submit -->
       <UiBaseCard v-else-if="step === 'ready'" class="space-y-4">
         <span class="inline-flex items-center rounded-lg bg-slate-200 px-3 py-1.5 text-sm font-semibold text-[#0F1F52]">
-          Drop Trolley
+          {{ flowLabel }}
         </span>
         <p
           v-if="incomingWarning"
@@ -343,10 +322,10 @@ async function handleSubmit() {
         <UiBaseInput :model-value="trolleyCode" label="Trolley Code" disabled />
         <UiBaseInput :model-value="statusBeginning" label="Status Beginning" disabled />
         <UiBaseInput :model-value="pickupLocationName ? `${pickupLocationName} (${pickupLocationCode})` : ''" label="Pickup Location" disabled />
-        <UiBaseInput :model-value="droppingLocationPreview" label="Dropping Location Code" disabled />
+        <UiBaseInput v-if="mode === 'drop'" :model-value="droppingLocationPreview" label="Dropping Location Code" disabled />
 
         <UiBaseButton full-width variant="gradient" :loading="submitting" @click="handleSubmit">
-          Send Task
+          {{ mode === 'take' ? 'Take Trolley' : 'Send Task' }}
         </UiBaseButton>
       </UiBaseCard>
     </template>
