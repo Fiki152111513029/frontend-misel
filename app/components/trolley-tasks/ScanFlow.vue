@@ -3,12 +3,16 @@ import { Truck } from 'lucide-vue-next'
 import { taskStatusLabel } from '~/utils/taskStatus'
 import { fetchMyActiveTrolleyActivities } from '~/services/trolley-activity.service'
 
-// Real backend flow (no more mock data):
-// 1. Scan Trolley  -> POST /trolley-activities/lookup-trolley
-// 2. Scan Location -> POST /trolley-activities/lookup-location
-// 3. Submit         -> POST /trolley-activities (flips the trolley's status,
-//    records the activity, forwards a task order to RCS) -> a new Current
-//    Queue card, polled the same way Mainline polls its own released task.
+// Real backend flow (no more mock data), framed as the two physical phases
+// an operator actually does — Take Trolley (lift it off the pickup point to
+// go prepare it) then Drop Trolley (scan where it's going and hand it off):
+// 1. Take Trolley  -> POST /trolley-activities/lookup-trolley (empties the
+//    pickup node in RCS and starts this activity's start date)
+// 2. Drop Trolley, scan area -> POST /trolley-activities/lookup-location
+// 3. Drop Trolley, submit     -> POST /trolley-activities (flips the
+//    trolley's status, records the activity, fills the dropping node in RCS,
+//    forwards a task order to RCS) -> a new Current Queue card, polled the
+//    same way Mainline polls its own released task.
 //    Unlike Mainline, submitting doesn't lock the scan flow — the operator
 //    can immediately start scanning the next trolley while earlier ones are
 //    still in flight, so several Current Queue cards can be active at once,
@@ -56,7 +60,13 @@ const droppingLocationPreview = computed(() => {
   return droppingLocationCode.value ?? '-'
 })
 
-const scanLabel = computed(() => (step.value === 'location' ? 'Scan Area' : 'Scan Trolley'))
+const scanLabel = computed(() => (step.value === 'location' ? 'Drop Trolley' : 'Take Trolley'))
+
+const subtitle = computed(() => {
+  if (step.value === 'trolley') return 'Scan a trolley to take it'
+  if (step.value === 'location') return 'Scan the drop-off area'
+  return 'Review and submit to drop the trolley'
+})
 
 function focusScanInput() {
   nextTick(() => {
@@ -185,7 +195,7 @@ async function handleSubmit() {
         {{ roleLabel }} Trolley Task
       </h1>
       <p class="font-medium mt-1 text-sm text-slate-500">
-        Scan a trolley to start
+        {{ subtitle }}
       </p>
     </div>
 
@@ -196,7 +206,7 @@ async function handleSubmit() {
         class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-600 transition-colors hover:bg-emerald-100"
         @click="changeTrolley"
       >
-        Trolley: {{ trolleyCode }} · Change
+        Take Trolley: {{ trolleyCode }} · Change
       </button>
       <button
         v-if="pickupLocationCode"
@@ -204,7 +214,7 @@ async function handleSubmit() {
         class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-600 transition-colors hover:bg-emerald-100"
         @click="changeLocation"
       >
-        Area: {{ pickupLocationCode }} · Change
+        Drop Trolley: {{ pickupLocationCode }} · Change
       </button>
     </div>
 
@@ -228,8 +238,12 @@ async function handleSubmit() {
       </form>
     </UiBaseCard>
 
-    <!-- Review + submit -->
+    <!-- Review + submit — still the Drop Trolley phase, same chip as its
+         scan step above so the two look like one continuous action. -->
     <UiBaseCard v-else-if="step === 'ready'" class="space-y-4">
+      <span class="inline-flex items-center rounded-lg bg-slate-200 px-3 py-1.5 text-sm font-semibold text-[#0F1F52]">
+        Drop Trolley
+      </span>
       <p
         v-if="incomingWarning"
         class="rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700"
