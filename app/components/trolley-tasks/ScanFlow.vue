@@ -119,14 +119,18 @@ function backToChoice() {
 // backend/webserver restart forcing a reconnect) wipes it even though the
 // underlying Trolley Activity is safely persisted server-side. Restore this
 // user's own still-in-flight tasks on mount so the Current Queue card comes
-// back — every active task, regardless of direction (the same on both
-// Warehouse Trolley Task and Operator Trolley Task; a task can show on both
-// pages if reloaded on both). addTask() is idempotent, so this is safe to
-// run every time this component mounts, not just after a real reload.
+// back. Warehouse Trolley Task only restores WAREHOUSE-pickup tasks and
+// Operator Trolley Task only PRODUCTION-pickup ones, so a Warehouse Trolley
+// Task's Current Queue never shows up on Operator Trolley Task or vice
+// versa. addTask() is idempotent, so this is safe to run every time this
+// component mounts, not just after a real reload.
+const expectedPickupSource = props.roleLabel === 'Warehouse' ? 'WAREHOUSE' : 'PRODUCTION'
+
 async function restoreActiveQueue() {
   try {
     const activities = await fetchMyActiveTrolleyActivities()
     for (const activity of activities) {
+      if (activity.pickupSource !== expectedPickupSource) continue
       queue.addTask({
         activityId: activity.activityId,
         taskId: activity.taskId,
