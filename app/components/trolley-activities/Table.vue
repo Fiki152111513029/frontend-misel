@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Trash2, XCircle } from 'lucide-vue-next'
+import { Trash2 } from 'lucide-vue-next'
 import { taskStatusLabel, taskStatusStyle } from '~/utils/taskStatus'
 import type { TrolleyActivity } from '~/types/trolley-activity'
 
@@ -11,15 +11,13 @@ interface Props {
 defineProps<Props>()
 
 const { user, hasPermission } = useAuth()
-const { markTrolleyActivityFailed, deleteTrolleyActivity } = useTrolleyActivities()
+const { deleteTrolleyActivity } = useTrolleyActivities()
 
 // Warehouse/Operator get a trimmed-down view of their own history — the
 // timing columns are noise for line staff, they only care what/where.
 // Every other role (Super Admin, etc.) keeps the full audit view.
 const showTimingColumns = computed(() => !['Warehouse', 'Operator'].includes(user.value?.role ?? ''))
-const canMarkFailed = computed(() => hasPermission('trolley-activity.update'))
 const canDelete = computed(() => hasPermission('trolley-activity.delete'))
-const showActionsColumn = computed(() => canMarkFailed.value || canDelete.value)
 
 const ALL_COLUMNS = [
   { key: 'user', label: 'Name' },
@@ -32,7 +30,7 @@ const ALL_COLUMNS = [
   { key: 'endDate', label: 'End Date' },
   { key: 'duration', label: 'Duration' },
   { key: 'status', label: 'Task Status' },
-  { key: 'actions', label: 'Actions', width: '110px' },
+  { key: 'actions', label: 'Actions', width: '90px' },
 ]
 const TIMING_COLUMN_KEYS = new Set(['startDate', 'endDate', 'duration'])
 
@@ -40,18 +38,9 @@ const columns = computed(() => {
   let cols = showTimingColumns.value
     ? ALL_COLUMNS
     : ALL_COLUMNS.filter(col => !TIMING_COLUMN_KEYS.has(col.key))
-  if (!showActionsColumn.value) cols = cols.filter(col => col.key !== 'actions')
+  if (!canDelete.value) cols = cols.filter(col => col.key !== 'actions')
   return cols
 })
-
-// A row is "stuck" if RCS never reported a terminal status for it — most
-// often its completion webhook never arrived — which leaves it looking
-// like an in-flight task forever (e.g. the "AMR incoming" warning on the
-// location scan step never clears). Only these get the override button;
-// already-terminal rows have nothing to fix.
-function isStuck(item: TrolleyActivity) {
-  return item.status === 'PENDING' || item.status === 'IN_PROGRESS'
-}
 
 function formatDate(value: string | null) {
   if (!value) return '-'
@@ -67,23 +56,6 @@ function formatDuration(start: string, end: string | null) {
   const minutes = Math.floor(totalSeconds / 60)
   const seconds = totalSeconds % 60
   return `${minutes}m ${seconds}s`
-}
-
-const showMarkFailedDialog = ref(false)
-const markFailedTarget = ref<TrolleyActivity | null>(null)
-const markingFailed = ref(false)
-
-function openMarkFailed(item: TrolleyActivity) {
-  markFailedTarget.value = item
-  showMarkFailedDialog.value = true
-}
-
-async function confirmMarkFailed() {
-  if (!markFailedTarget.value) return
-  markingFailed.value = true
-  const ok = await markTrolleyActivityFailed(markFailedTarget.value.id)
-  markingFailed.value = false
-  if (ok) showMarkFailedDialog.value = false
 }
 
 const showDeleteDialog = ref(false)
@@ -164,52 +136,20 @@ async function confirmDelete() {
               {{ taskStatusLabel(item.status) }}
             </span>
           </td>
-          <td v-if="showActionsColumn" class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <button
-                v-if="canMarkFailed && isStuck(item)"
-                type="button"
-                class="rounded-lg bg-red-50 p-1.5 text-red-500 hover:bg-red-100 transition-colors"
-                aria-label="Mark as Failed"
-                title="Mark as Failed — for a task stuck Pending/In Progress because RCS never reported it finished"
-                @click="openMarkFailed(item)"
-              >
-                <XCircle class="h-4 w-4" />
-              </button>
-              <button
-                v-if="canDelete"
-                type="button"
-                class="rounded-lg bg-red-50 p-1.5 text-red-500 hover:bg-red-100 transition-colors"
-                aria-label="Delete"
-                title="Delete this activity"
-                @click="openDelete(item)"
-              >
-                <Trash2 class="h-4 w-4" />
-              </button>
-            </div>
+          <td v-if="canDelete" class="px-4 py-3">
+            <button
+              type="button"
+              class="rounded-lg bg-red-50 p-1.5 text-red-500 hover:bg-red-100 transition-colors"
+              aria-label="Delete"
+              title="Delete this activity"
+              @click="openDelete(item)"
+            >
+              <Trash2 class="h-4 w-4" />
+            </button>
           </td>
         </tr>
       </template>
     </UiBaseTable>
-
-    <UiBaseModal
-      v-model="showMarkFailedDialog"
-      title="Mark as Failed"
-      size="sm"
-    >
-      <p class="font-medium text-sm text-slate-600">
-        Mark this activity for <strong>{{ markFailedTarget?.trolley.code }}</strong> as Failed?
-        Use this when it's stuck Pending/In Progress because RCS never reported it finished —
-        this closes it out without RCS's confirmation. This action cannot be undone.
-      </p>
-
-      <template #footer>
-        <UiBaseButton variant="secondary" @click="showMarkFailedDialog = false">Cancel</UiBaseButton>
-        <UiBaseButton variant="primary" :loading="markingFailed" @click="confirmMarkFailed">
-          Mark as Failed
-        </UiBaseButton>
-      </template>
-    </UiBaseModal>
 
     <UiBaseModal
       v-model="showDeleteDialog"

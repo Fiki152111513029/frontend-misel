@@ -5,7 +5,6 @@ import type {
   LookupTrolleyResult,
   TakeTrolleyInput,
   TakeTrolleyResult,
-  TrolleyActivity,
   TrolleyActivityListResult,
   TrolleyActivityQuery,
 } from '~/types/trolley-activity'
@@ -44,14 +43,6 @@ export async function fetchTrolleyActivities(
 export async function fetchTrolleyActivitySequence(id: string): Promise<{ sequenceNumber: number }> {
   const { $http } = useNuxtApp()
   return (await $http.get(`/trolley-activities/${id}/sequence`)) as { sequenceNumber: number }
-}
-
-// Admin override for a row stuck PENDING/IN_PROGRESS forever (its RCS
-// completion webhook never arrived, or it's an open row Drop Trolley was
-// never submitted for) — manually closes it out.
-export async function markTrolleyActivityFailed(id: string): Promise<TrolleyActivity> {
-  const { $http } = useNuxtApp()
-  return (await $http.patch(`/trolley-activities/${id}/mark-failed`)) as TrolleyActivity
 }
 
 export async function deleteTrolleyActivity(id: string): Promise<void> {
