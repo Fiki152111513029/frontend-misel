@@ -36,11 +36,9 @@ export interface TakeTrolleyInput {
 }
 
 export interface TakeTrolleyResult {
-  activityId: string
   trolleyId: string
   trolleyCode: string
   trolleyName: string
-  statusBeginning: TrolleyStatus
   pickupLocationCode: string
   startDate: string
 }
@@ -50,13 +48,11 @@ export interface TrolleyActivity {
   userId: string
   trolleyId: string
   statusBeginning: TrolleyStatus
-  // Null until Drop Trolley completes this row — a Take Trolley-only ("open")
-  // row has no statusEnd/endDate yet.
-  statusEnd: TrolleyStatus | null
+  statusEnd: TrolleyStatus
   pickupLocationCode: string
   droppingLocationCode: string | null
   startDate: string
-  endDate: string | null
+  endDate: string
   taskId: string
   status: TrolleyActivityStatus
   robotId: string | null
