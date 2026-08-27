@@ -21,9 +21,9 @@ type MenuEntry = MenuLeaf | MenuGroup
 // day; every other role sees the full sidebar below.
 const OPERATOR_MENUS: MenuEntry[] = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { title: 'Mainline', icon: Cpu, path: '/dashboard/mainline' },
-  { title: 'Quarantines Tasks', icon: FolderKanban, path: '/dashboard/quarantines-tasks' },
-  { title: 'Request Box', icon: LayoutDashboard, path: '/dashboard/request-box' },
+  // { title: 'Mainline', icon: Cpu, path: '/dashboard/mainline' },
+  // { title: 'Quarantines Tasks', icon: FolderKanban, path: '/dashboard/quarantines-tasks' },
+  // { title: 'Request Box', icon: LayoutDashboard, path: '/dashboard/request-box' },
   { title: 'Operator Trolley Task', icon: Truck, path: '/dashboard/operator-trolley-task' },
   { title: 'Trolley Activities', icon: Truck, path: '/dashboard/trolley-activities' },
 ]
@@ -40,8 +40,8 @@ const EXIM_MENUS: MenuEntry[] = [
 // tasks from Warehouse Control and its own request box workflow only.
 const WAREHOUSE_MENUS: MenuEntry[] = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { title: 'Warehouse Control', icon: Cpu, path: '/dashboard/warehouse-control' },
-  { title: 'Warehouse Tasks', icon: FolderKanban, path: '/dashboard/warehouse-tasks' },
+  // { title: 'Warehouse Control', icon: Cpu, path: '/dashboard/warehouse-control' },
+  // { title: 'Warehouse Tasks', icon: FolderKanban, path: '/dashboard/warehouse-tasks' },
   { title: 'Warehouse Trolley Task', icon: Truck, path: '/dashboard/warehouse-trolley-task' },
   { title: 'Trolley Activities', icon: Truck, path: '/dashboard/trolley-activities' },
 ]
@@ -53,8 +53,8 @@ const ALL_MENUS: MenuEntry[] = [
     icon: FolderKanban,
     children: [
       { title: 'Tasks', path: '/dashboard/tasks' },
-      { title: 'Quarantines Tasks', path: '/dashboard/quarantines-tasks' },
-      { title: 'Warehouse Tasks', path: '/dashboard/warehouse-tasks' },
+      // { title: 'Quarantines Tasks', path: '/dashboard/quarantines-tasks' },
+      // { title: 'Warehouse Tasks', path: '/dashboard/warehouse-tasks' },
       { title: 'Warehouse Trolley Task', path: '/dashboard/warehouse-trolley-task' },
       { title: 'Operator Trolley Task', path: '/dashboard/operator-trolley-task' },
       { title: 'Trolley Activities', path: '/dashboard/trolley-activities' },
@@ -64,30 +64,30 @@ const ALL_MENUS: MenuEntry[] = [
     title: 'Production Lines',
     icon: FolderKanban,
     children: [
-      { title: 'Production Lines', path: '/dashboard/production-lines' },
-      { title: 'Production Line Areas', path: '/dashboard/production-line-areas' },
-      { title: 'EXIM Locations', path: '/dashboard/exim-location' },
-      { title: 'Empty Pallet Location', path: '/dashboard/empty-pallet-location' },
+      // { title: 'Production Lines', path: '/dashboard/production-lines' },
+      // { title: 'Production Line Areas', path: '/dashboard/production-line-areas' },
+      // { title: 'EXIM Locations', path: '/dashboard/exim-location' },
+      // { title: 'Empty Pallet Location', path: '/dashboard/empty-pallet-location' },
       { title: 'Production Locations', path: '/dashboard/production-locations' },
       { title: 'Charger Areas', path: '/dashboard/charger-areas' },
       { title: 'Model Code Process', path: '/dashboard/model-code-process' },
     ],
   },
-  {
-    title: 'Quarantines',
-    icon: FolderKanban,
-    children: [
-      { title: 'Quarantines Lines', path: '/dashboard/quarantines-lines' },
-      { title: 'Quarantines Areas', path: '/dashboard/quarantines-areas' },
-    ],
-  },
-  { title: 'Request Box', icon: LayoutDashboard, path: '/dashboard/request-box' },
+  // {
+  //   title: 'Quarantines',
+  //   icon: FolderKanban,
+  //   children: [
+  //     { title: 'Quarantines Lines', path: '/dashboard/quarantines-lines' },
+  //     { title: 'Quarantines Areas', path: '/dashboard/quarantines-areas' },
+  //   ],
+  // },
+  // { title: 'Request Box', icon: LayoutDashboard, path: '/dashboard/request-box' },
   {
     title: 'Warehouse Lines',
     icon: BarChart3,
     children: [
-      { title: 'Operator Locations', path: '/dashboard/operator-locations' },
-      { title: 'Line Locations', path: '/dashboard/line-locations' },
+      // { title: 'Operator Locations', path: '/dashboard/operator-locations' },
+      // { title: 'Line Locations', path: '/dashboard/line-locations' },
       { title: 'Warehouse Locations', path: '/dashboard/warehouse-locations' },
       { title: 'Trolleys', path: '/dashboard/trolleys' },
       { title: 'Trolley Categories', path: '/dashboard/trolley-categories' },
