@@ -5,6 +5,7 @@ import type {
   LookupTrolleyResult,
   TakeTrolleyInput,
   TakeTrolleyResult,
+  TrolleyActivityDashboardStats,
   TrolleyActivityListResult,
   TrolleyActivityQuery,
 } from '~/types/trolley-activity'
@@ -48,6 +49,15 @@ export async function fetchTrolleyActivitySequence(id: string): Promise<{ sequen
 export async function deleteTrolleyActivity(id: string): Promise<void> {
   const { $http } = useNuxtApp()
   await $http.delete(`/trolley-activities/${id}`)
+}
+
+export async function fetchTrolleyActivityDashboard(
+  days: number = 7,
+): Promise<TrolleyActivityDashboardStats> {
+  const { $http } = useNuxtApp()
+  return (await $http.get('/trolley-activities/dashboard', {
+    params: { days },
+  })) as TrolleyActivityDashboardStats
 }
 
 export interface ActiveTrolleyActivityByRobot {

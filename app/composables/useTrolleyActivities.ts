@@ -75,6 +75,15 @@ export function useTrolleyActivities() {
     }
   }
 
+  async function fetchTrolleyActivityDashboard(days?: number) {
+    try {
+      return await trolleyActivityService.fetchTrolleyActivityDashboard(days)
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to load trolley activity dashboard')
+      return null
+    }
+  }
+
   return {
     items: computed(() => store.items),
     meta: computed(() => store.meta),
@@ -87,6 +96,7 @@ export function useTrolleyActivities() {
     takeTrolley,
     fetchTrolleyActivitySequence,
     deleteTrolleyActivity,
+    fetchTrolleyActivityDashboard,
     setFilters: store.setFilters,
   }
 }

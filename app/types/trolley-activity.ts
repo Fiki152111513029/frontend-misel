@@ -93,3 +93,24 @@ export interface TrolleyActivityListResult {
   items: TrolleyActivity[]
   meta: TrolleyActivityListMeta
 }
+
+export interface TrolleyActivityDashboardStats {
+  totals: {
+    total: number
+    completed: number
+    pending: number
+    inProgress: number
+    failed: number
+  }
+  avgDurationSeconds: number | null
+  dailyTrend: { date: string, completed: number, failed: number }[]
+  // Empty for Warehouse/Operator roles — a cross-user leaderboard doesn't
+  // make sense once stats are already narrowed to one user's own rows.
+  topOperators: {
+    userId: string
+    fullName: string
+    completedCount: number
+    avgDurationSeconds: number | null
+  }[]
+  topLocations: { code: string, count: number }[]
+}

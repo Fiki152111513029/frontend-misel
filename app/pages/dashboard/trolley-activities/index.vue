@@ -31,6 +31,8 @@ function handleLimitChange(limit: number) {
       </p>
     </div>
 
+    <TrolleyActivitiesDashboard class="mb-6" />
+
     <TrolleyActivitiesTable
       :items="items"
       :loading="loading"
