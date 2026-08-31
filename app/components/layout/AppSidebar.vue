@@ -93,7 +93,7 @@ const ALL_MENUS: MenuEntry[] = [
       { title: 'Trolley Categories', path: '/dashboard/trolley-categories' },
     ],
   },
-  { title: 'Trouble Shot', icon: LayoutDashboard, path: '/dashboard/trouble-shot' },
+  // { title: 'Trouble Shot', icon: LayoutDashboard, path: '/dashboard/trouble-shot' },
   {
     title: 'ICS Logs',
     icon: BarChart3,
