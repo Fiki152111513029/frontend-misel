@@ -70,6 +70,7 @@ const ALL_MENUS: MenuEntry[] = [
       // { title: 'Empty Pallet Location', path: '/dashboard/empty-pallet-location' },
       { title: 'Production Locations', path: '/dashboard/production-locations' },
       { title: 'Charger Areas', path: '/dashboard/charger-areas' },
+      { title: 'Parking Areas', path: '/dashboard/parking-areas' },
       { title: 'Model Code Process', path: '/dashboard/model-code-process' },
     ],
   },
