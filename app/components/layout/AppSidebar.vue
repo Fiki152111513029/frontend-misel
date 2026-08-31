@@ -32,8 +32,8 @@ const OPERATOR_MENUS: MenuEntry[] = [
 // request box workflow only.
 const EXIM_MENUS: MenuEntry[] = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { title: 'Docking', icon: Truck, path: '/dashboard/docking' },
-  { title: 'Request Box', icon: LayoutDashboard, path: '/dashboard/request-box' },
+  // { title: 'Docking', icon: Truck, path: '/dashboard/docking' },
+  // { title: 'Request Box', icon: LayoutDashboard, path: '/dashboard/request-box' },
 ]
 
 // Warehouse is a line-staff role restricted to releasing/monitoring cart
@@ -112,7 +112,7 @@ const ALL_MENUS: MenuEntry[] = [
     ],
   },
   { title: 'Robots', icon: Bell, path: '/dashboard/robots' },
-  { title: 'Box Types', icon: Package, path: '/dashboard/box-types' },
+  // { title: 'Box Types', icon: Package, path: '/dashboard/box-types' },
   { title: 'Factory Maps', icon: MapIcon, path: '/dashboard/factory-maps' },
   // { title: 'Settings', icon: Settings, path: '/dashboard/settings' },
   // { title: 'Help Center', icon: HelpCircle, path: '/dashboard/help' },
