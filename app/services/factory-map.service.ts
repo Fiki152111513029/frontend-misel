@@ -44,16 +44,18 @@ export async function deleteFactoryMap(id: string): Promise<null> {
 export interface LocationCodesResult {
   codes: string[]
   chargerCodes: string[]
+  parkingCodes: string[]
   warehouseLocationStatuses: { code: string, status: 'EMPTY' | 'FULL' }[]
 }
 
 // Real location codes (Quarantine Areas, EXIM Locations, Empty Pallet
-// Locations, Production Line Areas, Charger Areas) — used to filter which
-// topology nodes get a marker on the Factory Map, instead of every
-// alphanumeric-looking node. `chargerCodes` is the Charger Area subset, used
-// to pick which icon a matched node gets. `warehouseLocationStatuses` is our
-// own DB's occupancy tracking — kept for reference, but the Factory Map's
-// node icons are now driven by fetchStockStatus() (live off RCS) instead.
+// Locations, Production Line Areas, Charger Areas, Parking Areas) — used to
+// filter which topology nodes get a marker on the Factory Map, instead of
+// every alphanumeric-looking node. `chargerCodes`/`parkingCodes` are the
+// Charger Area/Parking Area subsets, used to pick which icon a matched node
+// gets. `warehouseLocationStatuses` is our own DB's occupancy tracking —
+// kept for reference, but the Factory Map's node icons are now driven by
+// fetchStockStatus() (live off RCS) instead.
 export async function fetchLocationCodes(): Promise<LocationCodesResult> {
   const { $http } = useNuxtApp()
   return (await $http.get('/factory-maps/location-codes')) as LocationCodesResult

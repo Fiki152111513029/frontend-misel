@@ -10,6 +10,7 @@ import robotOfflineSrc from '~/assets/images/robot/Offline.png'
 import robotPickupEmptySrc from '~/assets/images/robot/pickup-empty.png'
 import robotPickupFullSrc from '~/assets/images/robot/pickup-full.png'
 import chargerNodeSrc from '~/assets/images/location-node/charger-node.png'
+import parkingNodeSrc from '~/assets/images/location-node/parkir-area.png'
 import locationNodeSrc from '~/assets/images/location-node/node.png'
 import locationNodeFullSrc from '~/assets/images/location-node/node-full.png'
 
@@ -41,6 +42,7 @@ interface NamedNode {
   y: number
   content: string
   isCharger: boolean
+  isParking: boolean
   // Live off RCS's own getStockStatus (see fetchStockStatus) — null if RCS
   // hasn't reported a status for this node's code (or it isn't a
   // Warehouse/Production Location at all, e.g. a Quarantine Area node).
@@ -142,13 +144,15 @@ const chargeRadius = computed(() => {
 })
 
 // Real location codes (Quarantine Areas, EXIM Locations, Empty Pallet
-// Locations, Production Line Areas, Charger Areas) — a topology node only
-// gets a marker if its content exactly matches one of these, instead of
-// every alphanumeric-looking node (which also includes internal ids like
-// "BASE0000" that aren't real locations). chargerLocationCodes is the
-// Charger Area subset, used to pick the charger icon over the generic one.
+// Locations, Production Line Areas, Charger Areas, Parking Areas) — a
+// topology node only gets a marker if its content exactly matches one of
+// these, instead of every alphanumeric-looking node (which also includes
+// internal ids like "BASE0000" that aren't real locations).
+// chargerLocationCodes/parkingLocationCodes are the Charger Area/Parking
+// Area subsets, used to pick their own icon over the generic one.
 const locationCodes = ref<Set<string>>(new Set())
 const chargerLocationCodes = ref<Set<string>>(new Set())
+const parkingLocationCodes = ref<Set<string>>(new Set())
 // Live Warehouse/Production Location occupancy, straight off RCS's own
 // getStockStatus for the selected map's area — drives the full/empty-
 // trolley icon on these nodes. A code only ever belongs to one side, so
@@ -172,17 +176,19 @@ const namedNodes = computed<NamedNode[]>(() => {
         y: Number(node[yIdx]),
         content,
         isCharger: chargerLocationCodes.value.has(content),
+        isParking: parkingLocationCodes.value.has(content),
         occupancyStatus: locationOccupancyStatuses.value.get(content) ?? null,
       }
     })
     .filter(node => locationCodes.value.has(node.content))
 })
 
-// Charger takes priority (it's a distinct icon regardless of trolley
+// Charger/Parking take priority (distinct icons regardless of trolley
 // occupancy). Only FULL gets its own icon — EMPTY and "no data from RCS
 // yet" both just render the plain default marker.
 function nodeImageSrc(node: NamedNode): string {
   if (node.isCharger) return chargerNodeSrc
+  if (node.isParking) return parkingNodeSrc
   if (node.occupancyStatus === 'FULL') return locationNodeFullSrc
   return locationNodeSrc
 }
@@ -428,6 +434,7 @@ async function loadLocationCodes() {
     const result = await fetchLocationCodes()
     locationCodes.value = new Set(result.codes)
     chargerLocationCodes.value = new Set(result.chargerCodes)
+    parkingLocationCodes.value = new Set(result.parkingCodes)
   } catch {
     // Non-fatal — the map still renders, just without line/dock markers.
   }
