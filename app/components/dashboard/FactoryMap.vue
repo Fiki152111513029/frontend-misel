@@ -591,16 +591,6 @@ onBeforeUnmount(() => {
             />
 
             <g v-for="station in chargeStations" :key="station.id">
-              <circle
-                :cx="station.x"
-                :cy="flipY(station.y)"
-                :r="chargeRadius"
-                fill="#01ADEF"
-                fill-opacity="0.2"
-                stroke="#01ADEF"
-                stroke-width="1.5"
-                vector-effect="non-scaling-stroke"
-              />
               <text
                 :x="station.x"
                 :y="flipY(station.y)"
