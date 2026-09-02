@@ -105,3 +105,11 @@ export interface FleetStatusRow {
   load: string | null
   battery: number | null
 }
+
+export interface RobotStatusSummaryRow {
+  robotId: string
+  robotName: string
+  runningMinutes: number
+  idleMinutes: number
+  chargingMinutes: number
+}

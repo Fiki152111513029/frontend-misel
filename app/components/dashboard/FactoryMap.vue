@@ -30,12 +30,6 @@ interface TopologyData {
   nodeKeys?: string[]
 }
 
-interface ChargeStation {
-  id: string
-  x: number
-  y: number
-}
-
 interface NamedNode {
   id: string
   x: number
@@ -132,16 +126,6 @@ const imageBox = computed(() => {
 function pathPoints(path: number[][]) {
   return path.map(([x, y]) => `${x},${flipY(y)}`).join(' ')
 }
-
-const chargeStations = computed<ChargeStation[]>(() =>
-  (topology.value?.chargeCoor ?? []).map(([id, coor]) => ({ id, x: coor.x, y: coor.y })),
-)
-
-const chargeRadius = computed(() => {
-  const topo = topology.value
-  if (!topo) return 0
-  return Math.max(topo.width, topo.height) / 150
-})
 
 // Real location codes (Quarantine Areas, EXIM Locations, Empty Pallet
 // Locations, Production Line Areas, Charger Areas, Parking Areas) — a
@@ -589,19 +573,6 @@ onBeforeUnmount(() => {
               stroke-linejoin="miter"
               vector-effect="non-scaling-stroke"
             />
-
-            <g v-for="station in chargeStations" :key="station.id">
-              <text
-                :x="station.x"
-                :y="flipY(station.y)"
-                fill="#01ADEF"
-                text-anchor="middle"
-                dominant-baseline="central"
-                :font-size="chargeRadius"
-              >
-                ⚡
-              </text>
-            </g>
 
             <!-- Named line/dock markers (e.g. "L3CPA") — hover or click to see the code. -->
             <g

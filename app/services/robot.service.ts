@@ -6,6 +6,7 @@ import type {
   RobotActivityResult,
   RobotListResult,
   RobotQuery,
+  RobotStatusSummaryRow,
   RobotSystemStatus,
   UpdateRobotInput,
 } from '~/types/robot'
@@ -56,4 +57,13 @@ export async function fetchRobotActivity(
 ): Promise<RobotActivityResult> {
   const { $http } = useNuxtApp()
   return (await $http.get(`/robots/${id}/activity`, { params: query })) as RobotActivityResult
+}
+
+// Running/Idle/Charging minutes per robot for one UTC calendar day
+// (YYYY-MM-DD) — the AMR Performance chart's data source.
+export async function fetchRobotStatusSummary(date: string): Promise<RobotStatusSummaryRow[]> {
+  const { $http } = useNuxtApp()
+  return (await $http.get('/robots/status-summary', {
+    params: { date },
+  })) as RobotStatusSummaryRow[]
 }
