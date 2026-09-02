@@ -22,17 +22,26 @@ async function load() {
 onMounted(load)
 watch(selectedDate, load)
 
-// A full day, regardless of the selected date — today's bars fill in as the
-// day progresses, past days' bars are already complete against this same
-// reference.
-const MINUTES_PER_DAY = 1440
-
 const categories = computed(() => rows.value.map(row => row.robotName))
 const series = computed(() => [
   { name: 'Running', data: rows.value.map(row => row.runningMinutes) },
   { name: 'Idle', data: rows.value.map(row => row.idleMinutes) },
   { name: 'Charging', data: rows.value.map(row => row.chargingMinutes) },
 ])
+
+// The chart scales to whatever the busiest robot actually reached that day
+// (e.g. ~480 for a standard 8h shift, more on an overtime day) — not a
+// fixed 24h/1440 ceiling, which would flatten every bar to the same height
+// and make the chart useless for comparing robots.
+const highestTotalMinutes = computed(() => {
+  const totals = rows.value.map(row => row.runningMinutes + row.idleMinutes + row.chargingMinutes)
+  return Math.max(...totals, 0)
+})
+
+// Rounded up to the next hour, plus a little headroom so the reference
+// line at highestTotalMinutes doesn't sit flush against the chart's own
+// top edge. Floored at 60 so an all-zero day doesn't collapse the axis.
+const axisMax = computed(() => Math.max(Math.ceil((highestTotalMinutes.value + 30) / 60) * 60, 60))
 
 function formatMinutes(minutes: number) {
   const hours = Math.floor(minutes / 60)
@@ -58,8 +67,8 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
     axisTicks: { show: false },
   },
   yaxis: {
-    max: MINUTES_PER_DAY,
-    tickAmount: 4,
+    min: 0,
+    max: axisMax.value,
     labels: {
       style: { colors: isDark.value ? '#64748B' : '#94A3B8', fontSize: '11px' },
       formatter: (value: number) => String(Math.round(value)),
@@ -67,11 +76,11 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
   },
   annotations: {
     yaxis: [{
-      y: MINUTES_PER_DAY,
+      y: highestTotalMinutes.value,
       borderColor: '#94A3B8',
       strokeDashArray: 4,
       label: {
-        text: `${MINUTES_PER_DAY} min (24h)`,
+        text: `${highestTotalMinutes.value} min (highest)`,
         style: { color: '#94A3B8', background: 'transparent' },
       },
     }],

@@ -175,8 +175,6 @@ function handleSort(patch: { sortBy: RobotSortKey, sortOrder: 'asc' | 'desc' }) 
       </button>
     </div>
 
-    <RobotsPerformanceChart class="mb-6" />
-
     <RobotsTable
       :items="sortedItems"
       :loading="loading"
