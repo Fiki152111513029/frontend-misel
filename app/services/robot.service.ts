@@ -6,6 +6,8 @@ import type {
   RobotActivityResult,
   RobotListResult,
   RobotQuery,
+  RobotShift,
+  RobotStatusMonthlyMode,
   RobotStatusSummaryRow,
   RobotSystemStatus,
   UpdateRobotInput,
@@ -59,11 +61,28 @@ export async function fetchRobotActivity(
   return (await $http.get(`/robots/${id}/activity`, { params: query })) as RobotActivityResult
 }
 
-// Running/Idle/Charging minutes per robot for one UTC calendar day
-// (YYYY-MM-DD) — the AMR Performance chart's data source.
-export async function fetchRobotStatusSummary(date: string): Promise<RobotStatusSummaryRow[]> {
+// Running/Idle/Charging minutes per robot for one shift on one UTC
+// calendar day (YYYY-MM-DD) — the AMR Performance chart's daily view.
+export async function fetchRobotStatusSummary(
+  date: string,
+  shift: RobotShift,
+): Promise<RobotStatusSummaryRow[]> {
   const { $http } = useNuxtApp()
   return (await $http.get('/robots/status-summary', {
-    params: { date },
+    params: { date, shift },
+  })) as RobotStatusSummaryRow[]
+}
+
+// Running/Idle/Charging minutes per robot averaged or totaled across one
+// UTC calendar month (YYYY-MM), for one shift — the AMR Performance
+// chart's Average/Total per Month views.
+export async function fetchRobotStatusMonthlySummary(
+  month: string,
+  shift: RobotShift,
+  mode: RobotStatusMonthlyMode,
+): Promise<RobotStatusSummaryRow[]> {
+  const { $http } = useNuxtApp()
+  return (await $http.get('/robots/status-summary/monthly', {
+    params: { month, shift, mode },
   })) as RobotStatusSummaryRow[]
 }

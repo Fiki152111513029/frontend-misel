@@ -1,26 +1,46 @@
 <script setup lang="ts">
-import type { RobotStatusSummaryRow } from '~/types/robot'
+import { Download } from 'lucide-vue-next'
+import { downloadCsv } from '~/utils/exportCsv'
+import type { RobotShift, RobotStatusMonthlyMode, RobotStatusSummaryRow } from '~/types/robot'
 
-const { fetchStatusSummary } = useRobotStatusSummary()
+type ViewMode = 'DAILY' | RobotStatusMonthlyMode
+
+const { fetchStatusSummary, fetchMonthlyStatusSummary } = useRobotStatusSummary()
 const { isDark } = useTheme()
 
-// The backend treats a "day" as a UTC calendar day (see
-// GetRobotStatusSummaryUseCase) — matching that here keeps the date picker
-// and the data it fetches referring to the same day.
+// The backend treats a "day"/"month" as UTC (see GetRobotStatusSummaryUseCase
+// / GetRobotStatusMonthlySummaryUseCase) — matching that here keeps the
+// pickers and the data they fetch referring to the same day/month.
 const today = computed(() => new Date().toISOString().slice(0, 10))
+const currentMonth = computed(() => today.value.slice(0, 7))
 
+const SHIFT_OPTIONS: { value: RobotShift, label: string }[] = [
+  { value: 'SESI_1', label: 'Sesi 1' },
+  { value: 'SESI_2', label: 'Sesi 2' },
+]
+const VIEW_MODE_OPTIONS: { value: ViewMode, label: string }[] = [
+  { value: 'DAILY', label: 'Daily' },
+  { value: 'AVERAGE', label: 'Average / Month' },
+  { value: 'TOTAL', label: 'Total / Month' },
+]
+
+const shift = ref<RobotShift>('SESI_1')
+const viewMode = ref<ViewMode>('DAILY')
 const selectedDate = ref(today.value)
+const selectedMonth = ref(currentMonth.value)
 const rows = ref<RobotStatusSummaryRow[]>([])
 const loading = ref(false)
 
 async function load() {
   loading.value = true
-  rows.value = await fetchStatusSummary(selectedDate.value)
+  rows.value = viewMode.value === 'DAILY'
+    ? await fetchStatusSummary(selectedDate.value, shift.value)
+    : await fetchMonthlyStatusSummary(selectedMonth.value, shift.value, viewMode.value)
   loading.value = false
 }
 
 onMounted(load)
-watch(selectedDate, load)
+watch([shift, viewMode, selectedDate, selectedMonth], load)
 
 const categories = computed(() => rows.value.map(row => row.robotName))
 const series = computed(() => [
@@ -29,10 +49,10 @@ const series = computed(() => [
   { name: 'Charging', data: rows.value.map(row => row.chargingMinutes) },
 ])
 
-// The chart scales to whatever the busiest robot actually reached that day
-// (e.g. ~480 for a standard 8h shift, more on an overtime day) — not a
-// fixed 24h/1440 ceiling, which would flatten every bar to the same height
-// and make the chart useless for comparing robots.
+// The chart scales to whatever the busiest robot actually reached (e.g.
+// ~555 for a full Sesi 1, more on an overtime day) — not a fixed ceiling,
+// which would flatten every bar to the same height and make the chart
+// useless for comparing robots.
 const highestTotalMinutes = computed(() => {
   const totals = rows.value.map(row => row.runningMinutes + row.idleMinutes + row.chargingMinutes)
   return Math.max(...totals, 0)
@@ -100,29 +120,91 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
     y: { formatter: (value: number) => formatMinutes(value) },
   },
 }))
+
+function exportToExcel() {
+  const headers = ['Robot', 'Running (min)', 'Idle (min)', 'Charging (min)', 'Total (min)']
+  const dataRows = rows.value.map(row => [
+    row.robotName,
+    row.runningMinutes,
+    row.idleMinutes,
+    row.chargingMinutes,
+    row.runningMinutes + row.idleMinutes + row.chargingMinutes,
+  ])
+  const scope = viewMode.value === 'DAILY' ? selectedDate.value : selectedMonth.value
+  const filename = `amr-performance_${scope}_${shift.value.toLowerCase()}_${viewMode.value.toLowerCase()}.csv`
+  downloadCsv(filename, headers, dataRows)
+}
 </script>
 
 <template>
-  <UiBaseCard padding="none">
-    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] px-6 py-4">
-      <div>
-        <p class="font-semibold text-[#0F1F52]">AMR Performance</p>
-        <p class="font-medium mt-0.5 text-xs text-slate-500">Running / Idle / Charging minutes per robot</p>
+  <UiBaseCard padding="none" class="flex h-full flex-col">
+    <div class="space-y-3 border-b border-[#E2E8F0] px-6 py-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="font-semibold text-[#0F1F52]">AMR Performance</p>
+          <p class="font-medium mt-0.5 text-xs text-slate-500">Running / Idle / Charging minutes per robot</p>
+        </div>
+        <button
+          type="button"
+          :disabled="rows.length === 0"
+          class="inline-flex items-center gap-1.5 rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-xs font-semibold text-[#0F1F52] transition-colors hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
+          @click="exportToExcel"
+        >
+          <Download class="h-3.5 w-3.5" />
+          Export
+        </button>
       </div>
-      <input
-        v-model="selectedDate"
-        type="date"
-        :max="today"
-        class="rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-medium text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
-      />
+
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex gap-1 rounded-xl bg-slate-100 p-1">
+          <button
+            v-for="option in SHIFT_OPTIONS"
+            :key="option.value"
+            type="button"
+            class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+            :class="shift === option.value ? 'bg-white text-[#0F1F52] shadow-sm' : 'text-slate-500 hover:text-[#0F1F52]'"
+            @click="shift = option.value"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+
+        <div class="flex gap-1 rounded-xl bg-slate-100 p-1">
+          <button
+            v-for="option in VIEW_MODE_OPTIONS"
+            :key="option.value"
+            type="button"
+            class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+            :class="viewMode === option.value ? 'bg-white text-[#0F1F52] shadow-sm' : 'text-slate-500 hover:text-[#0F1F52]'"
+            @click="viewMode = option.value"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+
+        <input
+          v-if="viewMode === 'DAILY'"
+          v-model="selectedDate"
+          type="date"
+          :max="today"
+          class="rounded-xl border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-medium text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
+        />
+        <input
+          v-else
+          v-model="selectedMonth"
+          type="month"
+          :max="currentMonth"
+          class="rounded-xl border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-medium text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
+        />
+      </div>
     </div>
 
-    <div class="p-4">
+    <div class="flex-1 p-4">
       <div v-if="loading && rows.length === 0" class="flex h-[280px] items-center justify-center text-sm text-slate-400">
         Loading...
       </div>
       <div v-else-if="rows.length === 0" class="flex h-[280px] items-center justify-center text-sm text-slate-400">
-        No robots found
+        No data for this selection
       </div>
       <ClientOnly v-else>
         <apexchart type="bar" :series="series" :options="chartOptions" height="320" />

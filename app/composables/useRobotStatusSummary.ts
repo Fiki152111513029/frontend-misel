@@ -1,18 +1,38 @@
-import { fetchRobotStatusSummary } from '~/services/robot.service'
+import {
+  fetchRobotStatusMonthlySummary,
+  fetchRobotStatusSummary,
+} from '~/services/robot.service'
 import { ApiError } from '~/types/api'
-import type { RobotStatusSummaryRow } from '~/types/robot'
+import type {
+  RobotShift,
+  RobotStatusMonthlyMode,
+  RobotStatusSummaryRow,
+} from '~/types/robot'
 
 export function useRobotStatusSummary() {
   const toast = useToast()
 
-  async function fetchStatusSummary(date: string): Promise<RobotStatusSummaryRow[]> {
+  async function fetchStatusSummary(date: string, shift: RobotShift): Promise<RobotStatusSummaryRow[]> {
     try {
-      return await fetchRobotStatusSummary(date)
+      return await fetchRobotStatusSummary(date, shift)
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : 'Failed to load AMR performance data')
       return []
     }
   }
 
-  return { fetchStatusSummary }
+  async function fetchMonthlyStatusSummary(
+    month: string,
+    shift: RobotShift,
+    mode: RobotStatusMonthlyMode,
+  ): Promise<RobotStatusSummaryRow[]> {
+    try {
+      return await fetchRobotStatusMonthlySummary(month, shift, mode)
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to load AMR performance data')
+      return []
+    }
+  }
+
+  return { fetchStatusSummary, fetchMonthlyStatusSummary }
 }

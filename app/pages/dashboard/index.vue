@@ -18,12 +18,12 @@ useHead({ title: 'Dashboard — Misel' })
     </div>
 
     <div class="grid grid-cols-1 gap-4 2xl:grid-cols-3">
-      <div class="rounded-2xl shadow-xl shadow-slate-300/70">
-        <DashboardPerformancePanel />
-      </div>
-
       <div class="rounded-2xl shadow-xl shadow-slate-300/70 2xl:col-span-2">
         <DashboardFleetStatusTable />
+      </div>
+
+      <div class="rounded-2xl shadow-xl shadow-slate-300/70">
+        <DashboardPerformancePanel />
       </div>
     </div>
   </div>
