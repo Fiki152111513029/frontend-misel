@@ -82,21 +82,6 @@ const statusDonutSeries = computed(() => {
     </div>
 
     <template v-else-if="stats">
-      <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <TrolleyActivitiesOperatorDurationChart
-          direction="WAREHOUSE"
-          title="Yamazumi Dealer Operator"
-          subtitle="Total task-handling time per operator — pickup from Warehouse node"
-        />
-        <TrolleyActivitiesOperatorDurationChart
-          direction="PRODUCTION"
-          title="Yamazumi Supply Operator"
-          subtitle="Total task-handling time per operator — pickup from Production node"
-        />
-      </div>
-
-      <TrolleyActivitiesTrolleyFrequencyChart />
-
       <div class="grid grid-cols-2 gap-3 md:grid-cols-7">
         <div
           v-for="card in STAT_CARDS"
@@ -116,6 +101,21 @@ const statusDonutSeries = computed(() => {
           <p class="mt-1 text-2xl font-extrabold text-[#4338CA]">{{ stats.activeOperators }}</p>
         </div>
       </div>
+
+      <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <TrolleyActivitiesOperatorDurationChart
+          direction="WAREHOUSE"
+          title="Yamazumi Dealer Operator"
+          subtitle="Total task-handling time per operator — pickup from Warehouse node"
+        />
+        <TrolleyActivitiesOperatorDurationChart
+          direction="PRODUCTION"
+          title="Yamazumi Supply Operator"
+          subtitle="Total task-handling time per operator — pickup from Production node"
+        />
+      </div>
+
+      <TrolleyActivitiesTrolleyFrequencyChart />
 
       <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div class="xl:col-span-2">
