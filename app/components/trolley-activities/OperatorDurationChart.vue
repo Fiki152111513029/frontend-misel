@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import { Download } from 'lucide-vue-next'
 import { downloadCsv } from '~/utils/exportCsv'
-import type { OperatorDurationSummaryRow, TrolleyShiftMonthlyMode } from '~/types/trolley-activity'
+import type { OperatorDurationSummaryRow, PickupDirection, TrolleyShiftMonthlyMode } from '~/types/trolley-activity'
 
 type ViewMode = 'DAILY' | TrolleyShiftMonthlyMode
+
+const props = defineProps<{
+  direction: PickupDirection
+  title: string
+  subtitle: string
+}>()
 
 const { fetchDurationSummary, fetchDurationMonthlySummary } = useTrolleyShiftSummary()
 const { items: shifts, fetchShiftOptions } = useShiftOptions()
@@ -31,8 +37,8 @@ async function load() {
   if (!shiftId.value) return
   loading.value = true
   rows.value = viewMode.value === 'DAILY'
-    ? await fetchDurationSummary(selectedDate.value, shiftId.value)
-    : await fetchDurationMonthlySummary(selectedMonth.value, shiftId.value, viewMode.value)
+    ? await fetchDurationSummary(selectedDate.value, shiftId.value, props.direction)
+    : await fetchDurationMonthlySummary(selectedMonth.value, shiftId.value, viewMode.value, props.direction)
   loading.value = false
 }
 
@@ -75,6 +81,7 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
   yaxis: {
     min: 0,
     max: axisMax.value,
+    title: { text: 'Menit', style: { color: isDark.value ? '#64748B' : '#94A3B8', fontSize: '11px', fontWeight: 500 } },
     labels: {
       style: { colors: isDark.value ? '#64748B' : '#94A3B8', fontSize: '11px' },
       formatter: (value: number) => String(Math.round(value)),
@@ -91,7 +98,11 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
       },
     }],
   },
-  dataLabels: { enabled: false },
+  dataLabels: {
+    enabled: true,
+    style: { colors: ['#FFFFFF'], fontSize: '10px' },
+    formatter: (value: number) => String(Math.round(value)),
+  },
   legend: { show: false },
   grid: {
     borderColor: isDark.value ? '#1E293B' : '#E2E8F0',
@@ -113,7 +124,7 @@ function exportToExcel() {
   ])
   const shiftName = shifts.value.find(s => s.id === shiftId.value)?.name ?? 'shift'
   const scope = viewMode.value === 'DAILY' ? selectedDate.value : selectedMonth.value
-  const filename = `operator-duration_${scope}_${shiftName.toLowerCase().replace(/\s+/g, '-')}_${viewMode.value.toLowerCase()}.csv`
+  const filename = `operator-duration-${props.direction.toLowerCase()}_${scope}_${shiftName.toLowerCase().replace(/\s+/g, '-')}_${viewMode.value.toLowerCase()}.csv`
   downloadCsv(filename, headers, dataRows)
 }
 </script>
@@ -122,8 +133,8 @@ function exportToExcel() {
   <UiBaseCard padding="none" class="flex h-full flex-col">
     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] px-6 py-4">
       <div>
-        <p class="font-semibold text-[#0F1F52]">Operator Duration</p>
-        <p class="font-medium mt-0.5 text-xs text-slate-500">Total task-handling time per operator (Warehouse &amp; Operator)</p>
+        <p class="font-semibold text-[#0F1F52]">{{ title }}</p>
+        <p class="font-medium mt-0.5 text-xs text-slate-500">{{ subtitle }}</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">

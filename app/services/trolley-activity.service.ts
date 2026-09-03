@@ -4,6 +4,7 @@ import type {
   LookupLocationResult,
   LookupTrolleyResult,
   OperatorDurationSummaryRow,
+  PickupDirection,
   TakeTrolleyInput,
   TakeTrolleyResult,
   TrolleyActivityDashboardStats,
@@ -90,14 +91,16 @@ export async function fetchMyActiveTrolleyActivities(): Promise<MyActiveTrolleyA
 }
 
 // Total/average minutes Warehouse/Operator users spent per Trolley Task,
-// per user, for one Shift on one UTC calendar day.
+// per user, for one Shift on one UTC calendar day, split by pickup
+// direction (WAREHOUSE = "Dealer Operator", PRODUCTION = "Supply Operator").
 export async function fetchOperatorDurationSummary(
   date: string,
   shiftId: string,
+  direction: PickupDirection,
 ): Promise<OperatorDurationSummaryRow[]> {
   const { $http } = useNuxtApp()
   return (await $http.get('/trolley-activities/operator-duration-summary', {
-    params: { date, shiftId },
+    params: { date, shiftId, direction },
   })) as OperatorDurationSummaryRow[]
 }
 
@@ -105,10 +108,11 @@ export async function fetchOperatorDurationMonthlySummary(
   month: string,
   shiftId: string,
   mode: TrolleyShiftMonthlyMode,
+  direction: PickupDirection,
 ): Promise<OperatorDurationSummaryRow[]> {
   const { $http } = useNuxtApp()
   return (await $http.get('/trolley-activities/operator-duration-summary/monthly', {
-    params: { month, shiftId, mode },
+    params: { month, shiftId, mode, direction },
   })) as OperatorDurationSummaryRow[]
 }
 

@@ -7,6 +7,7 @@ import {
 import { ApiError } from '~/types/api'
 import type {
   OperatorDurationSummaryRow,
+  PickupDirection,
   TrolleyShiftMonthlyMode,
   TrolleySupplyFrequencyRow,
 } from '~/types/trolley-activity'
@@ -14,9 +15,13 @@ import type {
 export function useTrolleyShiftSummary() {
   const toast = useToast()
 
-  async function fetchDurationSummary(date: string, shiftId: string): Promise<OperatorDurationSummaryRow[]> {
+  async function fetchDurationSummary(
+    date: string,
+    shiftId: string,
+    direction: PickupDirection,
+  ): Promise<OperatorDurationSummaryRow[]> {
     try {
-      return await fetchOperatorDurationSummary(date, shiftId)
+      return await fetchOperatorDurationSummary(date, shiftId, direction)
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : 'Failed to load operator duration data')
       return []
@@ -27,9 +32,10 @@ export function useTrolleyShiftSummary() {
     month: string,
     shiftId: string,
     mode: TrolleyShiftMonthlyMode,
+    direction: PickupDirection,
   ): Promise<OperatorDurationSummaryRow[]> {
     try {
-      return await fetchOperatorDurationMonthlySummary(month, shiftId, mode)
+      return await fetchOperatorDurationMonthlySummary(month, shiftId, mode, direction)
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : 'Failed to load operator duration data')
       return []

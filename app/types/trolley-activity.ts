@@ -120,6 +120,11 @@ export interface TrolleyActivityDashboardStats {
 
 export type TrolleyShiftMonthlyMode = 'AVERAGE' | 'TOTAL'
 
+// WAREHOUSE: pickup scanned from a Warehouse Location ("Dealer Operator",
+// Warehouse -> Production). PRODUCTION: pickup scanned from a Production
+// Location ("Supply Operator", Production -> Warehouse).
+export type PickupDirection = 'WAREHOUSE' | 'PRODUCTION'
+
 export interface OperatorDurationSummaryRow {
   userId: string
   fullName: string

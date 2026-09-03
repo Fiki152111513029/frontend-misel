@@ -167,9 +167,19 @@ const statusDonutSeries = computed(() => {
       </div>
 
       <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <TrolleyActivitiesOperatorDurationChart />
-        <TrolleyActivitiesTrolleyFrequencyChart />
+        <TrolleyActivitiesOperatorDurationChart
+          direction="WAREHOUSE"
+          title="Yamazumi Dealer Operator"
+          subtitle="Total task-handling time per operator — pickup from Warehouse node"
+        />
+        <TrolleyActivitiesOperatorDurationChart
+          direction="PRODUCTION"
+          title="Yamazumi Supply Operator"
+          subtitle="Total task-handling time per operator — pickup from Production node"
+        />
       </div>
+
+      <TrolleyActivitiesTrolleyFrequencyChart />
     </template>
   </div>
 </template>
