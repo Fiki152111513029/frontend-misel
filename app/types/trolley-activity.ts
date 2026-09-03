@@ -113,4 +113,24 @@ export interface TrolleyActivityDashboardStats {
     avgDurationSeconds: number | null
   }[]
   topLocations: { code: string, count: number }[]
+  // Users with role other than Super Admin holding a still-valid session
+  // right now (not scoped to the days/since range above).
+  activeOperators: number
+}
+
+export type TrolleyShiftMonthlyMode = 'AVERAGE' | 'TOTAL'
+
+export interface OperatorDurationSummaryRow {
+  userId: string
+  fullName: string
+  totalDurationMinutes: number
+  avgDurationMinutes: number
+  completedCount: number
+}
+
+export interface TrolleySupplyFrequencyRow {
+  trolleyId: string
+  trolleyCode: string
+  trolleyName: string
+  count: number
 }

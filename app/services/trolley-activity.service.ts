@@ -3,11 +3,14 @@ import type {
   CreateTrolleyActivityResult,
   LookupLocationResult,
   LookupTrolleyResult,
+  OperatorDurationSummaryRow,
   TakeTrolleyInput,
   TakeTrolleyResult,
   TrolleyActivityDashboardStats,
   TrolleyActivityListResult,
   TrolleyActivityQuery,
+  TrolleyShiftMonthlyMode,
+  TrolleySupplyFrequencyRow,
 } from '~/types/trolley-activity'
 
 export async function lookupTrolley(code: string): Promise<LookupTrolleyResult> {
@@ -84,4 +87,50 @@ export interface MyActiveTrolleyActivity {
 export async function fetchMyActiveTrolleyActivities(): Promise<MyActiveTrolleyActivity[]> {
   const { $http } = useNuxtApp()
   return (await $http.get('/trolley-activities/active-mine')) as MyActiveTrolleyActivity[]
+}
+
+// Total/average minutes Warehouse/Operator users spent per Trolley Task,
+// per user, for one Shift on one UTC calendar day.
+export async function fetchOperatorDurationSummary(
+  date: string,
+  shiftId: string,
+): Promise<OperatorDurationSummaryRow[]> {
+  const { $http } = useNuxtApp()
+  return (await $http.get('/trolley-activities/operator-duration-summary', {
+    params: { date, shiftId },
+  })) as OperatorDurationSummaryRow[]
+}
+
+export async function fetchOperatorDurationMonthlySummary(
+  month: string,
+  shiftId: string,
+  mode: TrolleyShiftMonthlyMode,
+): Promise<OperatorDurationSummaryRow[]> {
+  const { $http } = useNuxtApp()
+  return (await $http.get('/trolley-activities/operator-duration-summary/monthly', {
+    params: { month, shiftId, mode },
+  })) as OperatorDurationSummaryRow[]
+}
+
+// How many times each Trolley was supplied, for one Shift on one UTC
+// calendar day — sorted highest to lowest.
+export async function fetchTrolleyFrequencySummary(
+  date: string,
+  shiftId: string,
+): Promise<TrolleySupplyFrequencyRow[]> {
+  const { $http } = useNuxtApp()
+  return (await $http.get('/trolley-activities/trolley-frequency-summary', {
+    params: { date, shiftId },
+  })) as TrolleySupplyFrequencyRow[]
+}
+
+export async function fetchTrolleyFrequencyMonthlySummary(
+  month: string,
+  shiftId: string,
+  mode: TrolleyShiftMonthlyMode,
+): Promise<TrolleySupplyFrequencyRow[]> {
+  const { $http } = useNuxtApp()
+  return (await $http.get('/trolley-activities/trolley-frequency-summary/monthly', {
+    params: { month, shiftId, mode },
+  })) as TrolleySupplyFrequencyRow[]
 }

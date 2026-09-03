@@ -55,6 +55,7 @@ const statusDonutSeries = computed(() => {
 })
 </script>
 
+
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
@@ -81,7 +82,7 @@ const statusDonutSeries = computed(() => {
     </div>
 
     <template v-else-if="stats">
-      <div class="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div class="grid grid-cols-2 gap-3 md:grid-cols-7">
         <div
           v-for="card in STAT_CARDS"
           :key="card.key"
@@ -91,9 +92,13 @@ const statusDonutSeries = computed(() => {
           <p class="font-medium text-xs text-slate-500">{{ card.label }}</p>
           <p class="mt-1 text-2xl font-extrabold" :class="card.accent">{{ stats.totals[card.key] }}</p>
         </div>
-        <div class="col-span-2 rounded-2xl border border-[#E2E8F0] bg-white p-4 md:col-span-1">
+        <div class="rounded-2xl border border-[#E2E8F0] bg-white p-4">
           <p class="font-medium text-xs text-slate-500">Avg Duration</p>
           <p class="mt-1 text-2xl font-extrabold text-[#0F1F52]">{{ formatSeconds(stats.avgDurationSeconds) }}</p>
+        </div>
+        <div class="col-span-2 rounded-2xl border border-[#E2E8F0] bg-indigo-50 p-4 md:col-span-1">
+          <p class="font-medium text-xs text-slate-500">Active Operators</p>
+          <p class="mt-1 text-2xl font-extrabold text-[#4338CA]">{{ stats.activeOperators }}</p>
         </div>
       </div>
 
@@ -159,6 +164,11 @@ const statusDonutSeries = computed(() => {
           </div>
           <p v-else class="px-6 py-8 text-center text-sm text-slate-400">No activity in this range yet</p>
         </UiBaseCard>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <TrolleyActivitiesOperatorDurationChart />
+        <TrolleyActivitiesTrolleyFrequencyChart />
       </div>
     </template>
   </div>
