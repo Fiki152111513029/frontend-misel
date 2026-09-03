@@ -39,3 +39,10 @@ export async function deleteChargerArea(id: string): Promise<null> {
   const { $http } = useNuxtApp()
   return (await $http.delete(`/charger-areas/${id}`)) as null
 }
+
+// Fetches "all" charger areas in one page — used by the Charger Status
+// widget to enumerate every hub, same convention as fetchAllShifts().
+export async function fetchAllChargerAreas(): Promise<ChargerArea[]> {
+  const result = await fetchChargerAreas({ page: 1, limit: 1000, sortBy: 'name', sortOrder: 'asc' })
+  return result.items
+}

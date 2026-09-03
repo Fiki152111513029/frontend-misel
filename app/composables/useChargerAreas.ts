@@ -1,6 +1,8 @@
+import * as chargerAreaService from '~/services/charger-area.service'
 import { fetchChargerArea as fetchChargerAreaSvc } from '~/services/charger-area.service'
 import { ApiError } from '~/types/api'
 import type {
+  ChargerArea,
   ChargerAreaQuery,
   CreateChargerAreaInput,
   UpdateChargerAreaInput,
@@ -76,4 +78,21 @@ export function useChargerAreas() {
     deleteChargerArea,
     setFilters: store.setFilters,
   }
+}
+
+// Flat, unpaginated list — used by the Charger Status widget to enumerate
+// every hub, same convention as useShiftOptions().
+export function useChargerAreaOptions() {
+  const toast = useToast()
+  const items = ref<ChargerArea[]>([])
+
+  async function fetchChargerAreaOptions() {
+    try {
+      items.value = await chargerAreaService.fetchAllChargerAreas()
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to load charger areas')
+    }
+  }
+
+  return { items, fetchChargerAreaOptions }
 }

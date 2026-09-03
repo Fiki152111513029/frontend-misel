@@ -1,4 +1,7 @@
 ﻿<script setup lang="ts">
+import { fetchRobots } from '~/services/robot.service'
+import type { Robot } from '~/types/robot'
+
 const { isDark } = useTheme()
 
 // Performance
@@ -47,14 +50,49 @@ function barColor(percent: number) {
   return 'bg-[#2F6FED]'
 }
 
-// Charger Status
+// Charger Status — real Charger Area nodes, matched against whichever robot
+// (if any) is currently sitting at that node and reporting a "charging"
+// state. Robot position/state comes from GET /robots (fleet-status doesn't
+// carry position); "charging" uses the same substring rule as the backend's
+// toRobotStatusCategory() (robot-status-category.ts) so this stays
+// consistent with how "Charging" is detected everywhere else.
+const POLL_INTERVAL_MS = 5000
+
+const { items: chargerAreas, fetchChargerAreaOptions } = useChargerAreaOptions()
+const robots = ref<Robot[]>([])
+
+async function loadRobots() {
+  try {
+    const result = await fetchRobots({ page: 1, limit: 1000 })
+    robots.value = result.items
+  } catch {
+    // Non-fatal — keep showing the last known data if a refresh tick fails.
+  }
+}
+
+let pollTimer: ReturnType<typeof setInterval> | null = null
+
+onMounted(async () => {
+  await Promise.all([fetchChargerAreaOptions(), loadRobots()])
+  pollTimer = setInterval(loadRobots, POLL_INTERVAL_MS)
+})
+
+onBeforeUnmount(() => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+})
+
+function isCharging(robot: Robot) {
+  return robot.state?.toLowerCase().includes('charg') ?? false
+}
+
 interface ChargerHub { id: string, unit: string | null, battery: number | null }
-const hubs: ChargerHub[] = [
-  { id: 'HUB-01', unit: 'AMR-14', battery: 92 },
-  { id: 'HUB-02', unit: null, battery: null },
-  { id: 'HUB-03', unit: 'AMR-02', battery: 24 },
-  { id: 'HUB-04', unit: null, battery: null },
-]
+const hubs = computed<ChargerHub[]>(() => chargerAreas.value.map((area) => {
+  const occupant = robots.value.find(robot => robot.position === area.iRaypleLocationCode && isCharging(robot))
+  return { id: area.name, unit: occupant?.name ?? null, battery: occupant?.battery ?? null }
+}))
 
 // Request Queue
 interface QueueRequest { id: string, title: string, route: string, eta: string }
@@ -137,7 +175,10 @@ const requests: QueueRequest[] = [
         </span>
       </div>
 
-      <div class="mt-4 grid grid-cols-2 gap-3">
+      <div v-if="hubs.length === 0" class="mt-4 text-center text-xs text-slate-400">
+        No charger areas configured yet.
+      </div>
+      <div v-else class="mt-4 grid grid-cols-2 gap-3">
         <div
           v-for="hub in hubs"
           :key="hub.id"
