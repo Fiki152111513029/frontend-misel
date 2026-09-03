@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Download } from 'lucide-vue-next'
 import { downloadCsv } from '~/utils/exportCsv'
-import type { RobotShift, RobotStatusMonthlyMode, RobotStatusSummaryRow } from '~/types/robot'
+import type { RobotStatusMonthlyMode, RobotStatusSummaryRow } from '~/types/robot'
 
 type ViewMode = 'DAILY' | RobotStatusMonthlyMode
 
 const { fetchStatusSummary, fetchMonthlyStatusSummary } = useRobotStatusSummary()
+const { items: shifts, fetchShiftOptions } = useShiftOptions()
 const { isDark } = useTheme()
 
 // The backend treats a "day"/"month" as UTC (see GetRobotStatusSummaryUseCase
@@ -14,17 +15,17 @@ const { isDark } = useTheme()
 const today = computed(() => new Date().toISOString().slice(0, 10))
 const currentMonth = computed(() => today.value.slice(0, 7))
 
-const SHIFT_OPTIONS: { value: RobotShift, label: string }[] = [
-  { value: 'SESI_1', label: 'Sesi 1' },
-  { value: 'SESI_2', label: 'Sesi 2' },
-]
 const VIEW_MODE_OPTIONS: { value: ViewMode, label: string }[] = [
   { value: 'DAILY', label: 'Daily' },
   { value: 'AVERAGE', label: 'Average / Month' },
   { value: 'TOTAL', label: 'Total / Month' },
 ]
 
-const shift = ref<RobotShift>('SESI_1')
+// Which Shift (from the Shift table — see Dashboard > User Management >
+// Shifts) to filter by — defaults to the first one once loaded, since the
+// summary endpoints require a shiftId and there's no meaningful "all
+// shifts" view.
+const shiftId = ref<string | null>(null)
 const viewMode = ref<ViewMode>('DAILY')
 const selectedDate = ref(today.value)
 const selectedMonth = ref(currentMonth.value)
@@ -32,15 +33,20 @@ const rows = ref<RobotStatusSummaryRow[]>([])
 const loading = ref(false)
 
 async function load() {
+  if (!shiftId.value) return
   loading.value = true
   rows.value = viewMode.value === 'DAILY'
-    ? await fetchStatusSummary(selectedDate.value, shift.value)
-    : await fetchMonthlyStatusSummary(selectedMonth.value, shift.value, viewMode.value)
+    ? await fetchStatusSummary(selectedDate.value, shiftId.value)
+    : await fetchMonthlyStatusSummary(selectedMonth.value, shiftId.value, viewMode.value)
   loading.value = false
 }
 
-onMounted(load)
-watch([shift, viewMode, selectedDate, selectedMonth], load)
+onMounted(async () => {
+  await fetchShiftOptions()
+  if (shifts.value.length > 0) shiftId.value = shifts.value[0]!.id
+  await load()
+})
+watch([shiftId, viewMode, selectedDate, selectedMonth], load)
 
 const categories = computed(() => rows.value.map(row => row.robotName))
 const series = computed(() => [
@@ -130,44 +136,30 @@ function exportToExcel() {
     row.chargingMinutes,
     row.runningMinutes + row.idleMinutes + row.chargingMinutes,
   ])
+  const shiftName = shifts.value.find(s => s.id === shiftId.value)?.name ?? 'shift'
   const scope = viewMode.value === 'DAILY' ? selectedDate.value : selectedMonth.value
-  const filename = `amr-performance_${scope}_${shift.value.toLowerCase()}_${viewMode.value.toLowerCase()}.csv`
+  const filename = `amr-performance_${scope}_${shiftName.toLowerCase().replace(/\s+/g, '-')}_${viewMode.value.toLowerCase()}.csv`
   downloadCsv(filename, headers, dataRows)
 }
 </script>
 
 <template>
   <UiBaseCard padding="none" class="flex h-full flex-col">
-    <div class="space-y-3 border-b border-[#E2E8F0] px-6 py-4">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p class="font-semibold text-[#0F1F52]">AMR Performance</p>
-          <p class="font-medium mt-0.5 text-xs text-slate-500">Running / Idle / Charging minutes per robot</p>
-        </div>
-        <button
-          type="button"
-          :disabled="rows.length === 0"
-          class="inline-flex items-center gap-1.5 rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-xs font-semibold text-[#0F1F52] transition-colors hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
-          @click="exportToExcel"
-        >
-          <Download class="h-3.5 w-3.5" />
-          Export
-        </button>
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] px-6 py-4">
+      <div>
+        <p class="font-semibold text-[#0F1F52]">AMR Performance</p>
+        <p class="font-medium mt-0.5 text-xs text-slate-500">Running / Idle / Charging minutes per robot</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
-        <div class="flex gap-1 rounded-xl bg-slate-100 p-1">
-          <button
-            v-for="option in SHIFT_OPTIONS"
-            :key="option.value"
-            type="button"
-            class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
-            :class="shift === option.value ? 'bg-white text-[#0F1F52] shadow-sm' : 'text-slate-500 hover:text-[#0F1F52]'"
-            @click="shift = option.value"
-          >
-            {{ option.label }}
-          </button>
-        </div>
+        <select
+          v-model="shiftId"
+          class="rounded-xl border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-medium text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
+        >
+          <option v-for="option in shifts" :key="option.id" :value="option.id">
+            {{ option.name }}
+          </option>
+        </select>
 
         <div class="flex gap-1 rounded-xl bg-slate-100 p-1">
           <button
@@ -196,11 +188,25 @@ function exportToExcel() {
           :max="currentMonth"
           class="rounded-xl border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-medium text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
         />
+
+        <button
+          type="button"
+          :disabled="rows.length === 0"
+          class="inline-flex items-center gap-1.5 rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-xs font-semibold text-[#0F1F52] transition-colors hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
+          @click="exportToExcel"
+        >
+          <Download class="h-3.5 w-3.5" />
+          Export
+        </button>
       </div>
     </div>
 
     <div class="flex-1 p-4">
-      <div v-if="loading && rows.length === 0" class="flex h-[280px] items-center justify-center text-sm text-slate-400">
+      <div v-if="shifts.length === 0" class="flex h-[280px] flex-col items-center justify-center gap-1 text-center text-sm text-slate-400">
+        <p>No shifts configured yet.</p>
+        <p>Add one under User Management &gt; Shifts to see this chart.</p>
+      </div>
+      <div v-else-if="loading && rows.length === 0" class="flex h-[280px] items-center justify-center text-sm text-slate-400">
         Loading...
       </div>
       <div v-else-if="rows.length === 0" class="flex h-[280px] items-center justify-center text-sm text-slate-400">

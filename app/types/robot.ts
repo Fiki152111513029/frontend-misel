@@ -106,7 +106,6 @@ export interface FleetStatusRow {
   battery: number | null
 }
 
-export type RobotShift = 'SESI_1' | 'SESI_2'
 export type RobotStatusMonthlyMode = 'AVERAGE' | 'TOTAL'
 
 export interface RobotStatusSummaryRow {

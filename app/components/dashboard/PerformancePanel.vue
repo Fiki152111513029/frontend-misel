@@ -66,7 +66,7 @@ const requests: QueueRequest[] = [
 
 <template>
   <div
-    class="flex h-full flex-col overflow-y-auto rounded-2xl border border-[#E2E8F0] bg-white transition-colors duration-200"
+    class="flex h-full max-h-[460px] flex-col overflow-y-auto rounded-2xl border border-[#E2E8F0] bg-white transition-colors duration-200 2xl:max-h-[600px]"
   >
     <!-- Performance -->
     <section class="border-b border-[#E2E8F0] p-5">

@@ -1,10 +1,11 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
+import { fetchFleetStatus } from '~/services/robot.service'
+import type { FleetStatusRow } from '~/types/robot'
+
 interface Props {
   date?: string
   shift?: string
   totalProduction?: number
-  activeUnits?: number
-  totalUnits?: number
   criticalAlarms?: number
 }
 
@@ -12,10 +13,46 @@ withDefaults(defineProps<Props>(), {
   date: '24 May 2024',
   shift: 'Morning Shift',
   totalProduction: 14202,
-  activeUnits: 42,
-  totalUnits: 48,
   criticalAlarms: 2,
 })
+
+const POLL_INTERVAL_MS = 5000
+
+const fleet = ref<FleetStatusRow[]>([])
+
+async function load() {
+  try {
+    fleet.value = await fetchFleetStatus()
+  } catch {
+    // Non-fatal — keep showing the last known counts if a refresh tick fails.
+  }
+}
+
+let pollTimer: ReturnType<typeof setInterval> | null = null
+
+onMounted(async () => {
+  await load()
+  pollTimer = setInterval(load, POLL_INTERVAL_MS)
+})
+
+onBeforeUnmount(() => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+})
+
+// Online/Active means "not Offline" — Idle, In task, Charging, etc. all
+// count as active/online (only Offline, or no telemetry at all, doesn't).
+// Same bucketing rule as DashboardFleetStatusTable's severity(), so the two
+// widgets never disagree about which robots count as up.
+function isOnline(status: string | null) {
+  const value = status?.toLowerCase() ?? ''
+  return value.length > 0 && !value.includes('offline')
+}
+
+const totalUnits = computed(() => fleet.value.length)
+const activeUnits = computed(() => fleet.value.filter(row => isOnline(row.status)).length)
 </script>
 
 <template>
