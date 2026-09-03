@@ -201,21 +201,21 @@ function exportToExcel() {
       </div>
     </div>
 
-    <div class="flex-1 p-4">
-      <div v-if="shifts.length === 0" class="flex h-[280px] flex-col items-center justify-center gap-1 text-center text-sm text-slate-400">
+    <div class="flex min-h-[320px] flex-1 flex-col p-4">
+      <div v-if="shifts.length === 0" class="flex flex-1 flex-col items-center justify-center gap-1 text-center text-sm text-slate-400">
         <p>No shifts configured yet.</p>
         <p>Add one under User Management &gt; Shifts to see this chart.</p>
       </div>
-      <div v-else-if="loading && rows.length === 0" class="flex h-[280px] items-center justify-center text-sm text-slate-400">
+      <div v-else-if="loading && rows.length === 0" class="flex flex-1 items-center justify-center text-sm text-slate-400">
         Loading...
       </div>
-      <div v-else-if="rows.length === 0" class="flex h-[280px] items-center justify-center text-sm text-slate-400">
+      <div v-else-if="rows.length === 0" class="flex flex-1 items-center justify-center text-sm text-slate-400">
         No data for this selection
       </div>
-      <ClientOnly v-else>
-        <apexchart type="bar" :series="series" :options="chartOptions" height="320" />
+      <ClientOnly v-else class="flex-1">
+        <apexchart type="bar" :series="series" :options="chartOptions" height="100%" />
         <template #fallback>
-          <div class="flex h-[320px] items-center justify-center text-sm text-slate-400">Loading chart...</div>
+          <div class="flex flex-1 items-center justify-center text-sm text-slate-400">Loading chart...</div>
         </template>
       </ClientOnly>
     </div>
