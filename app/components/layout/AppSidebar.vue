@@ -108,6 +108,7 @@ const ALL_MENUS: MenuEntry[] = [
     icon: Users,
     children: [
       { title: 'Users', path: '/dashboard/users' },
+      { title: 'Shifts', path: '/dashboard/shifts' },
       { title: 'Roles', path: '/dashboard/roles' },
       { title: 'Permissions', path: '/dashboard/permissions' },
     ],

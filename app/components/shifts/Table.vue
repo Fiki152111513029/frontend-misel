@@ -1,74 +1,52 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-vue-next'
-import type { Role } from '~/types/role'
-import type { Shift } from '~/types/shift'
-import type { User } from '~/types/user'
+import type {
+  Shift,
+  ShiftSortBy,
+  ShiftSortOrder,
+} from '~/types/shift'
 
-export type UserSortKey = 'username' | 'email' | 'fullName' | 'role' | 'shift' | 'priority' | 'isActive'
-export type UserSortOrder = 'asc' | 'desc'
+export type ShiftSortKey = ShiftSortBy | 'startEnd' | 'isActive'
 
 interface Props {
-  items: User[]
+  items: Shift[]
   loading: boolean
-  roles: Role[]
-  shifts: Shift[]
-  sortBy?: UserSortKey
-  sortOrder?: UserSortOrder
+  sortBy?: ShiftSortKey
+  sortOrder?: ShiftSortOrder
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  edit: [user: User]
-  delete: [user: User]
-  sort: [patch: { sortBy: UserSortKey, sortOrder: UserSortOrder }]
+  edit: [shift: Shift]
+  delete: [shift: Shift]
+  sort: [patch: { sortBy: ShiftSortKey, sortOrder: ShiftSortOrder }]
 }>()
 
 const { hasPermission } = useAuth()
 
 const columns = [
-  { key: 'username', label: 'Username' },
-  { key: 'email', label: 'Email' },
-  { key: 'fullName', label: 'Full Name' },
-  { key: 'role', label: 'Role' },
-  { key: 'shift', label: 'Shift' },
-  { key: 'priority', label: 'Priority', width: '90px' },
-  { key: 'isActive', label: 'Active', width: '90px' },
+  { key: 'name', label: 'Name' },
+  { key: 'startEnd', label: 'Start - End' },
+  { key: 'isActive', label: 'Status', width: '90px' },
   { key: 'actions', label: 'Actions', width: '120px' },
 ]
 
-const sortableColumns = columns.filter(col => col.key !== 'actions')
+const sortableColumns = [
+  { key: 'name', label: 'Name' },
+  { key: 'startEnd', label: 'Start - End' },
+  { key: 'isActive', label: 'Status', width: '90px' },
+]
 
-const activeSort = ref<{ key: UserSortKey, order: UserSortOrder }>({
-  key: props.sortBy ?? 'username',
+const activeSort = ref<{ key: ShiftSortKey, order: ShiftSortOrder }>({
+  key: props.sortBy ?? 'name',
   order: props.sortOrder ?? 'asc',
 })
 
-function toggleSort(key: UserSortKey) {
-  const order: UserSortOrder = activeSort.value.key === key && activeSort.value.order === 'asc' ? 'desc' : 'asc'
+function toggleSort(key: ShiftSortKey) {
+  const order: ShiftSortOrder = activeSort.value.key === key && activeSort.value.order === 'asc' ? 'desc' : 'asc'
   activeSort.value = { key, order }
   emit('sort', { sortBy: key, sortOrder: order })
-}
-
-function roleName(roleId: string) {
-  return props.roles.find((r) => r.id === roleId)?.name ?? '—'
-}
-
-function shiftName(shiftId: string | null) {
-  if (!shiftId) return '—'
-  return props.shifts.find((s) => s.id === shiftId)?.name ?? '—'
-}
-
-const PRIORITY_LABEL: Record<User['priority'], string> = {
-  4: 'High',
-  6: 'Medium',
-  8: 'Low',
-}
-
-const PRIORITY_STYLE: Record<User['priority'], string> = {
-  4: 'bg-red-50 text-red-500',
-  6: 'bg-amber-50 text-amber-600',
-  8: 'bg-slate-100 text-slate-500',
 }
 </script>
 
@@ -85,7 +63,7 @@ const PRIORITY_STYLE: Record<User['priority'], string> = {
           <button
             type="button"
             class="inline-flex items-center gap-1 hover:text-[#01ADEF]"
-            @click="toggleSort(col.key as UserSortKey)"
+            @click="toggleSort(col.key as ShiftSortKey)"
           >
             {{ col.label }}
             <ChevronUp v-if="activeSort.key === col.key && activeSort.order === 'asc'" class="h-3.5 w-3.5" />
@@ -100,7 +78,7 @@ const PRIORITY_STYLE: Record<User['priority'], string> = {
 
       <tr v-if="!loading && items.length === 0">
         <td :colspan="columns.length" class="py-12 text-center text-slate-400">
-          No users found
+          No shifts found
         </td>
       </tr>
       <template v-if="!loading">
@@ -110,25 +88,10 @@ const PRIORITY_STYLE: Record<User['priority'], string> = {
           class="border-b border-[#E2E8F0] last:border-0"
         >
           <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
-            {{ item.username }}
+            {{ item.name }}
           </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">{{ item.email || '—' }}</td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
-            {{ item.fullName }}
-          </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
-            {{ roleName(item.roleId) }}
-          </td>
-          <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
-            {{ shiftName(item.shiftId) }}
-          </td>
-          <td class="px-4 py-3">
-            <span
-              class="rounded-full px-2 py-0.5 text-xs font-medium"
-              :class="PRIORITY_STYLE[item.priority]"
-            >
-              {{ PRIORITY_LABEL[item.priority] }}
-            </span>
+          <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52]">
+            {{ item.startTime }} - {{ item.endTime }}
           </td>
           <td class="px-4 py-3">
             <span
@@ -143,7 +106,7 @@ const PRIORITY_STYLE: Record<User['priority'], string> = {
           <td class="px-4 py-3">
             <div class="flex items-center gap-2">
               <button
-                v-if="hasPermission('user.update')"
+                v-if="hasPermission('shift.update')"
                 type="button"
                 class="rounded-lg bg-slate-100 p-1.5 text-[#01ADEF] hover:bg-slate-200 transition-colors"
                 aria-label="Edit"
@@ -152,7 +115,7 @@ const PRIORITY_STYLE: Record<User['priority'], string> = {
                 <Pencil class="h-4 w-4" />
               </button>
               <button
-                v-if="hasPermission('user.delete')"
+                v-if="hasPermission('shift.delete')"
                 type="button"
                 class="rounded-lg bg-red-50 p-1.5 text-red-500 hover:bg-red-100 transition-colors"
                 aria-label="Delete"

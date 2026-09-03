@@ -6,6 +6,7 @@ export interface User {
   email: string | null
   fullName: string
   roleId: string
+  shiftId: string | null
   isActive: boolean
   priority: UserPriority
   createdAt: string
@@ -18,6 +19,7 @@ export interface CreateUserInput {
   password: string
   fullName?: string
   roleId: string
+  shiftId?: string | null
   isActive?: boolean
   priority?: UserPriority
 }
@@ -28,6 +30,7 @@ export interface UpdateUserInput {
   password?: string
   fullName?: string
   roleId?: string
+  shiftId?: string | null
   isActive?: boolean
   priority?: UserPriority
 }
@@ -38,6 +41,7 @@ export interface UserFormValues {
   password: string
   fullName: string
   roleId: string
+  shiftId: string | null
   isActive: boolean
   priority: UserPriority
 }

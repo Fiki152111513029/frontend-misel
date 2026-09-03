@@ -9,6 +9,7 @@ useHead({ title: 'User Management — Misel' })
 const { hasPermission } = useAuth()
 const { items, loading, fetchUsers, createUser, updateUser, deleteUser } = useUsers()
 const { items: roles, fetchRoles } = useRoles()
+const { items: shifts, fetchShiftOptions } = useShiftOptions()
 
 const roleFilter = ref('All')
 const priorityFilter = ref<'All' | 4 | 6 | 8>('All')
@@ -21,11 +22,17 @@ function roleName(roleId: string) {
   return roles.value.find(r => r.id === roleId)?.name ?? '—'
 }
 
+function shiftName(shiftId: string | null) {
+  if (!shiftId) return '—'
+  return shifts.value.find(s => s.id === shiftId)?.name ?? '—'
+}
+
 const CLIENT_SORT_ACCESSORS: Record<UserSortKey, (item: User) => string | number> = {
   username: item => item.username.toLowerCase(),
   email: item => (item.email ?? '').toLowerCase(),
   fullName: item => item.fullName.toLowerCase(),
   role: item => roleName(item.roleId).toLowerCase(),
+  shift: item => shiftName(item.shiftId).toLowerCase(),
   priority: item => item.priority,
   isActive: item => (item.isActive ? 1 : 0),
 }
@@ -82,6 +89,7 @@ const deleting = ref(false)
 onMounted(() => {
   fetchUsers()
   fetchRoles()
+  fetchShiftOptions()
 })
 
 function openCreate() {
@@ -109,6 +117,7 @@ async function handleFormSubmit(values: UserFormValues) {
         password: values.password || undefined,
         fullName: values.fullName,
         roleId: values.roleId,
+        shiftId: values.shiftId,
         isActive: values.isActive,
       })
     : await createUser({
@@ -117,6 +126,7 @@ async function handleFormSubmit(values: UserFormValues) {
         password: values.password,
         fullName: values.fullName,
         roleId: values.roleId,
+        shiftId: values.shiftId,
         isActive: values.isActive,
       } satisfies CreateUserInput)
   submitting.value = false
@@ -184,6 +194,7 @@ async function handleDeleteConfirm() {
       :items="paginatedItems"
       :loading="loading"
       :roles="roles"
+      :shifts="shifts"
       :sort-by="sort.key"
       :sort-order="sort.order"
       @edit="openEdit"
@@ -206,6 +217,7 @@ async function handleDeleteConfirm() {
       v-model="showFormDialog"
       :user="editingUser"
       :roles="roles"
+      :shifts="shifts"
       :submitting="submitting"
       @submit="handleFormSubmit"
       @cancel="showFormDialog = false"

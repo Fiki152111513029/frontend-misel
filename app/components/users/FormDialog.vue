@@ -1,11 +1,13 @@
 ﻿<script setup lang="ts">
 import type { Role } from '~/types/role'
+import type { Shift } from '~/types/shift'
 import type { User, UserFormValues } from '~/types/user'
 
 interface Props {
   modelValue: boolean
   user?: User | null
   roles: Role[]
+  shifts: Shift[]
   submitting?: boolean
 }
 
@@ -27,6 +29,7 @@ const email = ref('')
 const password = ref('')
 const fullName = ref('')
 const roleId = ref('')
+const shiftId = ref<string | null>(null)
 const isActive = ref(true)
 const priority = ref<UserFormValues['priority']>(6)
 const errors = reactive<{
@@ -43,6 +46,7 @@ function resetFields() {
   password.value = ''
   fullName.value = props.user?.fullName ?? ''
   roleId.value = props.user?.roleId ?? props.roles[0]?.id ?? ''
+  shiftId.value = props.user?.shiftId ?? null
   isActive.value = props.user?.isActive ?? true
   priority.value = props.user?.priority ?? 6
   errors.username = undefined
@@ -98,6 +102,7 @@ function handleSubmit() {
     password: password.value,
     fullName: fullName.value.trim(),
     roleId: roleId.value,
+    shiftId: shiftId.value,
     isActive: isActive.value,
     priority: priority.value,
   })
@@ -151,6 +156,18 @@ const selectClass =
         <p v-if="errors.roleId" class="font-medium text-xs text-red-500">
           {{ errors.roleId }}
         </p>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-slate-700">
+          Shift
+        </label>
+        <select v-model="shiftId" :class="selectClass">
+          <option :value="null">— No shift —</option>
+          <option v-for="shift in shifts" :key="shift.id" :value="shift.id">
+            {{ shift.name }} ({{ shift.startTime }}-{{ shift.endTime }})
+          </option>
+        </select>
       </div>
 
       <div class="space-y-1.5">
