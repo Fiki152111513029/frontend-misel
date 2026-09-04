@@ -19,7 +19,19 @@ async function load() {
   loading.value = false
 }
 
-onMounted(load)
+const AUTO_REFRESH_MS = 60_000
+let refreshTimer: ReturnType<typeof setInterval> | null = null
+
+onMounted(() => {
+  load()
+  refreshTimer = setInterval(load, AUTO_REFRESH_MS)
+})
+onBeforeUnmount(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+})
 watch(days, load)
 
 function formatSeconds(seconds: number | null) {

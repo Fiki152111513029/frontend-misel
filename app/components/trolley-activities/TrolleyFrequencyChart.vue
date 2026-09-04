@@ -35,10 +35,20 @@ async function load() {
   loading.value = false
 }
 
+const AUTO_REFRESH_MS = 60_000
+let refreshTimer: ReturnType<typeof setInterval> | null = null
+
 onMounted(async () => {
   await fetchShiftOptions()
   if (shifts.value.length > 0) shiftId.value = shifts.value[0]!.id
   await load()
+  refreshTimer = setInterval(load, AUTO_REFRESH_MS)
+})
+onBeforeUnmount(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
 })
 watch([shiftId, viewMode, selectedDate, selectedMonth], load)
 

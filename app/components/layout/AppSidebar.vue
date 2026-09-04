@@ -1,136 +1,32 @@
 ﻿<script setup lang="ts">
 import {
-  LayoutDashboard, Users, FolderKanban,
-  BarChart3, Bell, Settings, Package, Cpu, Truck,
-  HelpCircle, ChevronLeft, ChevronRight, ChevronDown,
-  Map as MapIcon,
+  ChevronLeft, ChevronRight, ChevronDown,
 } from 'lucide-vue-next'
 import logoSrc from '~/assets/images/logomisbot.png'
 import robotPromoSrc from '~/assets/images/irayplay.png'
+import { NAV_MENUS, isMenuGroup } from '~/utils/navMenu'
+import type { MenuEntry, MenuGroup } from '~/utils/navMenu'
 
 const { isCollapsed, isMobileOpen, toggleCollapse, closeMobile } = useSidebar()
-const { user } = useAuth()
+const { hasPermission } = useAuth()
 const route = useRoute()
 
-interface MenuLeaf { title: string, icon: any, path: string }
-interface MenuChild { title: string, path: string }
-interface MenuGroup { title: string, icon: any, children: MenuChild[] }
-type MenuEntry = MenuLeaf | MenuGroup
+// Filters the shared NAV_MENUS tree (also enforced route-side by
+// middleware/permission.global.ts) down to what the current user's role
+// actually has permission for — a menu with permission: null (Dashboard) is
+// always shown; a group collapses away entirely once none of its children
+// are visible. Configure who sees what via User Management > Roles.
+const menus = computed<MenuEntry[]>(() => NAV_MENUS
+  .map((menu) => {
+    if (isMenuGroup(menu)) {
+      const children = menu.children.filter(child => child.permission === null || hasPermission(child.permission))
+      return children.length > 0 ? { ...menu, children } : null
+    }
+    return menu.permission === null || hasPermission(menu.permission) ? menu : null
+  })
+  .filter((menu): menu is MenuEntry => menu !== null))
 
-// Operator is a line-staff role restricted to only the tools it needs day to
-// day; every other role sees the full sidebar below.
-const OPERATOR_MENUS: MenuEntry[] = [
-  { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  // { title: 'Mainline', icon: Cpu, path: '/dashboard/mainline' },
-  // { title: 'Quarantines Tasks', icon: FolderKanban, path: '/dashboard/quarantines-tasks' },
-  // { title: 'Request Box', icon: LayoutDashboard, path: '/dashboard/request-box' },
-  { title: 'Operator Trolley Task', icon: Truck, path: '/dashboard/operator-trolley-task' },
-  { title: 'Trolley Activities', icon: Truck, path: '/dashboard/trolley-activities' },
-]
-
-// Exim is a line-staff role restricted to docking visibility and its own
-// request box workflow only.
-const EXIM_MENUS: MenuEntry[] = [
-  { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  // { title: 'Docking', icon: Truck, path: '/dashboard/docking' },
-  // { title: 'Request Box', icon: LayoutDashboard, path: '/dashboard/request-box' },
-]
-
-// Warehouse is a line-staff role restricted to releasing/monitoring cart
-// tasks from Warehouse Control and its own request box workflow only.
-const WAREHOUSE_MENUS: MenuEntry[] = [
-  { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  // { title: 'Warehouse Control', icon: Cpu, path: '/dashboard/warehouse-control' },
-  // { title: 'Warehouse Tasks', icon: FolderKanban, path: '/dashboard/warehouse-tasks' },
-  { title: 'Warehouse Trolley Task', icon: Truck, path: '/dashboard/warehouse-trolley-task' },
-  { title: 'Trolley Activities', icon: Truck, path: '/dashboard/trolley-activities' },
-]
-
-const ALL_MENUS: MenuEntry[] = [
-  { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  {
-    title: 'All Tasks',
-    icon: FolderKanban,
-    children: [
-      { title: 'Tasks', path: '/dashboard/tasks' },
-      // { title: 'Quarantines Tasks', path: '/dashboard/quarantines-tasks' },
-      // { title: 'Warehouse Tasks', path: '/dashboard/warehouse-tasks' },
-      { title: 'Warehouse Trolley Task', path: '/dashboard/warehouse-trolley-task' },
-      { title: 'Operator Trolley Task', path: '/dashboard/operator-trolley-task' },
-      { title: 'Trolley Activities', path: '/dashboard/trolley-activities' },
-    ],
-  },
-  {
-    title: 'Production Lines',
-    icon: FolderKanban,
-    children: [
-      // { title: 'Production Lines', path: '/dashboard/production-lines' },
-      // { title: 'Production Line Areas', path: '/dashboard/production-line-areas' },
-      // { title: 'EXIM Locations', path: '/dashboard/exim-location' },
-      // { title: 'Empty Pallet Location', path: '/dashboard/empty-pallet-location' },
-      { title: 'Production Locations', path: '/dashboard/production-locations' },
-      { title: 'Charger Areas', path: '/dashboard/charger-areas' },
-      { title: 'Parking Areas', path: '/dashboard/parking-areas' },
-      { title: 'Model Code Process', path: '/dashboard/model-code-process' },
-    ],
-  },
-  // {
-  //   title: 'Quarantines',
-  //   icon: FolderKanban,
-  //   children: [
-  //     { title: 'Quarantines Lines', path: '/dashboard/quarantines-lines' },
-  //     { title: 'Quarantines Areas', path: '/dashboard/quarantines-areas' },
-  //   ],
-  // },
-  // { title: 'Request Box', icon: LayoutDashboard, path: '/dashboard/request-box' },
-  {
-    title: 'Warehouse Lines',
-    icon: BarChart3,
-    children: [
-      // { title: 'Operator Locations', path: '/dashboard/operator-locations' },
-      // { title: 'Line Locations', path: '/dashboard/line-locations' },
-      { title: 'Warehouse Locations', path: '/dashboard/warehouse-locations' },
-      { title: 'Trolleys', path: '/dashboard/trolleys' },
-      { title: 'Trolley Categories', path: '/dashboard/trolley-categories' },
-    ],
-  },
-  // { title: 'Trouble Shot', icon: LayoutDashboard, path: '/dashboard/trouble-shot' },
-  {
-    title: 'ICS Logs',
-    icon: BarChart3,
-    children: [
-      { title: 'API Logs', path: '/dashboard/api-logs' },
-      { title: 'Webhook Logs', path: '/dashboard/webhook-logs' },
-    ],
-  },
-  {
-    title: 'User Management',
-    icon: Users,
-    children: [
-      { title: 'Users', path: '/dashboard/users' },
-      { title: 'Shifts', path: '/dashboard/shifts' },
-      { title: 'Roles', path: '/dashboard/roles' },
-      { title: 'Permissions', path: '/dashboard/permissions' },
-    ],
-  },
-  { title: 'Robots', icon: Bell, path: '/dashboard/robots' },
-  // { title: 'Box Types', icon: Package, path: '/dashboard/box-types' },
-  { title: 'Factory Maps', icon: MapIcon, path: '/dashboard/factory-maps' },
-  // { title: 'Settings', icon: Settings, path: '/dashboard/settings' },
-  // { title: 'Help Center', icon: HelpCircle, path: '/dashboard/help' },
-]
-
-const ROLE_MENUS: Record<string, MenuEntry[]> = {
-  Operator: OPERATOR_MENUS,
-  Exim: EXIM_MENUS,
-  Warehouse: WAREHOUSE_MENUS,
-}
-
-const menus = computed<MenuEntry[]>(() => ROLE_MENUS[user.value?.role ?? ''] ?? ALL_MENUS)
-
-function isGroup(menu: MenuEntry): menu is MenuGroup {
-  return 'children' in menu
-}
+const isGroup = isMenuGroup
 
 function isActive(path: string) {
   return path === '/dashboard'

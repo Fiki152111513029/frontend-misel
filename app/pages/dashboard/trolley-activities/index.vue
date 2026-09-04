@@ -15,8 +15,22 @@ const {
   fetchTrolleyActivities,
 } = useTrolleyActivities()
 
+const AUTO_REFRESH_MS = 60_000
+let refreshTimer: ReturnType<typeof setInterval> | null = null
+
 onMounted(() => {
   fetchTrolleyActivities()
+  // Re-fetches the current page/filters in place — goToPage/handleLimitChange
+  // already persist the active page+limit via the store, so a plain refetch
+  // (no args) here keeps whatever the user is currently looking at.
+  refreshTimer = setInterval(() => fetchTrolleyActivities(), AUTO_REFRESH_MS)
+})
+
+onBeforeUnmount(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
 })
 
 function goToPage(page: number) {
