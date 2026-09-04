@@ -55,6 +55,7 @@ export const NAV_MENUS: MenuEntry[] = [
     children: [
       { title: 'API Logs', path: '/dashboard/api-logs', permission: 'logs.read' },
       { title: 'Webhook Logs', path: '/dashboard/webhook-logs', permission: 'logs.read' },
+      { title: 'Alarm Logs', path: '/dashboard/alarm-logs', permission: 'robot-alarm.read' },
     ],
   },
   {
