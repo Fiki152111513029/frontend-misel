@@ -80,6 +80,7 @@ export interface CreateTrolleyActivityResult {
 export interface TrolleyActivityQuery {
   page?: number
   limit?: number
+  status?: TrolleyActivityStatus
 }
 
 export interface TrolleyActivityListMeta {

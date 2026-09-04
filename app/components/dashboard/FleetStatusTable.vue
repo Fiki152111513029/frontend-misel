@@ -91,13 +91,12 @@ function batteryColor(battery: number) {
             <th class="px-5 py-3">Unit ID</th>
             <th class="px-5 py-3">Status</th>
             <th class="px-5 py-3">Mission</th>
-            <th class="px-5 py-3">Load</th>
             <th class="px-5 py-3">Battery</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-[#E2E8F0]">
           <tr v-if="!loading && rows.length === 0">
-            <td colspan="5" class="px-5 py-8 text-center text-sm text-slate-400">
+            <td colspan="4" class="px-5 py-8 text-center text-sm text-slate-400">
               No robots found
             </td>
           </tr>
@@ -115,9 +114,6 @@ function batteryColor(battery: number) {
               :class="severity(row.status) === 'error' ? 'text-red-500' : 'text-[#0F1F52] '"
             >
               {{ row.mission ?? '-' }}
-            </td>
-            <td class="whitespace-nowrap px-5 py-3.5 font-medium text-[#0F1F52]">
-              {{ row.load ?? '-' }}
             </td>
             <td class="whitespace-nowrap px-5 py-3.5">
               <div v-if="row.battery !== null" class="flex items-center gap-2">

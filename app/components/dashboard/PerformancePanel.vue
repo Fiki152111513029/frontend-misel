@@ -1,18 +1,34 @@
 ﻿<script setup lang="ts">
 import { fetchRobots } from '~/services/robot.service'
+import { fetchTrolleyActivities } from '~/services/trolley-activity.service'
 import type { Robot } from '~/types/robot'
 
 const { isDark } = useTheme()
 
-// Performance
+// Performance — today's TrolleyActivity status breakdown (see
+// GetTrolleyActivityDashboardUseCase, days=1 = today's UTC calendar day).
+// No "Cancelled" bar — TaskStatus only has PENDING/IN_PROGRESS/COMPLETED/
+// FAILED, there's no cancelled state to source real data from.
 interface StatusItem { label: string, value: number, color: string }
+const { fetchTrolleyActivityDashboard } = useTrolleyActivities()
 const statuses = ref<StatusItem[]>([
-  { label: 'Completed', value: 90, color: '#014091' },
-  { label: 'In progress', value: 60, color: '#F6AE2D' },
-  { label: 'Not Start', value: 10, color: '#0991F3' },
-  { label: 'Cancelled', value: 10, color: '#F78B0F' },
-  { label: 'Failed', value: 10, color: '#EF4444' },
+  { label: 'Completed', value: 0, color: '#014091' },
+  { label: 'In progress', value: 0, color: '#F6AE2D' },
+  { label: 'Not Start', value: 0, color: '#0991F3' },
+  { label: 'Failed', value: 0, color: '#EF4444' },
 ])
+
+async function loadTaskStatus() {
+  const stats = await fetchTrolleyActivityDashboard(1)
+  if (!stats) return
+  statuses.value = [
+    { label: 'Completed', value: stats.totals.completed, color: '#014091' },
+    { label: 'In progress', value: stats.totals.inProgress, color: '#F6AE2D' },
+    { label: 'Not Start', value: stats.totals.pending, color: '#0991F3' },
+    { label: 'Failed', value: stats.totals.failed, color: '#EF4444' },
+  ]
+}
+
 const total = computed(() => statuses.value.reduce((sum, status) => sum + status.value, 0))
 function percentOf(value: number) {
   return total.value === 0 ? 0 : Math.round((value / total.value) * 100)
@@ -89,10 +105,12 @@ async function loadRobots() {
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(async () => {
-  await Promise.all([fetchChargerAreaOptions(), loadRobots(), loadAlarmStats()])
+  await Promise.all([fetchChargerAreaOptions(), loadRobots(), loadAlarmStats(), loadTaskStatus(), loadRequestQueue()])
   pollTimer = setInterval(() => {
     loadRobots()
     loadAlarmStats()
+    loadTaskStatus()
+    loadRequestQueue()
   }, POLL_INTERVAL_MS)
 })
 
@@ -113,12 +131,32 @@ const hubs = computed<ChargerHub[]>(() => chargerAreas.value.map((area) => {
   return { id: area.name, unit: occupant?.name ?? null, battery: occupant?.battery ?? null }
 }))
 
-// Request Queue
+// Request Queue — real trolley activities still PENDING (Take Trolley
+// scanned, Drop Trolley not submitted yet), newest first, capped to a
+// handful for this compact card.
 interface QueueRequest { id: string, title: string, route: string, eta: string }
-const requests: QueueRequest[] = [
-  { id: 'REQ-902', title: 'Pick-up: Pallete #902', route: 'DOCK 4 → ZONE B', eta: '02:14m' },
-  { id: 'REQ-A1', title: 'Drop-off: Raw Mat-A', route: 'STORAGE → LINE 12', eta: '05:40m' },
-]
+const requests = ref<QueueRequest[]>([])
+
+function formatElapsed(startDate: string) {
+  const totalSeconds = Math.max(0, Math.floor((Date.now() - new Date(startDate).getTime()) / 1000))
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}m`
+}
+
+async function loadRequestQueue() {
+  try {
+    const result = await fetchTrolleyActivities({ status: 'PENDING', page: 1, limit: 5 })
+    requests.value = result.items.map(item => ({
+      id: item.id,
+      title: `${item.trolley.name} (${item.trolley.code})`,
+      route: `${item.pickupLocationCode} → ${item.droppingLocationCode ?? '?'}`,
+      eta: formatElapsed(item.startDate),
+    }))
+  } catch {
+    // Non-fatal — keep showing the last known queue if a refresh tick fails.
+  }
+}
 </script>
 
 <template>
@@ -234,7 +272,10 @@ const requests: QueueRequest[] = [
         </span>
       </div>
 
-      <div class="mt-3 divide-y divide-[#E2E8F0]">
+      <div v-if="requests.length === 0" class="mt-4 text-center text-xs text-slate-400">
+        No pending trolley activities right now.
+      </div>
+      <div v-else class="mt-3 divide-y divide-[#E2E8F0]">
         <div v-for="request in requests" :key="request.id" class="flex items-center gap-3 py-3">
           <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#0F1F52]/10 text-[#0F1F52]">
             <svg class="h-4.5 w-4.5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
