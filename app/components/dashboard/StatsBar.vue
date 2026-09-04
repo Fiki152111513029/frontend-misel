@@ -1,30 +1,35 @@
 <script setup lang="ts">
 import { fetchFleetStatus } from '~/services/robot.service'
+import { fetchAlarmDashboardStats } from '~/services/robot-alarm.service'
 import type { FleetStatusRow } from '~/types/robot'
 
 interface Props {
   date?: string
   shift?: string
   totalProduction?: number
-  criticalAlarms?: number
 }
 
 withDefaults(defineProps<Props>(), {
   date: '24 May 2024',
   shift: 'Morning Shift',
   totalProduction: 14202,
-  criticalAlarms: 2,
 })
 
 const POLL_INTERVAL_MS = 5000
 
 const fleet = ref<FleetStatusRow[]>([])
+const criticalAlarms = ref(0)
 
 async function load() {
   try {
     fleet.value = await fetchFleetStatus()
   } catch {
     // Non-fatal — keep showing the last known counts if a refresh tick fails.
+  }
+  try {
+    criticalAlarms.value = (await fetchAlarmDashboardStats()).criticalCount
+  } catch {
+    // Non-fatal — same as above.
   }
 }
 

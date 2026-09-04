@@ -37,13 +37,25 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
   tooltip: { theme: isDark.value ? 'dark' : 'light' },
 }))
 
-// Abnormality
+// Abnormality — real alarm counts from RCS's device-alarm webhook, grouped
+// by zone (areaId, an opaque RCS zone number with no local name mapping —
+// see backend/prisma/schema.prisma's RobotAlarm model). percent scales
+// relative to the busiest zone in range, not an absolute rate, since there's
+// no fixed "total possible alarms" denominator to divide by.
 interface ZoneError { label: string, percent: number }
-const zones: ZoneError[] = [
-  { label: 'Zone A (Storage)', percent: 12 },
-  { label: 'Zone B (Packaging)', percent: 48 },
-  { label: 'Zone C (Docking)', percent: 22 },
-]
+const { fetchDashboardStats } = useRobotAlarms()
+const zones = ref<ZoneError[]>([])
+
+async function loadAlarmStats() {
+  const stats = await fetchDashboardStats()
+  if (!stats) return
+  const maxCount = Math.max(...stats.byZone.map(zone => zone.count), 0)
+  zones.value = stats.byZone.slice(0, 5).map(zone => ({
+    label: `Zone ${zone.areaId}`,
+    percent: maxCount > 0 ? Math.round((zone.count / maxCount) * 100) : 0,
+  }))
+}
+
 function barColor(percent: number) {
   if (percent >= 40) return 'bg-red-500'
   if (percent >= 20) return 'bg-[#01ADEF]'
@@ -73,8 +85,11 @@ async function loadRobots() {
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(async () => {
-  await Promise.all([fetchChargerAreaOptions(), loadRobots()])
-  pollTimer = setInterval(loadRobots, POLL_INTERVAL_MS)
+  await Promise.all([fetchChargerAreaOptions(), loadRobots(), loadAlarmStats()])
+  pollTimer = setInterval(() => {
+    loadRobots()
+    loadAlarmStats()
+  }, POLL_INTERVAL_MS)
 })
 
 onBeforeUnmount(() => {
@@ -149,7 +164,10 @@ const requests: QueueRequest[] = [
         </svg>
       </div>
 
-      <div class="mt-4 space-y-4">
+      <div v-if="zones.length === 0" class="mt-4 text-center text-xs text-slate-400">
+        No alarms in the last 24 hours.
+      </div>
+      <div v-else class="mt-4 space-y-4">
         <div v-for="zone in zones" :key="zone.label">
           <div class="mb-1.5 flex items-center justify-between text-xs">
             <span class="text-slate-500">{{ zone.label }}</span>
