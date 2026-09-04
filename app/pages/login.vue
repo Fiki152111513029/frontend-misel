@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import bgHeroSrc from '~/assets/images/bg-hero.png'
+import { getRoleHomePath } from '~/utils/roleHome'
 
 definePageMeta({
   layout: 'auth',
@@ -22,10 +23,8 @@ async function handleLogin(credentials: { identifier: string; password: string; 
   if (result.success) {
     if (result.user?.role === 'Operator') {
       collapse()
-      await router.push('/dashboard/mainline')
-    } else {
-      await router.push('/dashboard')
     }
+    await router.push(getRoleHomePath(result.user?.role))
   } else {
     serverError.value = result.message ?? 'Login failed. Please try again.'
   }

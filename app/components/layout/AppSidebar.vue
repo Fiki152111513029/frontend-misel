@@ -25,7 +25,6 @@ const OPERATOR_MENUS: MenuEntry[] = [
   // { title: 'Quarantines Tasks', icon: FolderKanban, path: '/dashboard/quarantines-tasks' },
   // { title: 'Request Box', icon: LayoutDashboard, path: '/dashboard/request-box' },
   { title: 'Operator Trolley Task', icon: Truck, path: '/dashboard/operator-trolley-task' },
-  { title: 'Trolley Activities', icon: Truck, path: '/dashboard/trolley-activities' },
 ]
 
 // Exim is a line-staff role restricted to docking visibility and its own
@@ -43,7 +42,6 @@ const WAREHOUSE_MENUS: MenuEntry[] = [
   // { title: 'Warehouse Control', icon: Cpu, path: '/dashboard/warehouse-control' },
   // { title: 'Warehouse Tasks', icon: FolderKanban, path: '/dashboard/warehouse-tasks' },
   { title: 'Warehouse Trolley Task', icon: Truck, path: '/dashboard/warehouse-trolley-task' },
-  { title: 'Trolley Activities', icon: Truck, path: '/dashboard/trolley-activities' },
 ]
 
 const ALL_MENUS: MenuEntry[] = [

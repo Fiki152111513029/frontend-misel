@@ -1,5 +1,9 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'dashboard' })
+definePageMeta({
+  layout: 'dashboard',
+  middleware: 'role',
+  allowedRoles: ['Super Admin', 'Supervisor'],
+})
 useHead({ title: 'Trolley Activities — Misel' })
 
 const {
