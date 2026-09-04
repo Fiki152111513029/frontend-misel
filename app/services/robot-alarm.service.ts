@@ -1,11 +1,13 @@
 import type { AlarmDashboardStats, RobotAlarmListResult, RobotAlarmQuery } from '~/types/robot-alarm'
 
-// Critical alarm count + per-zone alarm density within the last N hours —
-// powers the main Dashboard's Critical Alarms stat and Abnormality chart.
-export async function fetchAlarmDashboardStats(hours: number = 24): Promise<AlarmDashboardStats> {
+// Live/current alarm snapshot — Critical alarm count + per-zone alarm
+// density within the last N minutes only (reads 0 once nothing fresh has
+// come in, rather than carrying an old count forward) — powers the main
+// Dashboard's Critical Alarms stat and Abnormality chart.
+export async function fetchAlarmDashboardStats(minutes: number = 2): Promise<AlarmDashboardStats> {
   const { $http } = useNuxtApp()
   return (await $http.get('/robot-alarms/dashboard-stats', {
-    params: { hours },
+    params: { minutes },
   })) as AlarmDashboardStats
 }
 

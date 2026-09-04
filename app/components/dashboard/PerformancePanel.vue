@@ -39,7 +39,11 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
 
 // Abnormality — real alarm counts from RCS's device-alarm webhook, grouped
 // by zone (areaId, an opaque RCS zone number with no local name mapping —
-// see backend/prisma/schema.prisma's RobotAlarm model). percent scales
+// see backend/prisma/schema.prisma's RobotAlarm model). This is a live
+// "right now" snapshot, not a historical count — the backend only looks at
+// the last 2 minutes, so a zone with nothing fresh in that window naturally
+// drops out of stats.byZone and disappears here (down to the empty state
+// below) rather than keeping a stale count on screen. percent scales
 // relative to the busiest zone in range, not an absolute rate, since there's
 // no fixed "total possible alarms" denominator to divide by.
 interface ZoneError { label: string, percent: number }
@@ -165,7 +169,7 @@ const requests: QueueRequest[] = [
       </div>
 
       <div v-if="zones.length === 0" class="mt-4 text-center text-xs text-slate-400">
-        No alarms in the last 24 hours.
+        No active alarms right now.
       </div>
       <div v-else class="mt-4 space-y-4">
         <div v-for="zone in zones" :key="zone.label">

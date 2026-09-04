@@ -7,9 +7,9 @@ const EMPTY_LIST: RobotAlarmListResult = { items: [], meta: { total: 0, page: 1,
 export function useRobotAlarms() {
   const toast = useToast()
 
-  async function fetchDashboardStats(hours?: number): Promise<AlarmDashboardStats | null> {
+  async function fetchDashboardStats(minutes?: number): Promise<AlarmDashboardStats | null> {
     try {
-      return await fetchAlarmDashboardStats(hours)
+      return await fetchAlarmDashboardStats(minutes)
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : 'Failed to load alarm stats')
       return null
