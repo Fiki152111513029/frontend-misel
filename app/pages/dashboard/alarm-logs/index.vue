@@ -8,7 +8,11 @@ const meta = ref<Awaited<ReturnType<typeof fetchAlarms>>['meta']>({ total: 0, pa
 const loading = ref(false)
 
 async function load(query?: { page?: number, limit?: number }) {
-  loading.value = true
+  // Only show the loading state on a genuine first load (or when jumping
+  // page/limit) — this page is polled every 5s for auto-refresh, and
+  // re-blanking the table on every tick would flash distractingly instead
+  // of just swapping in fresh rows. Same convention as useWebhookLogsStore.
+  if (items.value.length === 0 || query) loading.value = true
   const result = await fetchAlarms({ page: meta.value.page, limit: meta.value.limit, ...query })
   items.value = result.items
   meta.value = result.meta
