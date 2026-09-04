@@ -1,10 +1,12 @@
 <script setup lang="ts">
-definePageMeta({
-  layout: 'dashboard',
-  middleware: 'role',
-  allowedRoles: ['Super Admin', 'Supervisor'],
-})
+definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'Trolley Activities — Misel' })
+
+// The activity list below is open to everyone with trolley-activity.read
+// (Operator/Warehouse included, to see their own history) — only the
+// Overview stats/charts block is Super Admin/Supervisor-only.
+const { user } = useAuth()
+const canSeeOverview = computed(() => user.value?.role === 'Super Admin' || user.value?.role === 'Supervisor')
 
 const {
   items,
@@ -35,7 +37,7 @@ function handleLimitChange(limit: number) {
       </p>
     </div>
 
-    <TrolleyActivitiesDashboard class="mb-6" />
+    <TrolleyActivitiesDashboard v-if="canSeeOverview" class="mb-6" />
 
     <TrolleyActivitiesTable
       :items="items"
