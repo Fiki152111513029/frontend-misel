@@ -25,8 +25,8 @@ export const NAV_MENUS: MenuEntry[] = [
     icon: FolderKanban,
     children: [
       { title: 'Tasks', path: '/dashboard/tasks', permission: 'task.read' },
-      { title: 'Warehouse Trolley Task', path: '/dashboard/warehouse-trolley-task', permission: 'trolley-activity.create' },
-      { title: 'Operator Trolley Task', path: '/dashboard/operator-trolley-task', permission: 'trolley-activity.create' },
+      { title: 'Warehouse Trolley Task', path: '/dashboard/warehouse-trolley-task', permission: 'warehouse-trolley-task.read' },
+      { title: 'Operator Trolley Task', path: '/dashboard/operator-trolley-task', permission: 'operator-trolley-task.read' },
       { title: 'Trolley Activities', path: '/dashboard/trolley-activities', permission: 'trolley-activity.read' },
     ],
   },
