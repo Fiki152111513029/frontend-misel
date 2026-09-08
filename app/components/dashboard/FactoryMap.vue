@@ -206,12 +206,23 @@ function clearSelection() {
 // via the plain service function (not the shared Robots-page store/composable)
 // so this widget's polling doesn't disturb that page's pagination state.
 const liveRobots = ref<Robot[]>([])
-const ROBOT_POLL_MS = 1000
+const ROBOT_POLL_MS = 500
 let robotPollTimer: ReturnType<typeof setInterval> | null = null
 // Guards against overlapping fetches — if a telemetry request runs longer
-// than the 1s tick (RCS telemetry has been observed to time out), skip the
-// next tick instead of piling up concurrent requests.
+// than the poll tick (RCS telemetry has been observed to time out), skip
+// the next tick instead of piling up concurrent requests.
 let isLoadingLiveRobots = false
+
+// Markers glide to a new position via CSS transition (see .robot-marker
+// below) — great for genuine movement, but wrong for the very first
+// position(s) after a fresh mount (e.g. navigating away from /dashboard and
+// back): the first fetch has occasionally been observed to land slightly
+// stale before the next one corrects it, and animating that correction made
+// the robot look like it went flying across the map to "catch up" to where
+// it actually is. Suppressing the transition until a couple of fetches have
+// landed means every marker's first appearance is a instant, correct snap.
+const suppressRobotTransition = ref(true)
+let robotPollCount = 0
 
 async function loadLiveRobots() {
   if (isLoadingLiveRobots) return
@@ -219,6 +230,8 @@ async function loadLiveRobots() {
   try {
     const result = await fetchRobotsSvc({ limit: 100 })
     liveRobots.value = result.items
+    robotPollCount += 1
+    if (robotPollCount >= 2) suppressRobotTransition.value = false
   } catch {
     // Non-fatal — markers just stay at their last known position this tick.
   } finally {
@@ -663,11 +676,28 @@ onBeforeUnmount(() => {
               v-for="robot in robotMarkers"
               :key="robot.id"
               class="robot-marker"
+              :class="{ 'robot-marker--no-transition': suppressRobotTransition }"
               :style="{ transform: `translate(${robot.x}px, ${flipY(robot.y)}px)` }"
               @pointerdown.stop
               @pointerenter="hoveredRobotId = robot.id"
               @pointerleave="hoveredRobotId = null"
             >
+              <!-- Invisible hit-area, sized generously beyond the icon
+                   itself — an <image> only registers pointerenter over its
+                   actual painted (non-transparent) pixels in some browsers,
+                   which made hovering feel unreliable/like it needed a
+                   precise click on the icon's solid part. A plain
+                   fill="transparent" rect is still "painted" for
+                   pointer-events purposes, so the whole square area shows
+                   the info immediately on hover, no click needed. -->
+              <rect
+                :x="-robotIconSize"
+                :y="-robotIconSize"
+                :width="robotIconSize * 2"
+                :height="robotIconSize * 2"
+                fill="transparent"
+              />
+
               <!-- orientation is already unwrapped + converted to plain
                    degrees by unwrapOrientation() above — negated here
                    because this whole marker sits inside flipY()'d Y
@@ -679,6 +709,7 @@ onBeforeUnmount(() => {
                    not nested here). -->
               <g
                 class="robot-marker__rotate"
+                :class="{ 'robot-marker--no-transition': suppressRobotTransition }"
                 :style="{ transform: `rotate(${-(robot.orientation ?? 0)}deg)` }"
               >
                 <svg
@@ -769,22 +800,33 @@ onBeforeUnmount(() => {
 
 <style scoped>
 /* Glides to its new spot on each position poll instead of jumping. Duration
-   is deliberately a bit longer than ROBOT_POLL_MS (1s) — if it exactly
+   is deliberately a bit longer than ROBOT_POLL_MS (500ms) — if it exactly
    matched, a poll response that arrives even slightly late leaves the
    marker sitting motionless for that gap, reading as a stop-start stutter.
    Running long means the next update almost always lands *mid*-transition,
    so the browser just retargets from wherever the marker currently is
    instead of finishing and waiting — motion stays continuous through both
-   moves and turns. */
+   moves and turns. Polling twice a second (rather than once) also means
+   each individual glide covers a smaller distance, which reads as smoother
+   even when the robot's real movement isn't perfectly linear between ticks. */
 .robot-marker {
-  transition: transform 1.15s linear;
+  transition: transform 0.6s linear;
 }
 
 /* Same reasoning as .robot-marker above, applied to turning specifically —
    without its own transition this snapped to the new heading instantly on
    every poll instead of turning smoothly. */
 .robot-marker__rotate {
-  transition: transform 1.15s linear;
+  transition: transform 0.6s linear;
+}
+
+/* Overrides the two rules above (same specificity, later in the
+   stylesheet — no !important needed) while suppressRobotTransition is true,
+   so a robot's first appearance after mount snaps straight to its real
+   position/heading instead of animating in from wherever the marker's
+   default (0,0 / 0deg) transform would otherwise imply. */
+.robot-marker--no-transition {
+  transition: none;
 }
 
 /* Small idle bob so the marker reads as "live" even between polls. */
