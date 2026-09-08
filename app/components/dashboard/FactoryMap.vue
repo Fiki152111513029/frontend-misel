@@ -51,6 +51,7 @@ interface RobotMarker {
   state: string | null
   battery: number | null
   payload: string | null
+  orientation: number | null
 }
 
 interface ViewBox {
@@ -238,6 +239,7 @@ const robotMarkers = computed<RobotMarker[]>(() => {
       state: robot.state,
       battery: robot.battery,
       payload: robot.payload,
+      orientation: robot.orientation,
     }))
 })
 
@@ -641,23 +643,31 @@ onBeforeUnmount(() => {
               @pointerenter="hoveredRobotId = robot.id"
               @pointerleave="hoveredRobotId = null"
             >
-              <svg
-                class="robot-marker__bob"
-                :x="-robotIconSize / 2"
-                :y="-robotIconSize / 2"
-                :width="robotIconSize"
-                :height="robotIconSize"
-                viewBox="0 0 100 100"
-              >
-                <image
-                  :href="robotImageSrc(robot)"
-                  x="0"
-                  y="0"
-                  width="100"
-                  height="100"
-                  preserveAspectRatio="xMidYMid meet"
-                />
-              </svg>
+              <!-- orientation is degrees x1000 on the wire (e.g. 180000 =
+                   180°, confirmed against live telemetry) — negated because
+                   this whole marker sits inside flipY()'d Y coordinates, so
+                   a clockwise heading in RCS's own space reads
+                   counter-clockwise here. Rotates only the icon, not the
+                   name-tag label above it (separate <g>, not nested here). -->
+              <g :transform="`rotate(${-(robot.orientation ?? 0) / 1000})`">
+                <svg
+                  class="robot-marker__bob"
+                  :x="-robotIconSize / 2"
+                  :y="-robotIconSize / 2"
+                  :width="robotIconSize"
+                  :height="robotIconSize"
+                  viewBox="0 0 100 100"
+                >
+                  <image
+                    :href="robotImageSrc(robot)"
+                    x="0"
+                    y="0"
+                    width="100"
+                    height="100"
+                    preserveAspectRatio="xMidYMid meet"
+                  />
+                </svg>
+              </g>
             </g>
 
             <g

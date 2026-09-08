@@ -20,6 +20,8 @@ export interface Robot {
   positionY: number | null
   /** Raw "payLoad" from the AMR telemetry API — "0.0" (idle) or "1.0" (carrying something); never distinguishes what's being carried. Null if not reporting. */
   payload: string | null
+  /** Live heading from the AMR telemetry API (raw field is misspelled "oritation" upstream, fixed on the backend) — degrees x1000 (e.g. 180000 = 180°), null if not reporting */
+  orientation: number | null
   isActive: boolean
   createdAt: string
   updatedAt: string
