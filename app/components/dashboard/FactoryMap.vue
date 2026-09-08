@@ -206,23 +206,101 @@ function clearSelection() {
 // via the plain service function (not the shared Robots-page store/composable)
 // so this widget's polling doesn't disturb that page's pagination state.
 const liveRobots = ref<Robot[]>([])
-const ROBOT_POLL_MS = 500
+const ROBOT_POLL_MS = 800
 let robotPollTimer: ReturnType<typeof setInterval> | null = null
 // Guards against overlapping fetches — if a telemetry request runs longer
 // than the poll tick (RCS telemetry has been observed to time out), skip
 // the next tick instead of piling up concurrent requests.
 let isLoadingLiveRobots = false
 
-// Markers glide to a new position via CSS transition (see .robot-marker
-// below) — great for genuine movement, but wrong for the very first
-// position(s) after a fresh mount (e.g. navigating away from /dashboard and
-// back): the first fetch has occasionally been observed to land slightly
-// stale before the next one corrects it, and animating that correction made
-// the robot look like it went flying across the map to "catch up" to where
-// it actually is. Suppressing the transition until a couple of fetches have
-// landed means every marker's first appearance is a instant, correct snap.
-const suppressRobotTransition = ref(true)
-let robotPollCount = 0
+// CSS transitions retargeted on every poll were still visibly choppy —
+// each poll boundary is a hard kink in the velocity (the marker was moving
+// one direction/speed, then instantly has to head somewhere else), and
+// with the real data landing only a couple of times a second there just
+// aren't enough of those kinks close enough together to read as fluid.
+// This instead tweens every robot's position/heading on every animation
+// frame (60fps, independent of poll rate) between the last two real
+// readings, which is what actually looks smooth regardless of how sparse
+// or jittery the underlying telemetry is.
+interface RobotAnimPoint { x: number, y: number, orientation: number }
+interface RobotAnimState extends RobotAnimPoint {
+  fromX: number
+  fromY: number
+  fromOrientation: number
+  startTime: number
+  duration: number
+}
+
+// Plain (non-reactive) bookkeeping map — mutated every poll and every
+// animation frame, but it's an implementation detail of the tween, not app
+// state, so it deliberately never triggers Vue's reactivity on its own.
+const robotAnimStates = new Map<string, RobotAnimState>()
+// The one thing the template actually reads — updated once per animation
+// frame from robotAnimStates so the SVG re-renders at 60fps.
+const renderedRobotPositions = ref<Map<string, RobotAnimPoint>>(new Map())
+
+// A raw heading that wraps 350deg -> 10deg would otherwise tween the "long
+// way" around (340deg of spin) instead of the real 20deg turn — this keeps
+// a running, un-wrapped angle per robot so it always takes the shortest path.
+function unwrapOrientation(id: string, rawThousandths: number): number {
+  const rawDegrees = rawThousandths / 1000
+  const previous = robotAnimStates.get(id)?.orientation
+  if (previous === undefined) return rawDegrees
+  const previousMod = ((previous % 360) + 360) % 360
+  let delta = rawDegrees - previousMod
+  if (delta > 180) delta -= 360
+  else if (delta < -180) delta += 360
+  return previous + delta
+}
+
+// Starts (or, if one's already in flight, smoothly retargets) the tween
+// toward a robot's newly-fetched position/heading — retargeting starts
+// from wherever the robot is *currently interpolated to be*, not from its
+// last real reading, so a fresh update never causes a visible jump back.
+function retargetRobotAnimation(id: string, x: number, y: number, orientationRaw: number) {
+  const orientation = unwrapOrientation(id, orientationRaw)
+  const now = performance.now()
+  const existing = robotAnimStates.get(id)
+  let fromX = x
+  let fromY = y
+  let fromOrientation = orientation
+  if (existing) {
+    const t = Math.min(1, (now - existing.startTime) / existing.duration)
+    fromX = existing.fromX + (existing.x - existing.fromX) * t
+    fromY = existing.fromY + (existing.y - existing.fromY) * t
+    fromOrientation = existing.fromOrientation + (existing.orientation - existing.fromOrientation) * t
+  }
+  robotAnimStates.set(id, {
+    x,
+    y,
+    orientation,
+    fromX,
+    fromY,
+    fromOrientation,
+    startTime: now,
+    // Longer than ROBOT_POLL_MS so a new reading almost always arrives
+    // mid-tween — the tween just gets retargeted (see above) rather than
+    // ever finishing and sitting idle waiting for the next poll.
+    duration: ROBOT_POLL_MS * 1.5,
+  })
+}
+
+let animationFrameHandle: number | null = null
+
+function tickRobotAnimations() {
+  const now = performance.now()
+  const next = new Map<string, RobotAnimPoint>()
+  for (const [id, state] of robotAnimStates) {
+    const t = Math.min(1, (now - state.startTime) / state.duration)
+    next.set(id, {
+      x: state.fromX + (state.x - state.fromX) * t,
+      y: state.fromY + (state.y - state.fromY) * t,
+      orientation: state.fromOrientation + (state.orientation - state.fromOrientation) * t,
+    })
+  }
+  renderedRobotPositions.value = next
+  animationFrameHandle = requestAnimationFrame(tickRobotAnimations)
+}
 
 async function loadLiveRobots() {
   if (isLoadingLiveRobots) return
@@ -230,38 +308,16 @@ async function loadLiveRobots() {
   try {
     const result = await fetchRobotsSvc({ limit: 100 })
     liveRobots.value = result.items
-    robotPollCount += 1
-    if (robotPollCount >= 2) suppressRobotTransition.value = false
+    for (const robot of result.items) {
+      if (robot.positionX != null && robot.positionY != null) {
+        retargetRobotAnimation(robot.id, robot.positionX, robot.positionY, robot.orientation ?? 0)
+      }
+    }
   } catch {
-    // Non-fatal — markers just stay at their last known position this tick.
+    // Non-fatal — markers just keep tweening toward their last known target this tick.
   } finally {
     isLoadingLiveRobots = false
   }
-}
-
-// CSS can only transition a rotation smoothly if the angle keeps counting
-// in the same direction — a raw heading that wraps 350deg -> 10deg would
-// otherwise animate the "long way" around (340deg of spin) instead of the
-// real 20deg turn. This keeps a running, un-wrapped angle per robot so the
-// transition always takes the shortest path. Plain (non-reactive) Map is
-// intentional — it's mutated from inside the computed below purely as a
-// memoization cache, not as app state, so it never triggers a re-render.
-const unwrappedOrientationByRobotId = new Map<string, number>()
-
-function unwrapOrientation(id: string, rawThousandths: number): number {
-  const rawDegrees = rawThousandths / 1000
-  const previous = unwrappedOrientationByRobotId.get(id)
-  if (previous === undefined) {
-    unwrappedOrientationByRobotId.set(id, rawDegrees)
-    return rawDegrees
-  }
-  const previousMod = ((previous % 360) + 360) % 360
-  let delta = rawDegrees - previousMod
-  if (delta > 180) delta -= 360
-  else if (delta < -180) delta += 360
-  const next = previous + delta
-  unwrappedOrientationByRobotId.set(id, next)
-  return next
 }
 
 const robotMarkers = computed<RobotMarker[]>(() => {
@@ -269,16 +325,21 @@ const robotMarkers = computed<RobotMarker[]>(() => {
   if (areaNumber == null) return []
   return liveRobots.value
     .filter(robot => robot.areaId === areaNumber && robot.positionX != null && robot.positionY != null)
-    .map(robot => ({
-      id: robot.id,
-      x: robot.positionX as number,
-      y: robot.positionY as number,
-      name: robot.name,
-      state: robot.state,
-      battery: robot.battery,
-      payload: robot.payload,
-      orientation: robot.orientation != null ? unwrapOrientation(robot.id, robot.orientation) : null,
-    }))
+    .map((robot) => {
+      // Falls back to the raw reading only for the handful of milliseconds
+      // between a robot's first-ever fetch and this animation frame's tick.
+      const rendered = renderedRobotPositions.value.get(robot.id)
+      return {
+        id: robot.id,
+        x: rendered?.x ?? (robot.positionX as number),
+        y: rendered?.y ?? (robot.positionY as number),
+        name: robot.name,
+        state: robot.state,
+        battery: robot.battery,
+        payload: robot.payload,
+        orientation: rendered?.orientation ?? null,
+      }
+    })
 })
 
 // Which Trolley Task each robot is currently carrying out (PENDING/
@@ -513,12 +574,17 @@ onMounted(async () => {
   locationCodesPollTimer = setInterval(loadLocationCodes, LOCATION_CODES_POLL_MS)
   activeTrolleyPollTimer = setInterval(loadActiveTrolleyActivitiesByRobot, ACTIVE_TROLLEY_POLL_MS)
   stockStatusPollTimer = setInterval(loadStockStatus, STOCK_STATUS_POLL_MS)
+  animationFrameHandle = requestAnimationFrame(tickRobotAnimations)
 })
 
 onBeforeUnmount(() => {
   if (robotPollTimer) {
     clearInterval(robotPollTimer)
     robotPollTimer = null
+  }
+  if (animationFrameHandle !== null) {
+    cancelAnimationFrame(animationFrameHandle)
+    animationFrameHandle = null
   }
   if (locationCodesPollTimer) {
     clearInterval(locationCodesPollTimer)
@@ -676,7 +742,6 @@ onBeforeUnmount(() => {
               v-for="robot in robotMarkers"
               :key="robot.id"
               class="robot-marker"
-              :class="{ 'robot-marker--no-transition': suppressRobotTransition }"
               :style="{ transform: `translate(${robot.x}px, ${flipY(robot.y)}px)` }"
               @pointerdown.stop
               @pointerenter="hoveredRobotId = robot.id"
@@ -698,18 +763,15 @@ onBeforeUnmount(() => {
                 fill="transparent"
               />
 
-              <!-- orientation is already unwrapped + converted to plain
-                   degrees by unwrapOrientation() above — negated here
-                   because this whole marker sits inside flipY()'d Y
-                   coordinates, so a clockwise heading in RCS's own space
-                   reads counter-clockwise here. A real (inline-style, not
-                   attribute) transform so .robot-marker__rotate's CSS
-                   transition below can actually animate it — rotates only
-                   the icon, not the name-tag label above it (separate <g>,
-                   not nested here). -->
+              <!-- orientation is already the current interpolated, unwrapped
+                   heading in plain degrees (see renderedRobotPositions
+                   above) — negated here because this whole marker sits
+                   inside flipY()'d Y coordinates, so a clockwise heading in
+                   RCS's own space reads counter-clockwise here. Rotates
+                   only the icon, not the name-tag label above it (separate
+                   <g>, not nested here). -->
               <g
                 class="robot-marker__rotate"
-                :class="{ 'robot-marker--no-transition': suppressRobotTransition }"
                 :style="{ transform: `rotate(${-(robot.orientation ?? 0)}deg)` }"
               >
                 <svg
@@ -799,35 +861,13 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/* Glides to its new spot on each position poll instead of jumping. Duration
-   is deliberately a bit longer than ROBOT_POLL_MS (500ms) — if it exactly
-   matched, a poll response that arrives even slightly late leaves the
-   marker sitting motionless for that gap, reading as a stop-start stutter.
-   Running long means the next update almost always lands *mid*-transition,
-   so the browser just retargets from wherever the marker currently is
-   instead of finishing and waiting — motion stays continuous through both
-   moves and turns. Polling twice a second (rather than once) also means
-   each individual glide covers a smaller distance, which reads as smoother
-   even when the robot's real movement isn't perfectly linear between ticks. */
-.robot-marker {
-  transition: transform 0.6s linear;
-}
-
-/* Same reasoning as .robot-marker above, applied to turning specifically —
-   without its own transition this snapped to the new heading instantly on
-   every poll instead of turning smoothly. */
-.robot-marker__rotate {
-  transition: transform 0.6s linear;
-}
-
-/* Overrides the two rules above (same specificity, later in the
-   stylesheet — no !important needed) while suppressRobotTransition is true,
-   so a robot's first appearance after mount snaps straight to its real
-   position/heading instead of animating in from wherever the marker's
-   default (0,0 / 0deg) transform would otherwise imply. */
-.robot-marker--no-transition {
-  transition: none;
-}
+/* No CSS transition here on purpose — position/rotation are now tweened
+   every animation frame in JS (see tickRobotAnimations/renderedRobotPositions
+   above), which reads as genuinely fluid regardless of how sparse or
+   irregular the underlying telemetry polling is. A CSS transition retargeted
+   on every poll was tried first, but each poll boundary is still a hard
+   kink in the marker's velocity — fine when updates are frequent and
+   regular, visibly choppy otherwise. */
 
 /* Small idle bob so the marker reads as "live" even between polls. */
 .robot-marker__bob {
