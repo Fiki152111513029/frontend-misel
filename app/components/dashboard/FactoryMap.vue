@@ -180,7 +180,7 @@ function nodeImageSrc(node: NamedNode): string {
 const nodeIconSize = computed(() => {
   const topo = topology.value
   if (!topo) return 0
-  return Math.max(topo.width, topo.height) / 180
+  return Math.max(topo.width, topo.height) / 120
 })
 
 const hoveredNodeId = ref<string | null>(null)
@@ -260,7 +260,7 @@ async function loadActiveTrolleyActivitiesByRobot() {
 const robotIconSize = computed(() => {
   const topo = topology.value
   if (!topo) return 0
-  return Math.max(topo.width, topo.height) / 180
+  return Math.max(topo.width, topo.height) / 120
 })
 
 // Matches the loose, case-insensitive state matching used by the Robots
