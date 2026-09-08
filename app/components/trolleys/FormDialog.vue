@@ -27,6 +27,8 @@ const { items: productionLocations, fetchProductionLocations } = useProductionLo
 const activeProductionLocations = computed(() => productionLocations.value.filter(location => location.isActive))
 const { items: modelCodeProcesses, fetchModelCodeProcesses } = useModelCodeProcesses()
 const activeModelCodeProcesses = computed(() => modelCodeProcesses.value.filter(process => process.isActive))
+const { items: customers, fetchCustomers } = useCustomers()
+const activeCustomers = computed(() => customers.value.filter(customer => customer.isActive))
 
 const name = ref('')
 const code = ref('')
@@ -34,6 +36,7 @@ const status = ref<TrolleyStatus>('EMPTY')
 const trolleyCategoryId = ref('')
 const droppingLocationCode = ref('')
 const modelCodeProcessId = ref('')
+const customerId = ref('')
 const errors = reactive<{ name?: string; code?: string }>({})
 
 function resetFields() {
@@ -43,6 +46,7 @@ function resetFields() {
   trolleyCategoryId.value = props.trolley?.trolleyCategoryId ?? ''
   droppingLocationCode.value = props.trolley?.droppingLocationCode ?? ''
   modelCodeProcessId.value = props.trolley?.modelCodeProcessId ?? ''
+  customerId.value = props.trolley?.customerId ?? ''
   errors.name = undefined
   errors.code = undefined
 }
@@ -55,6 +59,7 @@ watch(
       fetchTrolleyCategories({ limit: 100 })
       fetchProductionLocations({ limit: 100 })
       fetchModelCodeProcesses({ limit: 100 })
+      fetchCustomers({ limit: 100 })
     }
   },
   { immediate: true },
@@ -88,6 +93,7 @@ function handleSubmit() {
     trolleyCategoryId: trolleyCategoryId.value || undefined,
     droppingLocationCode: droppingLocationCode.value || undefined,
     modelCodeProcessId: modelCodeProcessId.value || undefined,
+    customerId: customerId.value || undefined,
   })
 }
 
@@ -158,6 +164,18 @@ const selectClass =
         <p class="font-medium mt-1.5 text-xs text-slate-400">
           Used to build the RCS task order when a Trolley Activity is submitted for this trolley.
         </p>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-slate-700">
+          Customer
+        </label>
+        <select v-model="customerId" :class="selectClass">
+          <option value="">No Customer</option>
+          <option v-for="customer in activeCustomers" :key="customer.id" :value="customer.id">
+            {{ customer.name }}
+          </option>
+        </select>
       </div>
     </div>
 

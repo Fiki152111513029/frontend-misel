@@ -47,6 +47,7 @@ export const NAV_MENUS: MenuEntry[] = [
       { title: 'Warehouse Locations', path: '/dashboard/warehouse-locations', permission: 'warehouse-location.read' },
       { title: 'Trolleys', path: '/dashboard/trolleys', permission: 'trolley.read' },
       { title: 'Trolley Categories', path: '/dashboard/trolley-categories', permission: 'trolley-category.read' },
+      { title: 'Customers', path: '/dashboard/customers', permission: 'customer.read' },
     ],
   },
   {
