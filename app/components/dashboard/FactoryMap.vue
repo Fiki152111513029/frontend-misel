@@ -226,6 +226,31 @@ async function loadLiveRobots() {
   }
 }
 
+// CSS can only transition a rotation smoothly if the angle keeps counting
+// in the same direction — a raw heading that wraps 350deg -> 10deg would
+// otherwise animate the "long way" around (340deg of spin) instead of the
+// real 20deg turn. This keeps a running, un-wrapped angle per robot so the
+// transition always takes the shortest path. Plain (non-reactive) Map is
+// intentional — it's mutated from inside the computed below purely as a
+// memoization cache, not as app state, so it never triggers a re-render.
+const unwrappedOrientationByRobotId = new Map<string, number>()
+
+function unwrapOrientation(id: string, rawThousandths: number): number {
+  const rawDegrees = rawThousandths / 1000
+  const previous = unwrappedOrientationByRobotId.get(id)
+  if (previous === undefined) {
+    unwrappedOrientationByRobotId.set(id, rawDegrees)
+    return rawDegrees
+  }
+  const previousMod = ((previous % 360) + 360) % 360
+  let delta = rawDegrees - previousMod
+  if (delta > 180) delta -= 360
+  else if (delta < -180) delta += 360
+  const next = previous + delta
+  unwrappedOrientationByRobotId.set(id, next)
+  return next
+}
+
 const robotMarkers = computed<RobotMarker[]>(() => {
   const areaNumber = selectedMap.value?.areaNumber
   if (areaNumber == null) return []
@@ -239,7 +264,7 @@ const robotMarkers = computed<RobotMarker[]>(() => {
       state: robot.state,
       battery: robot.battery,
       payload: robot.payload,
-      orientation: robot.orientation,
+      orientation: robot.orientation != null ? unwrapOrientation(robot.id, robot.orientation) : null,
     }))
 })
 
@@ -262,7 +287,7 @@ async function loadActiveTrolleyActivitiesByRobot() {
 const robotIconSize = computed(() => {
   const topo = topology.value
   if (!topo) return 0
-  return Math.max(topo.width, topo.height) / 120
+  return Math.max(topo.width, topo.height) / 80
 })
 
 // Matches the loose, case-insensitive state matching used by the Robots
@@ -643,13 +668,19 @@ onBeforeUnmount(() => {
               @pointerenter="hoveredRobotId = robot.id"
               @pointerleave="hoveredRobotId = null"
             >
-              <!-- orientation is degrees x1000 on the wire (e.g. 180000 =
-                   180°, confirmed against live telemetry) — negated because
-                   this whole marker sits inside flipY()'d Y coordinates, so
-                   a clockwise heading in RCS's own space reads
-                   counter-clockwise here. Rotates only the icon, not the
-                   name-tag label above it (separate <g>, not nested here). -->
-              <g :transform="`rotate(${-(robot.orientation ?? 0) / 1000})`">
+              <!-- orientation is already unwrapped + converted to plain
+                   degrees by unwrapOrientation() above — negated here
+                   because this whole marker sits inside flipY()'d Y
+                   coordinates, so a clockwise heading in RCS's own space
+                   reads counter-clockwise here. A real (inline-style, not
+                   attribute) transform so .robot-marker__rotate's CSS
+                   transition below can actually animate it — rotates only
+                   the icon, not the name-tag label above it (separate <g>,
+                   not nested here). -->
+              <g
+                class="robot-marker__rotate"
+                :style="{ transform: `rotate(${-(robot.orientation ?? 0)}deg)` }"
+              >
                 <svg
                   class="robot-marker__bob"
                   :x="-robotIconSize / 2"
@@ -737,9 +768,23 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/* Glides to its new spot on each position poll instead of jumping. */
+/* Glides to its new spot on each position poll instead of jumping. Duration
+   is deliberately a bit longer than ROBOT_POLL_MS (1s) — if it exactly
+   matched, a poll response that arrives even slightly late leaves the
+   marker sitting motionless for that gap, reading as a stop-start stutter.
+   Running long means the next update almost always lands *mid*-transition,
+   so the browser just retargets from wherever the marker currently is
+   instead of finishing and waiting — motion stays continuous through both
+   moves and turns. */
 .robot-marker {
-  transition: transform 1s linear;
+  transition: transform 1.15s linear;
+}
+
+/* Same reasoning as .robot-marker above, applied to turning specifically —
+   without its own transition this snapped to the new heading instantly on
+   every poll instead of turning smoothly. */
+.robot-marker__rotate {
+  transition: transform 1.15s linear;
 }
 
 /* Small idle bob so the marker reads as "live" even between polls. */
