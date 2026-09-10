@@ -124,6 +124,7 @@ const statusDonutSeries = computed(() => {
           direction="PRODUCTION"
           title="Yamazumi Supply Operator"
           subtitle="Total task-handling time per operator — pickup from Production node"
+          color="#06D6A0"
         />
       </div>
 

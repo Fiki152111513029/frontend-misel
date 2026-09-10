@@ -5,11 +5,14 @@ import type { OperatorDurationSummaryRow, PickupDirection, TrolleyShiftMonthlyMo
 
 type ViewMode = 'DAILY' | TrolleyShiftMonthlyMode
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   direction: PickupDirection
   title: string
   subtitle: string
-}>()
+  color?: string
+}>(), {
+  color: '#2F6FED',
+})
 
 const { fetchDurationSummary, fetchDurationMonthlySummary } = useTrolleyShiftSummary()
 const { items: shifts, fetchShiftOptions } = useShiftOptions()
@@ -79,7 +82,7 @@ function formatMinutes(minutes: number) {
 const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
   chart: { type: 'bar', background: 'transparent', toolbar: { show: false } },
   theme: { mode: isDark.value ? 'dark' : 'light' },
-  colors: ['#2F6FED'],
+  colors: [props.color],
   plotOptions: { bar: { borderRadius: 4, columnWidth: '45%' } },
   stroke: { width: 0 },
   xaxis: {
