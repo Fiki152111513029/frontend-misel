@@ -117,6 +117,9 @@ export interface TrolleyActivityDashboardStats {
   // Users with role other than Super Admin holding a still-valid session
   // right now (not scoped to the days/since range above).
   activeOperators: number
+  // Every such user regardless of session state — the denominator for
+  // "X / Y currently logged in".
+  totalOperators: number
 }
 
 export type TrolleyShiftMonthlyMode = 'AVERAGE' | 'TOTAL'

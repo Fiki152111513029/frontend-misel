@@ -110,7 +110,7 @@ const statusDonutSeries = computed(() => {
         </div>
         <div class="col-span-2 rounded-2xl border border-[#E2E8F0] bg-indigo-50 p-4 md:col-span-1">
           <p class="font-medium text-xs text-slate-500">Active Operators</p>
-          <p class="mt-1 text-2xl font-extrabold text-[#4338CA]">{{ stats.activeOperators }}</p>
+          <p class="mt-1 text-2xl font-extrabold text-[#4338CA]">{{ stats.activeOperators }} / {{ stats.totalOperators }}</p>
         </div>
       </div>
 
