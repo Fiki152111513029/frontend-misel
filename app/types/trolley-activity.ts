@@ -2,7 +2,19 @@ import type { TrolleyStatus } from '~/types/trolley'
 
 export type TrolleyActivityStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
 
-export interface LookupTrolleyResult {
+export interface LookupTrolleyTypeOption {
+  trolleyId: string
+  trolleyTypeId: string
+  trolleyTypeName: string
+}
+
+// A scanned code can now match more than one active trolley (name/code are
+// only unique per Trolley Type) — the resolved shape below is returned once
+// there's exactly one match (or the caller already disambiguated by
+// trolleyTypeId); the ambiguous shape is returned instead when the operator
+// still needs to pick which Type they mean.
+export interface LookupTrolleyResolved {
+  needsTypeSelection: false
   trolleyId: string
   trolleyCode: string
   trolleyName: string
@@ -11,6 +23,14 @@ export interface LookupTrolleyResult {
   droppingLocationCode: string | null
   startDate: string
 }
+
+export interface LookupTrolleyAmbiguous {
+  needsTypeSelection: true
+  trolleyCode: string
+  options: LookupTrolleyTypeOption[]
+}
+
+export type LookupTrolleyResult = LookupTrolleyResolved | LookupTrolleyAmbiguous
 
 export interface LookupLocationResult {
   pickupLocationCode: string

@@ -19,9 +19,9 @@ export function useTrolleyActivities() {
     }
   }
 
-  async function lookupTrolley(code: string) {
+  async function lookupTrolley(code: string, trolleyTypeId?: string) {
     try {
-      return await trolleyActivityService.lookupTrolley(code)
+      return await trolleyActivityService.lookupTrolley(code, trolleyTypeId)
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : 'Failed to look up trolley')
       return null

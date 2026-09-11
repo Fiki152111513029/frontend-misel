@@ -14,9 +14,9 @@ import type {
   TrolleySupplyFrequencyRow,
 } from '~/types/trolley-activity'
 
-export async function lookupTrolley(code: string): Promise<LookupTrolleyResult> {
+export async function lookupTrolley(code: string, trolleyTypeId?: string): Promise<LookupTrolleyResult> {
   const { $http } = useNuxtApp()
-  return (await $http.post('/trolley-activities/lookup-trolley', { code })) as LookupTrolleyResult
+  return (await $http.post('/trolley-activities/lookup-trolley', { code, trolleyTypeId })) as LookupTrolleyResult
 }
 
 export async function lookupLocation(code: string): Promise<LookupLocationResult> {

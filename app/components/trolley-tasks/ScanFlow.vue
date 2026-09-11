@@ -2,6 +2,7 @@
 import { Truck } from 'lucide-vue-next'
 import { taskStatusLabel } from '~/utils/taskStatus'
 import { fetchMyActiveTrolleyActivities } from '~/services/trolley-activity.service'
+import type { LookupTrolleyTypeOption } from '~/types/trolley-activity'
 
 // Two independent, operator-picked actions (no auto-progression from one
 // into the other — the operator explicitly chooses which one they're doing
@@ -40,13 +41,14 @@ const {
 const queue = useTrolleyTaskQueueStore(props.roleLabel)
 
 type Mode = 'choice' | 'take' | 'drop'
-type Step = 'trolley' | 'location' | 'ready'
+type Step = 'trolley' | 'selectType' | 'location' | 'ready'
 
 const mode = ref<Mode>('choice')
 const step = ref<Step>('trolley')
 const scanValue = ref('')
 const SCAN_INPUT_ID = 'trolley-task-scan-input'
 const submitting = ref(false)
+const resolvingType = ref(false)
 
 const trolleyId = ref('')
 const trolleyCode = ref('')
@@ -54,6 +56,12 @@ const userName = ref('')
 const statusBeginning = ref('')
 const droppingLocationCode = ref<string | null>(null)
 const startDate = ref('')
+
+// The scanned code, kept around while the operator picks a Type — the same
+// code can now match more than one active trolley (name/code are only
+// unique per Type), so the second lookup call needs it again.
+const pendingScannedCode = ref('')
+const typeOptions = ref<LookupTrolleyTypeOption[]>([])
 
 const pickupLocationCode = ref('')
 const pickupLocationName = ref('')
@@ -72,6 +80,7 @@ const flowLabel = computed(() => (mode.value === 'take' ? 'Take Trolley' : 'Drop
 const subtitle = computed(() => {
   if (mode.value === 'choice') return 'Choose an action to start'
   if (step.value === 'trolley') return `Scan a trolley to ${mode.value === 'take' ? 'take' : 'drop off'} it`
+  if (step.value === 'selectType') return 'This code is used by more than one trolley — pick the correct one'
   if (step.value === 'location') return 'Scan the area'
   return mode.value === 'take' ? 'Review and confirm the pickup area' : 'Review and send the task'
 })
@@ -94,6 +103,8 @@ function resetFlow() {
   pickupLocationName.value = ''
   pickupLocationSource.value = ''
   scanValue.value = ''
+  pendingScannedCode.value = ''
+  typeOptions.value = []
 }
 
 function selectTake() {
@@ -143,6 +154,23 @@ async function restoreActiveQueue() {
 
 onMounted(restoreActiveQueue)
 
+function applyResolvedTrolley(result: {
+  trolleyId: string
+  trolleyCode: string
+  userName: string
+  statusBeginning: string
+  droppingLocationCode: string | null
+  startDate: string
+}) {
+  trolleyId.value = result.trolleyId
+  trolleyCode.value = result.trolleyCode
+  userName.value = result.userName
+  statusBeginning.value = result.statusBeginning
+  droppingLocationCode.value = result.droppingLocationCode
+  startDate.value = result.startDate
+  step.value = 'location'
+}
+
 async function handleScanSubmit() {
   const value = scanValue.value.trim()
   if (!value) return
@@ -150,13 +178,14 @@ async function handleScanSubmit() {
   if (step.value === 'trolley') {
     const result = await lookupTrolley(value)
     if (!result) return
-    trolleyId.value = result.trolleyId
-    trolleyCode.value = result.trolleyCode
-    userName.value = result.userName
-    statusBeginning.value = result.statusBeginning
-    droppingLocationCode.value = result.droppingLocationCode
-    startDate.value = result.startDate
-    step.value = 'location'
+    if (result.needsTypeSelection) {
+      pendingScannedCode.value = value
+      typeOptions.value = result.options
+      step.value = 'selectType'
+      scanValue.value = ''
+      return
+    }
+    applyResolvedTrolley(result)
   } else if (step.value === 'location') {
     const result = await lookupLocation(value)
     if (!result) return
@@ -167,6 +196,16 @@ async function handleScanSubmit() {
   }
 
   scanValue.value = ''
+  focusScanInput()
+}
+
+async function selectTrolleyType(option: LookupTrolleyTypeOption) {
+  resolvingType.value = true
+  const result = await lookupTrolley(pendingScannedCode.value, option.trolleyTypeId)
+  resolvingType.value = false
+  if (!result || result.needsTypeSelection) return
+  typeOptions.value = []
+  applyResolvedTrolley(result)
   focusScanInput()
 }
 
@@ -304,6 +343,29 @@ async function handleSubmit() {
             Confirm
           </UiBaseButton>
         </form>
+      </UiBaseCard>
+
+      <!-- The scanned code matched more than one active trolley (shared
+           across Trolley Types) — the operator picks the right one before
+           continuing, instead of the system guessing and risking sending
+           the wrong Category/Model Code Process to RCS. -->
+      <UiBaseCard v-else-if="step === 'selectType'" class="space-y-3">
+        <span class="inline-flex items-center rounded-lg bg-slate-200 px-3 py-1.5 text-sm font-semibold text-[#0F1F52]">
+          {{ flowLabel }}
+        </span>
+        <p class="font-medium text-sm text-slate-500">
+          Code <span class="font-semibold text-[#0F1F52]">{{ pendingScannedCode }}</span> matches more than one trolley. Which Type is this one?
+        </p>
+        <button
+          v-for="option in typeOptions"
+          :key="option.trolleyId"
+          type="button"
+          :disabled="resolvingType"
+          class="flex w-full items-center justify-center rounded-2xl border border-[#01ADEF]/30 bg-white px-6 py-3.5 text-sm font-semibold text-[#0F1F52] shadow-sm transition-all hover:border-[#01ADEF] hover:bg-[#01ADEF]/5 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+          @click="selectTrolleyType(option)"
+        >
+          {{ option.trolleyTypeName }}
+        </button>
       </UiBaseCard>
 
       <!-- Review + submit -->
