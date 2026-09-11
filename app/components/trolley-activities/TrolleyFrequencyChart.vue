@@ -52,15 +52,36 @@ onBeforeUnmount(() => {
 })
 watch([shiftId, viewMode, selectedDate, selectedMonth], load)
 
-const categories = computed(() => rows.value.map(row => row.trolleyCode))
-const series = computed(() => [
-  { name: 'Supply Count', data: rows.value.map(row => row.count) },
-])
+// A trolley's name/code is only unique within its own Trolley Type (two
+// different physical trolleys can share a code across Types), so rows are
+// pivoted into one series per Type — same trolley code can then show up as
+// multiple, differently-colored bars grouped under that one category.
+const TYPE_COLOR_PALETTE = ['#01ADEF', '#06D6A0', '#F59E0B', '#8B5CF6', '#EF4444', '#14B8A6', '#F472B6', '#84CC16']
+
+const typeNames = computed(() => [...new Set(rows.value.map(row => row.trolleyTypeName))])
+
+const categories = computed(() => {
+  const totalByCode = new Map<string, number>()
+  for (const row of rows.value) {
+    totalByCode.set(row.trolleyCode, (totalByCode.get(row.trolleyCode) ?? 0) + row.count)
+  }
+  return [...totalByCode.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([code]) => code)
+})
+
+const series = computed(() => typeNames.value.map(typeName => ({
+  name: typeName,
+  data: categories.value.map((code) => {
+    const row = rows.value.find(r => r.trolleyCode === code && r.trolleyTypeName === typeName)
+    return row?.count ?? 0
+  }),
+})))
 
 const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
   chart: { type: 'bar', background: 'transparent', toolbar: { show: false } },
   theme: { mode: isDark.value ? 'dark' : 'light' },
-  colors: ['#01ADEF'],
+  colors: typeNames.value.map((_, i) => TYPE_COLOR_PALETTE[i % TYPE_COLOR_PALETTE.length]),
   plotOptions: { bar: { borderRadius: 4, columnWidth: '55%' } },
   stroke: { width: 0 },
   xaxis: {
@@ -81,7 +102,11 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
     style: { colors: [isDark.value ? '#E2E8F0' : '#0F1F52'], fontSize: '10px' },
     offsetY: -18,
   },
-  legend: { show: false },
+  legend: {
+    show: true,
+    position: 'top',
+    labels: { colors: isDark.value ? '#E2E8F0' : '#0F1F52' },
+  },
   grid: {
     borderColor: isDark.value ? '#1E293B' : '#E2E8F0',
     strokeDashArray: 4,
@@ -90,8 +115,8 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
 }))
 
 function exportToExcel() {
-  const headers = ['Trolley Code', 'Trolley Name', 'Supply Count']
-  const dataRows = rows.value.map(row => [row.trolleyCode, row.trolleyName, row.count])
+  const headers = ['Trolley Code', 'Trolley Name', 'Trolley Type', 'Supply Count']
+  const dataRows = rows.value.map(row => [row.trolleyCode, row.trolleyName, row.trolleyTypeName, row.count])
   const shiftName = shifts.value.find(s => s.id === shiftId.value)?.name ?? 'shift'
   const scope = viewMode.value === 'DAILY' ? selectedDate.value : selectedMonth.value
   const filename = `trolley-frequency_${scope}_${shiftName.toLowerCase().replace(/\s+/g, '-')}_${viewMode.value.toLowerCase()}.csv`

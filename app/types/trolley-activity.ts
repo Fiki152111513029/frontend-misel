@@ -141,5 +141,7 @@ export interface TrolleySupplyFrequencyRow {
   trolleyId: string
   trolleyCode: string
   trolleyName: string
+  trolleyTypeId: string
+  trolleyTypeName: string
   count: number
 }
