@@ -5,6 +5,8 @@ export interface Trolley {
   name: string
   code: string
   status: TrolleyStatus
+  trolleyTypeId: string
+  type: { id: string, name: string }
   trolleyCategoryId: string | null
   category: { id: string, name: string } | null
   droppingLocationCode: string | null
@@ -21,6 +23,7 @@ export interface CreateTrolleyInput {
   name: string
   code: string
   status?: TrolleyStatus
+  trolleyTypeId: string
   trolleyCategoryId?: string
   droppingLocationCode?: string
   modelCodeProcessId?: string

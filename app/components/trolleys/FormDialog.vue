@@ -22,6 +22,8 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const { items: trolleyTypes, fetchTrolleyTypes } = useTrolleyTypes()
+const activeTrolleyTypes = computed(() => trolleyTypes.value.filter(type => type.isActive))
 const { items: trolleyCategories, fetchTrolleyCategories } = useTrolleyCategories()
 const { items: productionLocations, fetchProductionLocations } = useProductionLocations()
 const activeProductionLocations = computed(() => productionLocations.value.filter(location => location.isActive))
@@ -33,22 +35,25 @@ const activeCustomers = computed(() => customers.value.filter(customer => custom
 const name = ref('')
 const code = ref('')
 const status = ref<TrolleyStatus>('EMPTY')
+const trolleyTypeId = ref('')
 const trolleyCategoryId = ref('')
 const droppingLocationCode = ref('')
 const modelCodeProcessId = ref('')
 const customerId = ref('')
-const errors = reactive<{ name?: string; code?: string }>({})
+const errors = reactive<{ name?: string; code?: string; trolleyTypeId?: string }>({})
 
 function resetFields() {
   name.value = props.trolley?.name ?? ''
   code.value = props.trolley?.code ?? ''
   status.value = props.trolley?.status ?? 'EMPTY'
+  trolleyTypeId.value = props.trolley?.trolleyTypeId ?? ''
   trolleyCategoryId.value = props.trolley?.trolleyCategoryId ?? ''
   droppingLocationCode.value = props.trolley?.droppingLocationCode ?? ''
   modelCodeProcessId.value = props.trolley?.modelCodeProcessId ?? ''
   customerId.value = props.trolley?.customerId ?? ''
   errors.name = undefined
   errors.code = undefined
+  errors.trolleyTypeId = undefined
 }
 
 watch(
@@ -56,6 +61,7 @@ watch(
   (isOpen) => {
     if (isOpen) {
       resetFields()
+      fetchTrolleyTypes({ limit: 100 })
       fetchTrolleyCategories({ limit: 100 })
       fetchProductionLocations({ limit: 100 })
       fetchModelCodeProcesses({ limit: 100 })
@@ -70,6 +76,7 @@ const isEditMode = computed(() => !!props.trolley)
 function validate(): boolean {
   errors.name = undefined
   errors.code = undefined
+  errors.trolleyTypeId = undefined
 
   if (!name.value.trim()) {
     errors.name = 'Name is required'
@@ -81,7 +88,11 @@ function validate(): boolean {
     errors.code = 'Code is required'
   }
 
-  return !errors.name && !errors.code
+  if (!trolleyTypeId.value) {
+    errors.trolleyTypeId = 'Type is required'
+  }
+
+  return !errors.name && !errors.code && !errors.trolleyTypeId
 }
 
 function handleSubmit() {
@@ -90,6 +101,7 @@ function handleSubmit() {
     name: name.value.trim(),
     code: code.value.trim(),
     status: status.value,
+    trolleyTypeId: trolleyTypeId.value,
     trolleyCategoryId: trolleyCategoryId.value || undefined,
     droppingLocationCode: droppingLocationCode.value || undefined,
     modelCodeProcessId: modelCodeProcessId.value || undefined,
@@ -125,6 +137,25 @@ const selectClass =
           <option value="EMPTY">Empty</option>
           <option value="FULL">Full</option>
         </select>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-slate-700">
+          Type
+          <span class="ml-0.5 text-[#01ADEF]">*</span>
+        </label>
+        <select v-model="trolleyTypeId" :class="selectClass">
+          <option value="" disabled>Select a Type</option>
+          <option v-for="type in activeTrolleyTypes" :key="type.id" :value="type.id">
+            {{ type.name }}
+          </option>
+        </select>
+        <p v-if="errors.trolleyTypeId" class="mt-1 text-xs text-red-500">
+          {{ errors.trolleyTypeId }}
+        </p>
+        <p class="font-medium mt-1.5 text-xs text-slate-400">
+          Name/Code only need to be unique within the same Type.
+        </p>
       </div>
 
       <div class="space-y-1.5">
