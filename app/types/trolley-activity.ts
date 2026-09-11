@@ -87,7 +87,7 @@ export interface TrolleyActivity {
   updatedAt: string
   deletedAt: string | null
   user: { id: string, fullName: string }
-  trolley: { id: string, code: string, name: string }
+  trolley: { id: string, code: string, name: string, type: { id: string, name: string } }
   robot: { id: string, name: string } | null
 }
 

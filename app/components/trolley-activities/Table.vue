@@ -22,6 +22,7 @@ const canDelete = computed(() => hasPermission('trolley-activity.delete'))
 const ALL_COLUMNS = [
   { key: 'user', label: 'Name' },
   { key: 'trolley', label: 'Code' },
+  { key: 'trolleyType', label: 'Type' },
   { key: 'statusBeginning', label: 'Status Beginning' },
   { key: 'statusEnd', label: 'Status End' },
   { key: 'pickup', label: 'Pickup' },
@@ -106,6 +107,9 @@ async function confirmDelete() {
           </td>
           <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52]">
             {{ item.trolley.code }}
+          </td>
+          <td class="px-4 py-3 text-sm text-slate-600">
+            {{ item.trolley.type.name }}
           </td>
           <td class="px-4 py-3 text-sm text-slate-600">
             {{ item.statusBeginning }}
