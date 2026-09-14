@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, FolderKanban, BarChart3, Bell, Map as MapIcon,
+  LayoutDashboard, Users, FolderKanban, BarChart3, User, Construction, Bot, MessageCircleCode, BatteryFull, ShoppingCart, LandPlot, Settings, Bell, Map as MapIcon,
 } from 'lucide-vue-next'
 
 export interface MenuChild { title: string, path: string, permission: string | null }
@@ -28,8 +28,8 @@ export function isSectionLabel(menu: MenuEntry): menu is MenuSectionLabel {
 // to see the link or reach the route. Configure who gets what via User
 // Management > Roles > [role] — no code change needed to regrant a menu.
 export const NAV_MENUS: MenuEntry[] = [ 
+  { title: 'Dashboard', icon: BarChart3, path: '/dashboard', permission: 'dashboard.read' },
   { label: 'All Menu' },
-  { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', permission: 'dashboard.read' },
   {
     title: 'All Tasks',
     icon: FolderKanban,
@@ -40,7 +40,7 @@ export const NAV_MENUS: MenuEntry[] = [
   },
   {
     title: 'Control System',
-    icon: FolderKanban,
+    icon: Bot,
     children: [
       { title: 'Warehouse Trolley Task', path: '/dashboard/warehouse-trolley-task', permission: 'warehouse-trolley-task.read' },
       { title: 'Operator Trolley Task', path: '/dashboard/operator-trolley-task', permission: 'operator-trolley-task.read' },
@@ -48,7 +48,7 @@ export const NAV_MENUS: MenuEntry[] = [
   },
   {
     title: 'ICS Logs',
-    icon: BarChart3,
+    icon: MessageCircleCode,
     children: [
       { title: 'API Logs', path: '/dashboard/api-logs', permission: 'logs.read' },
       { title: 'Webhook Logs', path: '/dashboard/webhook-logs', permission: 'logs.read' },
@@ -58,24 +58,24 @@ export const NAV_MENUS: MenuEntry[] = [
   { label: 'Master Area' },
    {
     title: 'Production Lines',
-    icon: FolderKanban,
+    icon: LandPlot,
     children: [
       { title: 'Production Locations', path: '/dashboard/production-locations', permission: 'production-location.read' },
     ],
   },
   {
     title: 'Warehouse Lines',
-    icon: BarChart3,
+    icon: LandPlot,
     children: [
       { title: 'Warehouse Locations', path: '/dashboard/warehouse-locations', permission: 'warehouse-location.read' },
     ],
   },
-    { title: 'Charger Areas',icon: Bell, path: '/dashboard/charger-areas', permission: 'charger-area.read' },
-    { title: 'Parking Areas',icon: Bell, path: '/dashboard/parking-areas', permission: 'parking-area.read' },
+    { title: 'Charger Areas',icon: BatteryFull, path: '/dashboard/charger-areas', permission: 'charger-area.read' },
+    { title: 'Parking Areas',icon: Construction, path: '/dashboard/parking-areas', permission: 'parking-area.read' },
   { label: 'Master Data' },
   {
     title: 'User Management',
-    icon: Users,
+    icon: User,
     children: [
       { title: 'Users', path: '/dashboard/users', permission: 'user.read' },
       { title: 'Shifts', path: '/dashboard/shifts', permission: 'shift.read' },
@@ -85,7 +85,7 @@ export const NAV_MENUS: MenuEntry[] = [
   },
  {
     title: 'Trolley',
-    icon: BarChart3,
+    icon: ShoppingCart,
     children: [
       { title: 'Trolleys', path: '/dashboard/trolleys', permission: 'trolley.read' },
       { title: 'Trolley Categories', path: '/dashboard/trolley-categories', permission: 'trolley-category.read' },
@@ -94,14 +94,14 @@ export const NAV_MENUS: MenuEntry[] = [
   },
   {
     title: 'Setting System',
-    icon: BarChart3,
+    icon: Settings,
     children: [
       { title: 'Model Code Process', path: '/dashboard/model-code-process', permission: 'model-code-process.read' },
       { title: 'Robots', path: '/dashboard/robots', permission: 'robot.read' },
       { title: 'Factory Maps', path: '/dashboard/factory-maps', permission: 'factory-map.read' },
     ],
   },
-  { title: 'Customers',icon: Bell, path: '/dashboard/customers', permission: 'customer.read' },  
+  { title: 'Customers',icon: Users, path: '/dashboard/customers', permission: 'customer.read' },  
 ]
 
 // Exact match only — a path not registered here (dynamic detail routes,

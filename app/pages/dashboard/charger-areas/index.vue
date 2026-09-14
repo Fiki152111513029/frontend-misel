@@ -123,15 +123,25 @@ function handleLimitChange(limit: number) {
         <p class="font-medium mt-1 text-sm text-slate-500">View and manage all Charger Areas</p>
       </div>
 
-      <button
-        v-if="hasPermission('charger-area.create')"
-        type="button"
-        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2F6FED] to-[#1D4FD8] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:from-[#2660D9] hover:to-[#173FB0]"
-        @click="openCreate"
-      >
-        <Plus class="h-4 w-4" />
-        Add Charger Area
-      </button>
+      <div class="flex flex-wrap items-center gap-2">
+        <UiImportExportToolbar
+          base-path="/charger-areas"
+          filename-stem="charger-areas"
+          entity-label="Charger Areas"
+          :can-export="hasPermission('charger-area.read')"
+          :can-import="hasPermission('charger-area.create')"
+          @imported="fetchChargerAreas()"
+        />
+        <button
+          v-if="hasPermission('charger-area.create')"
+          type="button"
+          class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2F6FED] to-[#1D4FD8] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:from-[#2660D9] hover:to-[#173FB0]"
+          @click="openCreate"
+        >
+          <Plus class="h-4 w-4" />
+          Add Charger Area
+        </button>
+      </div>
     </div>
 
     <ChargerAreasTable

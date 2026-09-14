@@ -89,15 +89,25 @@ function handleLimitChange(limit: number) {
         <p class="font-medium mt-1 text-sm text-slate-500">View and manage all Trolley Categories</p>
       </div>
 
-      <button
-        v-if="hasPermission('trolley-category.create')"
-        type="button"
-        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2F6FED] to-[#1D4FD8] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:from-[#2660D9] hover:to-[#173FB0]"
-        @click="openCreate"
-      >
-        <Plus class="h-4 w-4" />
-        Add Trolley Category
-      </button>
+      <div class="flex flex-wrap items-center gap-2">
+        <UiImportExportToolbar
+          base-path="/trolley-categories"
+          filename-stem="trolley-categories"
+          entity-label="Trolley Categories"
+          :can-export="hasPermission('trolley-category.read')"
+          :can-import="hasPermission('trolley-category.create')"
+          @imported="fetchTrolleyCategories()"
+        />
+        <button
+          v-if="hasPermission('trolley-category.create')"
+          type="button"
+          class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2F6FED] to-[#1D4FD8] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:from-[#2660D9] hover:to-[#173FB0]"
+          @click="openCreate"
+        >
+          <Plus class="h-4 w-4" />
+          Add Trolley Category
+        </button>
+      </div>
     </div>
 
     <TrolleyCategoriesTable

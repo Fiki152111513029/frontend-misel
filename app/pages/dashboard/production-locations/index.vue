@@ -123,15 +123,25 @@ function handleLimitChange(limit: number) {
         <p class="font-medium mt-1 text-sm text-slate-500">View and manage all Production Locations</p>
       </div>
 
-      <button
-        v-if="hasPermission('production-location.create')"
-        type="button"
-        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2F6FED] to-[#1D4FD8] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:from-[#2660D9] hover:to-[#173FB0]"
-        @click="openCreate"
-      >
-        <Plus class="h-4 w-4" />
-        Add Production Location
-      </button>
+      <div class="flex flex-wrap items-center gap-2">
+        <UiImportExportToolbar
+          base-path="/production-locations"
+          filename-stem="production-locations"
+          entity-label="Production Locations"
+          :can-export="hasPermission('production-location.read')"
+          :can-import="hasPermission('production-location.create')"
+          @imported="fetchProductionLocations()"
+        />
+        <button
+          v-if="hasPermission('production-location.create')"
+          type="button"
+          class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2F6FED] to-[#1D4FD8] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:from-[#2660D9] hover:to-[#173FB0]"
+          @click="openCreate"
+        >
+          <Plus class="h-4 w-4" />
+          Add Production Location
+        </button>
+      </div>
     </div>
 
     <ProductionLocationsTable
