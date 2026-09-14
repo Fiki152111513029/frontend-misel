@@ -34,9 +34,15 @@ export const NAV_MENUS: MenuEntry[] = [
     icon: FolderKanban,
     children: [
       { title: 'Tasks', path: '/dashboard/tasks', permission: 'task.read' },
+      { title: 'Trolley Activities', path: '/dashboard/trolley-activities', permission: 'trolley-activity.read' },
+    ],
+  },
+  {
+    title: 'Control System',
+    icon: FolderKanban,
+    children: [
       { title: 'Warehouse Trolley Task', path: '/dashboard/warehouse-trolley-task', permission: 'warehouse-trolley-task.read' },
       { title: 'Operator Trolley Task', path: '/dashboard/operator-trolley-task', permission: 'operator-trolley-task.read' },
-      { title: 'Trolley Activities', path: '/dashboard/trolley-activities', permission: 'trolley-activity.read' },
     ],
   },
   {
@@ -44,9 +50,6 @@ export const NAV_MENUS: MenuEntry[] = [
     icon: FolderKanban,
     children: [
       { title: 'Production Locations', path: '/dashboard/production-locations', permission: 'production-location.read' },
-      { title: 'Charger Areas', path: '/dashboard/charger-areas', permission: 'charger-area.read' },
-      { title: 'Parking Areas', path: '/dashboard/parking-areas', permission: 'parking-area.read' },
-      { title: 'Model Code Process', path: '/dashboard/model-code-process', permission: 'model-code-process.read' },
     ],
   },
   {
@@ -54,12 +57,18 @@ export const NAV_MENUS: MenuEntry[] = [
     icon: BarChart3,
     children: [
       { title: 'Warehouse Locations', path: '/dashboard/warehouse-locations', permission: 'warehouse-location.read' },
+    ],
+  },
+  {
+    title: 'Trolley',
+    icon: BarChart3,
+    children: [
       { title: 'Trolleys', path: '/dashboard/trolleys', permission: 'trolley.read' },
       { title: 'Trolley Categories', path: '/dashboard/trolley-categories', permission: 'trolley-category.read' },
       { title: 'Trolley Types', path: '/dashboard/trolley-types', permission: 'trolley-type.read' },
-      { title: 'Customers', path: '/dashboard/customers', permission: 'customer.read' },
     ],
   },
+  
   {
     title: 'ICS Logs',
     icon: BarChart3,
@@ -69,6 +78,10 @@ export const NAV_MENUS: MenuEntry[] = [
       { title: 'Alarm Logs', path: '/dashboard/alarm-logs', permission: 'robot-alarm.read' },
     ],
   },
+  { label: 'master area' },
+    { title: 'Charger Areas',icon: Bell, path: '/dashboard/charger-areas', permission: 'charger-area.read' },
+    { title: 'Parking Areas',icon: Bell, path: '/dashboard/parking-areas', permission: 'parking-area.read' },
+  { label: 'master data' },
   {
     title: 'User Management',
     icon: Users,
@@ -79,8 +92,9 @@ export const NAV_MENUS: MenuEntry[] = [
       { title: 'Permissions', path: '/dashboard/permissions', permission: 'permission.read' },
     ],
   },
-  { label: 'master data' },
+  { title: 'Model Code Process',icon: Bell, path: '/dashboard/model-code-process', permission: 'model-code-process.read' },
   { title: 'Robots', icon: Bell, path: '/dashboard/robots', permission: 'robot.read' },
+  { title: 'Customers',icon: Bell, path: '/dashboard/customers', permission: 'customer.read' },
   { title: 'Factory Maps', icon: MapIcon, path: '/dashboard/factory-maps', permission: 'factory-map.read' },
 ]
 
