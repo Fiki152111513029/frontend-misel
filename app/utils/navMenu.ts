@@ -34,7 +34,7 @@ export const NAV_MENUS: MenuEntry[] = [
     icon: FolderKanban,
     children: [
       { title: 'Tasks', path: '/dashboard/tasks', permission: 'task.read' },
-      { title: 'Trolley Activities', path: '/dashboard/trolley-activities', permission: 'trolley-activity.read' },
+      { title: 'Task Trolley Activities', path: '/dashboard/task-trolley-activities', permission: 'task-trolley-activity.read' },
     ],
   },
   {
@@ -43,20 +43,6 @@ export const NAV_MENUS: MenuEntry[] = [
     children: [
       { title: 'Warehouse Trolley Task', path: '/dashboard/warehouse-trolley-task', permission: 'warehouse-trolley-task.read' },
       { title: 'Operator Trolley Task', path: '/dashboard/operator-trolley-task', permission: 'operator-trolley-task.read' },
-    ],
-  },
-  {
-    title: 'Production Lines',
-    icon: FolderKanban,
-    children: [
-      { title: 'Production Locations', path: '/dashboard/production-locations', permission: 'production-location.read' },
-    ],
-  },
-  {
-    title: 'Warehouse Lines',
-    icon: BarChart3,
-    children: [
-      { title: 'Warehouse Locations', path: '/dashboard/warehouse-locations', permission: 'warehouse-location.read' },
     ],
   },
   {
@@ -79,6 +65,20 @@ export const NAV_MENUS: MenuEntry[] = [
     ],
   },
   { label: 'master area' },
+   {
+    title: 'Production Lines',
+    icon: FolderKanban,
+    children: [
+      { title: 'Production Locations', path: '/dashboard/production-locations', permission: 'production-location.read' },
+    ],
+  },
+  {
+    title: 'Warehouse Lines',
+    icon: BarChart3,
+    children: [
+      { title: 'Warehouse Locations', path: '/dashboard/warehouse-locations', permission: 'warehouse-location.read' },
+    ],
+  },
     { title: 'Charger Areas',icon: Bell, path: '/dashboard/charger-areas', permission: 'charger-area.read' },
     { title: 'Parking Areas',icon: Bell, path: '/dashboard/parking-areas', permission: 'parking-area.read' },
   { label: 'master data' },
