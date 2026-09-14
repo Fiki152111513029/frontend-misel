@@ -6,7 +6,6 @@ import type { RobotStatusMonthlyMode, RobotStatusSummaryRow } from '~/types/robo
 type ViewMode = 'DAILY' | RobotStatusMonthlyMode
 
 const { fetchStatusSummary, fetchMonthlyStatusSummary } = useRobotStatusSummary()
-const { items: shifts, fetchShiftOptions } = useShiftOptions()
 const { isDark } = useTheme()
 
 // The backend treats a "day"/"month" as UTC (see GetRobotStatusSummaryUseCase
@@ -21,16 +20,18 @@ const VIEW_MODE_OPTIONS: { value: ViewMode, label: string }[] = [
   { value: 'TOTAL', label: 'Total / Month' },
 ]
 
-// Which Shift (from the Shift table — see Dashboard > User Management >
-// Shifts) to filter by — defaults to the first one once loaded, since the
-// summary endpoints require a shiftId and there's no meaningful "all
-// shifts" view.
-const shiftId = ref<string | null>(null)
 const viewMode = ref<ViewMode>('DAILY')
 const selectedDate = ref(today.value)
 const selectedMonth = ref(currentMonth.value)
 const rows = ref<RobotStatusSummaryRow[]>([])
 const loading = ref(false)
+
+// Which Shift (from the Shift table — see Dashboard > User Management >
+// Shifts) to filter by — defaults to and automatically follows whichever
+// Shift is actually running right now (accounts for the weekly A/B
+// rotation), only while looking at today's Daily view; see useShiftFilter.
+const isViewingCurrentShift = computed(() => viewMode.value === 'DAILY' && selectedDate.value === today.value)
+const { shifts, shiftId, initShiftFilter, refreshShiftFilter, handleManualShiftChange } = useShiftFilter(isViewingCurrentShift)
 
 async function load() {
   if (!shiftId.value) return
@@ -41,10 +42,22 @@ async function load() {
   loading.value = false
 }
 
+const AUTO_REFRESH_MS = 60_000
+let refreshTimer: ReturnType<typeof setInterval> | null = null
+
 onMounted(async () => {
-  await fetchShiftOptions()
-  if (shifts.value.length > 0) shiftId.value = shifts.value[0]!.id
+  await initShiftFilter()
   await load()
+  // shiftId is watched below, so a change picked up here flows into a
+  // reload on its own — this timer only needs to re-check which shift is
+  // current, not call load() itself.
+  refreshTimer = setInterval(refreshShiftFilter, AUTO_REFRESH_MS)
+})
+onBeforeUnmount(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
 })
 watch([shiftId, viewMode, selectedDate, selectedMonth], load)
 
@@ -155,6 +168,7 @@ function exportToExcel() {
         <select
           v-model="shiftId"
           class="rounded-xl border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-medium text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
+          @change="handleManualShiftChange"
         >
           <option v-for="option in shifts" :key="option.id" :value="option.id">
             {{ option.name }}

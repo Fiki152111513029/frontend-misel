@@ -6,7 +6,6 @@ import type { TrolleyShiftMonthlyMode, TrolleySupplyFrequencyRow } from '~/types
 type ViewMode = 'DAILY' | TrolleyShiftMonthlyMode
 
 const { fetchFrequencySummary, fetchFrequencyMonthlySummary } = useTrolleyShiftSummary()
-const { items: shifts, fetchShiftOptions } = useShiftOptions()
 const { isDark } = useTheme()
 
 const today = computed(() => new Date().toISOString().slice(0, 10))
@@ -18,12 +17,17 @@ const VIEW_MODE_OPTIONS: { value: ViewMode, label: string }[] = [
   { value: 'TOTAL', label: 'Total / Month' },
 ]
 
-const shiftId = ref<string | null>(null)
 const viewMode = ref<ViewMode>('DAILY')
 const selectedDate = ref(today.value)
 const selectedMonth = ref(currentMonth.value)
 const rows = ref<TrolleySupplyFrequencyRow[]>([])
 const loading = ref(false)
+
+// Defaults to and automatically follows whichever Shift is actually
+// running right now (accounts for the weekly A/B rotation), only while
+// looking at today's Daily view; see useShiftFilter.
+const isViewingCurrentShift = computed(() => viewMode.value === 'DAILY' && selectedDate.value === today.value)
+const { shifts, shiftId, initShiftFilter, refreshShiftFilter, handleManualShiftChange } = useShiftFilter(isViewingCurrentShift)
 
 async function load() {
   if (!shiftId.value) return
@@ -39,10 +43,12 @@ const AUTO_REFRESH_MS = 60_000
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(async () => {
-  await fetchShiftOptions()
-  if (shifts.value.length > 0) shiftId.value = shifts.value[0]!.id
+  await initShiftFilter()
   await load()
-  refreshTimer = setInterval(load, AUTO_REFRESH_MS)
+  refreshTimer = setInterval(async () => {
+    await refreshShiftFilter()
+    await load()
+  }, AUTO_REFRESH_MS)
 })
 onBeforeUnmount(() => {
   if (refreshTimer) {
@@ -136,6 +142,7 @@ function exportToExcel() {
         <select
           v-model="shiftId"
           class="rounded-xl border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-medium text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
+          @change="handleManualShiftChange"
         >
           <option v-for="option in shifts" :key="option.id" :value="option.id">
             {{ option.name }}

@@ -69,6 +69,7 @@ export function useShifts() {
 export function useShiftOptions() {
   const toast = useToast()
   const items = ref<Shift[]>([])
+  const currentShiftId = ref<string | null>(null)
 
   async function fetchShiftOptions() {
     try {
@@ -78,5 +79,16 @@ export function useShiftOptions() {
     }
   }
 
-  return { items, fetchShiftOptions }
+  // Silent on failure (no toast) — this only powers a filter default/
+  // auto-follow convenience, not something worth interrupting the user
+  // about; callers just fall back to their own default when this is null.
+  async function fetchCurrentShift() {
+    try {
+      currentShiftId.value = await shiftService.fetchCurrentShiftId()
+    } catch {
+      currentShiftId.value = null
+    }
+  }
+
+  return { items, fetchShiftOptions, currentShiftId, fetchCurrentShift }
 }

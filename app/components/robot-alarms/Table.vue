@@ -12,6 +12,8 @@ const columns = [
   { key: 'device', label: 'Device' },
   { key: 'zone', label: 'Zone' },
   { key: 'alarm', label: 'Alarm' },
+  { key: 'alarmType', label: 'Alarm Type', width: '100px' },
+  { key: 'alarmDate', label: 'Alarm Date' },
   { key: 'grade', label: 'Grade', width: '110px' },
   { key: 'source', label: 'Source', width: '100px' },
 ]
@@ -69,6 +71,12 @@ function formatDate(value: string) {
           </td>
           <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.alarmDesc ?? '-' }}
+          </td>
+          <td class="px-4 py-3 text-sm text-slate-500">
+            {{ item.alarmType ?? '-' }}
+          </td>
+          <td class="px-4 py-3 text-sm font-mono text-slate-500">
+            {{ item.alarmDateRaw ?? '-' }}
           </td>
           <td class="px-4 py-3">
             <span

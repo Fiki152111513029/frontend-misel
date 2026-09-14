@@ -39,3 +39,13 @@ export async function fetchAllShifts(): Promise<Shift[]> {
   const result = await fetchShifts({ page: 1, limit: 1000, sortBy: 'name', sortOrder: 'asc' })
   return result.items
 }
+
+// Which Shift is actually running right now (accounts for the weekly A/B
+// rotation server-side) — used to default/auto-follow the shift filter on
+// AMR Performance and Trolley Activities charts. Null if no active shift's
+// window currently contains "now".
+export async function fetchCurrentShiftId(): Promise<string | null> {
+  const { $http } = useNuxtApp()
+  const result = (await $http.get('/shifts/current')) as { shiftId: string | null }
+  return result.shiftId
+}
