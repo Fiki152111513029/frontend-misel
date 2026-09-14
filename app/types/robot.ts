@@ -118,4 +118,8 @@ export interface RobotStatusSummaryRow {
   runningMinutes: number
   idleMinutes: number
   chargingMinutes: number
+  // Independent of the three above — total minutes this robot had an
+  // active alarm within the window (a robot can be simultaneously "Idle"
+  // and in an active alarm).
+  alarmMinutes: number
 }

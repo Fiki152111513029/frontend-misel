@@ -66,6 +66,11 @@ const series = computed(() => [
   { name: 'Running', data: rows.value.map(row => row.runningMinutes) },
   { name: 'Idle', data: rows.value.map(row => row.idleMinutes) },
   { name: 'Charging', data: rows.value.map(row => row.chargingMinutes) },
+  // Independent of the three above (a robot can be "Idle" and in an active
+  // alarm at the same time) — stacked on top anyway so it's still visible
+  // per-robot, but deliberately left out of highestTotalMinutes/axisMax
+  // below since it isn't additional elapsed shift time.
+  { name: 'Alarm', data: rows.value.map(row => row.alarmMinutes) },
 ])
 
 // The chart scales to whatever the busiest robot actually reached (e.g.
@@ -96,7 +101,7 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
     toolbar: { show: false },
   },
   theme: { mode: isDark.value ? 'dark' : 'light' },
-  colors: ['#0F1F52', '#F6AE2D', '#01ADEF'],
+  colors: ['#0F1F52', '#F6AE2D', '#01ADEF', '#EF4444'],
   plotOptions: { bar: { borderRadius: 4, columnWidth: '45%' } },
   stroke: { width: 0 },
   xaxis: {
@@ -141,12 +146,13 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
 }))
 
 function exportToExcel() {
-  const headers = ['Robot', 'Running (min)', 'Idle (min)', 'Charging (min)', 'Total (min)']
+  const headers = ['Robot', 'Running (min)', 'Idle (min)', 'Charging (min)', 'Alarm (min)', 'Total (min)']
   const dataRows = rows.value.map(row => [
     row.robotName,
     row.runningMinutes,
     row.idleMinutes,
     row.chargingMinutes,
+    row.alarmMinutes,
     row.runningMinutes + row.idleMinutes + row.chargingMinutes,
   ])
   const shiftName = shifts.value.find(s => s.id === shiftId.value)?.name ?? 'shift'

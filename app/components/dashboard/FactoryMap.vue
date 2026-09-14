@@ -3,6 +3,7 @@ import { Maximize, RotateCw, ZoomIn, ZoomOut } from 'lucide-vue-next'
 import { fetchLocationCodes, fetchStockStatus } from '~/services/factory-map.service'
 import { fetchRobots as fetchRobotsSvc } from '~/services/robot.service'
 import { fetchActiveTrolleyActivitiesByRobot } from '~/services/trolley-activity.service'
+import { fetchActiveAlarmDeviceNames } from '~/services/robot-alarm.service'
 import type { Robot } from '~/types/robot'
 import robotIdleSrc from '~/assets/images/robot/Idle.png'
 import robotChargingSrc from '~/assets/images/robot/Charging.png'
@@ -48,10 +49,15 @@ interface RobotMarker {
   x: number
   y: number
   name: string
+  amrDeviceSerialNo: string
   state: string | null
   battery: number | null
   payload: string | null
   orientation: number | null
+  // Still active (unresolved) per the latest alarm event received for this
+  // device — see loadActiveAlarms below. Stays true until RCS reports it
+  // resolved, not just until the badge would otherwise look stale.
+  hasActiveAlarm: boolean
 }
 
 interface ViewBox {
@@ -334,6 +340,8 @@ const robotMarkers = computed<RobotMarker[]>(() => {
         x: rendered?.x ?? (robot.positionX as number),
         y: rendered?.y ?? (robot.positionY as number),
         name: robot.name,
+        amrDeviceSerialNo: robot.amrDeviceSerialNo,
+        hasActiveAlarm: activeAlarmDeviceNames.value.has(robot.amrDeviceSerialNo),
         state: robot.state,
         battery: robot.battery,
         payload: robot.payload,
@@ -355,6 +363,21 @@ async function loadActiveTrolleyActivitiesByRobot() {
     activeTrolleyByRobot.value = new Map(rows.map(row => [row.robotId, row.carrying]))
   } catch {
     // Non-fatal — robot markers just fall back to their usual Idle/Charging icon.
+  }
+}
+
+// Which devices currently have an active, unresolved alarm — keyed by
+// deviceName (the same "AMR0004"-style value as Robot.amrDeviceSerialNo).
+// Polled independently of (and much slower than) the 800ms position poll,
+// since this rarely changes and doesn't need to be that fresh.
+const activeAlarmDeviceNames = ref<Set<string>>(new Set())
+
+async function loadActiveAlarms() {
+  try {
+    const deviceNames = await fetchActiveAlarmDeviceNames()
+    activeAlarmDeviceNames.value = new Set(deviceNames)
+  } catch {
+    // Non-fatal — badges just keep whatever they last knew this tick.
   }
 }
 
@@ -556,6 +579,10 @@ let stockStatusPollTimer: ReturnType<typeof setInterval> | null = null
 // delivery is visibly in progress.
 const ACTIVE_TROLLEY_POLL_MS = 3000
 let activeTrolleyPollTimer: ReturnType<typeof setInterval> | null = null
+// Matches the ICS Alarm Logs page's own poll cadence — alarms don't need
+// anything faster than that.
+const ACTIVE_ALARM_POLL_MS = 5000
+let activeAlarmPollTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(async () => {
   await Promise.all([
@@ -563,6 +590,7 @@ onMounted(async () => {
     loadLocationCodes(),
     loadLiveRobots(),
     loadActiveTrolleyActivitiesByRobot(),
+    loadActiveAlarms(),
   ])
   if (factoryMaps.value[0]) {
     selectedMapId.value = factoryMaps.value[0].id
@@ -573,6 +601,7 @@ onMounted(async () => {
   robotPollTimer = setInterval(loadLiveRobots, ROBOT_POLL_MS)
   locationCodesPollTimer = setInterval(loadLocationCodes, LOCATION_CODES_POLL_MS)
   activeTrolleyPollTimer = setInterval(loadActiveTrolleyActivitiesByRobot, ACTIVE_TROLLEY_POLL_MS)
+  activeAlarmPollTimer = setInterval(loadActiveAlarms, ACTIVE_ALARM_POLL_MS)
   stockStatusPollTimer = setInterval(loadStockStatus, STOCK_STATUS_POLL_MS)
   animationFrameHandle = requestAnimationFrame(tickRobotAnimations)
 })
@@ -593,6 +622,10 @@ onBeforeUnmount(() => {
   if (activeTrolleyPollTimer) {
     clearInterval(activeTrolleyPollTimer)
     activeTrolleyPollTimer = null
+  }
+  if (activeAlarmPollTimer) {
+    clearInterval(activeAlarmPollTimer)
+    activeAlarmPollTimer = null
   }
   if (stockStatusPollTimer) {
     clearInterval(stockStatusPollTimer)
@@ -792,6 +825,30 @@ onBeforeUnmount(() => {
                   />
                 </svg>
               </g>
+
+              <!-- Alarm badge — deliberately outside .robot-marker__rotate so
+                   it always sits upright at the icon's corner regardless of
+                   the robot's heading. Stays up until the active alarm
+                   actually resolves (see loadActiveAlarms), not on a timer. -->
+              <g v-if="robot.hasActiveAlarm" class="robot-marker__alarm-badge">
+                <circle
+                  :cx="robotIconSize * 0.36"
+                  :cy="-robotIconSize * 0.36"
+                  :r="robotIconSize * 0.22"
+                  fill="#EF4444"
+                  stroke="white"
+                  :stroke-width="robotIconSize * 0.035"
+                />
+                <text
+                  :x="robotIconSize * 0.36"
+                  :y="-robotIconSize * 0.36"
+                  fill="white"
+                  text-anchor="middle"
+                  dominant-baseline="central"
+                  :font-size="robotIconSize * 0.28"
+                  font-weight="700"
+                >!</text>
+              </g>
             </g>
 
             <g
@@ -882,6 +939,21 @@ onBeforeUnmount(() => {
   }
   50% {
     transform: translateY(-4%);
+  }
+}
+
+.robot-marker__alarm-badge {
+  animation: robot-marker-alarm-pulse 1.2s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes robot-marker-alarm-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
   }
 }
 </style>

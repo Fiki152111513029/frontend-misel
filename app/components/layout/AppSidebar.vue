@@ -230,6 +230,15 @@ function toggleGroup(title: string) {
       <div v-if="isCollapsed" class="h-2 w-2 rounded-full bg-green-400" title="Online" />
 
       <div v-else class="relative mt-16">
+        <!-- Dot pattern — spans from the same top offset as the robot image
+             below down to the card's own bottom edge, so it covers the
+             image's full height (including the part poking up above the
+             text card), not just the lower half where the card itself sits. -->
+        <div
+          class="pointer-events-none absolute -top-14 inset-x-0 bottom-0 overflow-hidden rounded-2xl opacity-20"
+          style="background-image: radial-gradient(circle at 1.5px 1.5px, white 1.5px, transparent 0); background-size: 16px 16px;"
+        />
+
         <img
           :src="robotPromoSrc"
           alt="Misel Robot"
@@ -237,12 +246,6 @@ function toggleGroup(title: string) {
         />
 
         <div class="relative overflow-hidden rounded-2xl bg-white/5 px-4 pb-4 pt-14">
-          <!-- Dot pattern -->
-          <div
-            class="pointer-events-none absolute inset-0 opacity-20"
-            style="background-image: radial-gradient(circle at 1.5px 1.5px, white 1.5px, transparent 0); background-size: 16px 16px;"
-          />
-
           <p class="relative text-[15px] font-bold leading-snug text-white">
             Smart Robotics<br>
             for Smarter Industry

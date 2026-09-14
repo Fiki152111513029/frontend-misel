@@ -17,3 +17,12 @@ export async function fetchRobotAlarms(query: RobotAlarmQuery = {}): Promise<Rob
   const { $http } = useNuxtApp()
   return (await $http.get('/robot-alarms', { params: query })) as RobotAlarmListResult
 }
+
+// deviceName (same value as Robot.amrDeviceSerialNo, e.g. "AMR0004") of
+// every device currently sitting in an active, unresolved alarm — powers
+// the Factory Map's live alarm badge, which stays up until RCS reports
+// that alarm resolved.
+export async function fetchActiveAlarmDeviceNames(): Promise<string[]> {
+  const { $http } = useNuxtApp()
+  return (await $http.get('/robot-alarms/active-devices')) as string[]
+}

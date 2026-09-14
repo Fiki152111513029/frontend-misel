@@ -15,6 +15,7 @@ const columns = [
   { key: 'alarmType', label: 'Alarm Type', width: '100px' },
   { key: 'alarmDate', label: 'Alarm Date' },
   { key: 'grade', label: 'Grade', width: '110px' },
+  { key: 'status', label: 'Status', width: '100px' },
   { key: 'source', label: 'Source', width: '100px' },
 ]
 
@@ -24,6 +25,13 @@ const GRADE_STYLE: Record<number, string> = {
   1: 'bg-slate-100 text-slate-500',
   2: 'bg-amber-50 text-amber-600',
   3: 'bg-red-50 text-red-600',
+}
+
+// RCS's own field: 0 = active, 1 = resolved.
+const STATUS_LABEL: Record<number, string> = { 0: 'Active', 1: 'Resolved' }
+const STATUS_STYLE: Record<number, string> = {
+  0: 'bg-red-50 text-red-600',
+  1: 'bg-emerald-50 text-emerald-600',
 }
 
 function formatDate(value: string) {
@@ -85,6 +93,16 @@ function formatDate(value: string) {
               :class="GRADE_STYLE[item.alarmGrade] ?? 'bg-slate-100 text-slate-500'"
             >
               {{ GRADE_LABEL[item.alarmGrade] ?? `Grade ${item.alarmGrade}` }}
+            </span>
+            <span v-else class="text-sm text-slate-400">-</span>
+          </td>
+          <td class="px-4 py-3">
+            <span
+              v-if="item.alarmStatus !== null"
+              class="rounded-full px-2 py-0.5 text-xs font-semibold"
+              :class="STATUS_STYLE[item.alarmStatus] ?? 'bg-slate-100 text-slate-500'"
+            >
+              {{ STATUS_LABEL[item.alarmStatus] ?? `Status ${item.alarmStatus}` }}
             </span>
             <span v-else class="text-sm text-slate-400">-</span>
           </td>

@@ -25,6 +25,8 @@ export interface RobotAlarm {
   alarmDateRaw: string | null
   // RCS's own severity scale: 1 = Tip, 2 = Alert, 3 = Emergency.
   alarmGrade: number | null
+  // RCS's own field: 0 = active, 1 = resolved.
+  alarmStatus: number | null
   receivedAt: string
 }
 
