@@ -4,7 +4,7 @@ import {
 } from 'lucide-vue-next'
 import logoSrc from '~/assets/images/logomisbot.png'
 import robotPromoSrc from '~/assets/images/irayplay.png'
-import { NAV_MENUS, isMenuGroup } from '~/utils/navMenu'
+import { NAV_MENUS, isMenuGroup, isSectionLabel } from '~/utils/navMenu'
 import type { MenuEntry, MenuGroup } from '~/utils/navMenu'
 
 const { isCollapsed, isMobileOpen, toggleCollapse, closeMobile } = useSidebar()
@@ -15,9 +15,12 @@ const route = useRoute()
 // middleware/permission.global.ts) down to what the current user's role
 // actually has permission for — a menu with permission: null (Dashboard) is
 // always shown; a group collapses away entirely once none of its children
-// are visible. Configure who sees what via User Management > Roles.
+// are visible. A section label (e.g. "Master Data") has no permission of
+// its own and always passes through. Configure who sees what via User
+// Management > Roles.
 const menus = computed<MenuEntry[]>(() => NAV_MENUS
   .map((menu) => {
+    if (isSectionLabel(menu)) return menu
     if (isMenuGroup(menu)) {
       const children = menu.children.filter(child => child.permission === null || hasPermission(child.permission))
       return children.length > 0 ? { ...menu, children } : null
@@ -27,6 +30,7 @@ const menus = computed<MenuEntry[]>(() => NAV_MENUS
   .filter((menu): menu is MenuEntry => menu !== null))
 
 const isGroup = isMenuGroup
+const isLabel = isSectionLabel
 
 function isActive(path: string) {
   return path === '/dashboard'
@@ -124,10 +128,21 @@ function toggleGroup(title: string) {
 
     <!-- Navigation -->
     <nav class="sidebar-nav-scroll flex-1 overflow-y-auto overflow-x-hidden py-4 px-2 space-y-0.5">
-      <template v-for="menu in menus" :key="menu.title">
+      <template v-for="menu in menus" :key="isLabel(menu) ? menu.label : menu.title">
+        <!-- Section label (e.g. "master data") — a plain caption, not a
+             link; hidden while collapsed since there's no room for text. -->
+        <template v-if="isLabel(menu)">
+          <p
+            v-if="!isCollapsed"
+            class="mt-4 mb-1 px-3 text-xs text-white/40 first:mt-0"
+          >
+            {{ menu.label }}
+          </p>
+        </template>
+
         <!-- Simple link -->
         <NuxtLink
-          v-if="!isGroup(menu)"
+          v-else-if="!isGroup(menu)"
           :to="menu.path"
           class="group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150"
           :class="[

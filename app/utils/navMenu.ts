@@ -5,10 +5,19 @@ import {
 export interface MenuChild { title: string, path: string, permission: string | null }
 export interface MenuLeaf { title: string, icon: any, path: string, permission: string | null }
 export interface MenuGroup { title: string, icon: any, children: MenuChild[] }
-export type MenuEntry = MenuLeaf | MenuGroup
+// A plain, non-clickable caption in the nav list (e.g. "master data") used
+// to visually separate a run of items below it from what's above — no
+// permission of its own, always shown (while the sidebar is expanded) since
+// it isn't tied to a single route.
+export interface MenuSectionLabel { label: string }
+export type MenuEntry = MenuLeaf | MenuGroup | MenuSectionLabel
 
 export function isMenuGroup(menu: MenuEntry): menu is MenuGroup {
   return 'children' in menu
+}
+
+export function isSectionLabel(menu: MenuEntry): menu is MenuSectionLabel {
+  return 'label' in menu
 }
 
 // Single source of truth for both the sidebar (AppSidebar.vue, filtered by
@@ -70,6 +79,7 @@ export const NAV_MENUS: MenuEntry[] = [
       { title: 'Permissions', path: '/dashboard/permissions', permission: 'permission.read' },
     ],
   },
+  { label: 'master data' },
   { title: 'Robots', icon: Bell, path: '/dashboard/robots', permission: 'robot.read' },
   { title: 'Factory Maps', icon: MapIcon, path: '/dashboard/factory-maps', permission: 'factory-map.read' },
 ]
@@ -79,6 +89,7 @@ export const NAV_MENUS: MenuEntry[] = [
 // guessed at via prefix matching.
 export function findRequiredPermission(path: string): string | null | undefined {
   for (const menu of NAV_MENUS) {
+    if (isSectionLabel(menu)) continue
     if (isMenuGroup(menu)) {
       const child = menu.children.find(c => c.path === path)
       if (child) return child.permission
