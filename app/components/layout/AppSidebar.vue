@@ -239,13 +239,22 @@ function toggleGroup(title: string) {
           style="background-image: radial-gradient(circle at 1.5px 1.5px, white 1.5px, transparent 0); background-size: 16px 16px;"
         />
 
+        <!-- Tint wash — same -top-14/bottom-0 bounds as the dot pattern
+             above, so this rounded panel's solid-looking background covers
+             the whole thing (including behind the robot) instead of just
+             the lower text portion. -->
+        <div class="pointer-events-none absolute -top-14 inset-x-0 bottom-0 overflow-hidden rounded-2xl bg-white/5" />
+
         <img
           :src="robotPromoSrc"
           alt="Misel Robot"
           class="pointer-events-none absolute -top-14 left-1/2 z-10 w-[160px] -translate-x-1/2 object-contain drop-shadow-[0_12px_20px_rgba(0,0,0,0.35)]"
         />
 
-        <div class="relative overflow-hidden rounded-2xl bg-white/5 px-4 pb-4 pt-14">
+        <!-- Text sits in normal flow (giving the outer wrapper its real
+             height) but no longer paints its own background — that comes
+             from the tint layer above now. -->
+        <div class="relative px-4 pb-4 pt-14">
           <p class="relative text-[15px] font-bold leading-snug text-white">
             Smart Robotics<br>
             for Smarter Industry
