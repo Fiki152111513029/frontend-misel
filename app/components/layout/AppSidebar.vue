@@ -245,7 +245,7 @@ function toggleGroup(title: string) {
           class="pointer-events-none absolute -top-14 left-1/2 z-10 w-[160px] -translate-x-1/2 object-contain drop-shadow-[0_12px_20px_rgba(0,0,0,0.35)]"
         />
 
-        <div class="relative overflow-hidden rounded-2xl bg-white/5 px-4 pb-4 -pt-14">
+        <div class="relative overflow-hidden rounded-2xl bg-white/5 px-4 pb-4 pt-0">
           <p class="relative text-[15px] font-bold leading-snug text-white">
             Smart Robotics<br>
             for Smarter Industry
