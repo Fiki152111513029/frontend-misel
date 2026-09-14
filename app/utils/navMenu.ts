@@ -27,7 +27,8 @@ export function isSectionLabel(menu: MenuEntry): menu is MenuSectionLabel {
 // needs that exact permission code (see backend/prisma/seed.ts PERMISSIONS)
 // to see the link or reach the route. Configure who gets what via User
 // Management > Roles > [role] — no code change needed to regrant a menu.
-export const NAV_MENUS: MenuEntry[] = [
+export const NAV_MENUS: MenuEntry[] = [ 
+  { label: 'All Menu' },
   { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', permission: 'dashboard.read' },
   {
     title: 'All Tasks',
@@ -46,16 +47,6 @@ export const NAV_MENUS: MenuEntry[] = [
     ],
   },
   {
-    title: 'Trolley',
-    icon: BarChart3,
-    children: [
-      { title: 'Trolleys', path: '/dashboard/trolleys', permission: 'trolley.read' },
-      { title: 'Trolley Categories', path: '/dashboard/trolley-categories', permission: 'trolley-category.read' },
-      { title: 'Trolley Types', path: '/dashboard/trolley-types', permission: 'trolley-type.read' },
-    ],
-  },
-  
-  {
     title: 'ICS Logs',
     icon: BarChart3,
     children: [
@@ -64,7 +55,7 @@ export const NAV_MENUS: MenuEntry[] = [
       { title: 'Alarm Logs', path: '/dashboard/alarm-logs', permission: 'robot-alarm.read' },
     ],
   },
-  { label: 'master area' },
+  { label: 'Master Area' },
    {
     title: 'Production Lines',
     icon: FolderKanban,
@@ -81,7 +72,7 @@ export const NAV_MENUS: MenuEntry[] = [
   },
     { title: 'Charger Areas',icon: Bell, path: '/dashboard/charger-areas', permission: 'charger-area.read' },
     { title: 'Parking Areas',icon: Bell, path: '/dashboard/parking-areas', permission: 'parking-area.read' },
-  { label: 'master data' },
+  { label: 'Master Data' },
   {
     title: 'User Management',
     icon: Users,
@@ -92,10 +83,25 @@ export const NAV_MENUS: MenuEntry[] = [
       { title: 'Permissions', path: '/dashboard/permissions', permission: 'permission.read' },
     ],
   },
-  { title: 'Model Code Process',icon: Bell, path: '/dashboard/model-code-process', permission: 'model-code-process.read' },
-  { title: 'Robots', icon: Bell, path: '/dashboard/robots', permission: 'robot.read' },
-  { title: 'Customers',icon: Bell, path: '/dashboard/customers', permission: 'customer.read' },
-  { title: 'Factory Maps', icon: MapIcon, path: '/dashboard/factory-maps', permission: 'factory-map.read' },
+ {
+    title: 'Trolley',
+    icon: BarChart3,
+    children: [
+      { title: 'Trolleys', path: '/dashboard/trolleys', permission: 'trolley.read' },
+      { title: 'Trolley Categories', path: '/dashboard/trolley-categories', permission: 'trolley-category.read' },
+      { title: 'Trolley Types', path: '/dashboard/trolley-types', permission: 'trolley-type.read' },
+    ],
+  },
+  {
+    title: 'Setting System',
+    icon: BarChart3,
+    children: [
+      { title: 'Model Code Process', path: '/dashboard/model-code-process', permission: 'model-code-process.read' },
+      { title: 'Robots', path: '/dashboard/robots', permission: 'robot.read' },
+      { title: 'Factory Maps', path: '/dashboard/factory-maps', permission: 'factory-map.read' },
+    ],
+  },
+  { title: 'Customers',icon: Bell, path: '/dashboard/customers', permission: 'customer.read' },  
 ]
 
 // Exact match only — a path not registered here (dynamic detail routes,

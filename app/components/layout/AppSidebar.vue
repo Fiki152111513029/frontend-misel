@@ -15,11 +15,12 @@ const route = useRoute()
 // middleware/permission.global.ts) down to what the current user's role
 // actually has permission for — a menu with permission: null (Dashboard) is
 // always shown; a group collapses away entirely once none of its children
-// are visible. A section label (e.g. "Master Data") has no permission of
-// its own and always passes through. Configure who sees what via User
-// Management > Roles.
-const menus = computed<MenuEntry[]>(() => NAV_MENUS
-  .map((menu) => {
+// are visible. Configure who sees what via User Management > Roles.
+const menus = computed<MenuEntry[]>(() => {
+  // Pass 1 — permission-filter every entry on its own. A section label
+  // (e.g. "master data") has no permission of its own, so it always
+  // survives this pass; whether it ultimately shows depends on pass 2.
+  const afterPermissions: (MenuEntry | null)[] = NAV_MENUS.map((menu) => {
     if (isSectionLabel(menu)) return menu
     if (isMenuGroup(menu)) {
       const children = menu.children.filter(child => child.permission === null || hasPermission(child.permission))
@@ -27,7 +28,22 @@ const menus = computed<MenuEntry[]>(() => NAV_MENUS
     }
     return menu.permission === null || hasPermission(menu.permission) ? menu : null
   })
-  .filter((menu): menu is MenuEntry => menu !== null))
+
+  // Pass 2 — drop a label if every entry between it and the next label (or
+  // the end of the list) was filtered out above; an empty section heading
+  // with nothing under it serves no purpose.
+  return afterPermissions.filter((menu, index): menu is MenuEntry => {
+    if (menu === null) return false
+    if (!isSectionLabel(menu)) return true
+    for (let i = index + 1; i < afterPermissions.length; i++) {
+      const next = afterPermissions[i]
+      if (next === null) continue
+      if (isSectionLabel(next)) return false
+      return true
+    }
+    return false
+  })
+})
 
 const isGroup = isMenuGroup
 const isLabel = isSectionLabel
