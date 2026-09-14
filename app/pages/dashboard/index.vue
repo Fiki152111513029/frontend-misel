@@ -13,7 +13,7 @@ useHead({ title: 'Dashboard — Misel' })
       </div>
 
       <div class="rounded-2xl shadow-xl shadow-slate-300/70">
-        <RobotsPerformanceChart />
+        <DashboardPerformancePanel />
       </div>
     </div>
 
@@ -23,7 +23,7 @@ useHead({ title: 'Dashboard — Misel' })
       </div>
 
       <div class="rounded-2xl shadow-xl shadow-slate-300/70">
-        <DashboardPerformancePanel />
+        <RobotsPerformanceChart />
       </div>
     </div>
   </div>

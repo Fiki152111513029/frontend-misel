@@ -145,6 +145,7 @@ async function restoreActiveQueue() {
         taskId: activity.taskId,
         trolleyCode: activity.trolleyCode,
         trolleyName: activity.trolleyName,
+        trolleyTypeName: activity.trolleyTypeName,
       })
     }
   } catch {
@@ -259,6 +260,7 @@ async function handleSubmit() {
     taskId: result.activity.taskId,
     trolleyCode: result.activity.trolley.code,
     trolleyName: result.activity.trolley.name,
+    trolleyTypeName: result.activity.trolley.type.name,
   })
 
   // Free up the scan flow right away so the next trolley can be scanned
@@ -399,7 +401,7 @@ async function handleSubmit() {
         <p class="font-semibold uppercase tracking-wide text-[#01ADEF]">Current Queue</p>
         <p class="font-medium text-slate-500">
           Trolley :
-          <span class="font-medium text-[#0F1F52]">{{ item.trolleyName }} ({{ item.trolleyCode }})</span>
+          <span class="font-medium text-[#0F1F52]">{{ item.trolleyName }} ({{ item.trolleyCode }}) ({{ item.trolleyTypeName }})</span>
         </p>
         <p class="font-medium text-slate-500">
           No urut :

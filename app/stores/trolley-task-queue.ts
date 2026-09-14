@@ -8,6 +8,7 @@ export interface TrolleyQueueItem {
   taskId: string
   trolleyCode: string
   trolleyName: string
+  trolleyTypeName: string
   queueNumber: number | null
   webhookStatus: LatestWebhookStatus | null
 }
@@ -69,6 +70,7 @@ function defineTrolleyTaskQueueStore(role: string) {
       taskId: string
       trolleyCode: string
       trolleyName: string
+      trolleyTypeName: string
     }) {
       // Idempotent — restoring from the backend on mount (see
       // fetchMyActiveTrolleyActivities) must not duplicate a card that a

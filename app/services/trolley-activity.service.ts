@@ -79,6 +79,7 @@ export interface MyActiveTrolleyActivity {
   taskId: string
   trolleyCode: string
   trolleyName: string
+  trolleyTypeName: string
   // Which direction the pickup was — used to restore into the right page's
   // Current Queue (Warehouse Trolley Task vs Operator Trolley Task) without
   // mixing the two.

@@ -67,14 +67,27 @@ export function useAuth() {
     }
   }
 
-  function logout(): void {
+  async function logout(): Promise<void> {
     const { $http } = useNuxtApp()
     const refreshToken =
       localStorage.getItem(AUTH_REFRESH_TOKEN_KEY) ||
       sessionStorage.getItem(AUTH_REFRESH_TOKEN_KEY)
 
     if (refreshToken) {
-      $http.post('/auth/logout', { refreshToken }).catch(() => {})
+      // Must be awaited *before* the token storage below is cleared — the
+      // $http request interceptor reads the access token from storage, but
+      // only as a microtask once this call actually dispatches, not
+      // synchronously here. Clearing storage first (as this used to do)
+      // meant the interceptor found nothing, so this went out
+      // unauthenticated, never reached LogoutUseCase, and the user's
+      // User.isOnline flag stayed stuck `true` server-side. Capped at 3s so
+      // an unreachable server can't hang the Logout button — local logout
+      // below still always proceeds.
+      const LOGOUT_REQUEST_TIMEOUT_MS = 3000
+      await Promise.race([
+        $http.post('/auth/logout', { refreshToken }).catch(() => {}),
+        new Promise((resolve) => setTimeout(resolve, LOGOUT_REQUEST_TIMEOUT_MS)),
+      ])
     }
 
     state.value.user = null
