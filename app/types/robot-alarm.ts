@@ -27,6 +27,13 @@ export interface RobotAlarm {
   alarmGrade: number | null
   // RCS's own field: 0 = active, 1 = resolved.
   alarmStatus: number | null
+  // Extended abnormality detail (task/materiel context) — fetched
+  // automatically by the backend right after this alarm was received (see
+  // ReceiveRobotAlarmWebhookUseCase). Null until that fetch completes, or if
+  // it failed / the third-party endpoint isn't configured — the "Detail"
+  // button just displays whatever is here, it doesn't call anything itself.
+  alarmDetail: RobotAlarmDetailData | null
+  alarmDetailFetchedAt: string | null
   receivedAt: string
 }
 

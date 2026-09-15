@@ -1,23 +1,26 @@
 <script setup lang="ts">
-import type { RobotAlarmDetailResponse } from '~/types/robot-alarm'
+import type { RobotAlarmDetailData } from '~/types/robot-alarm'
 
 interface Props {
   modelValue: boolean
-  loading?: boolean
+  retrying?: boolean
   deviceLabel?: string
-  detail: RobotAlarmDetailResponse | null
+  detail: RobotAlarmDetailData | null
+  fetchedAt?: string | null
 }
 
 withDefaults(defineProps<Props>(), {
-  loading: false,
+  retrying: false,
   deviceLabel: '',
+  fetchedAt: null,
 })
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
+  retry: []
 }>()
 
-const FIELDS: { key: keyof NonNullable<Props['detail']>['data'], label: string }[] = [
+const FIELDS: { key: keyof RobotAlarmDetailData, label: string }[] = [
   { key: 'alarmMsg', label: 'Alarm Message' },
   { key: 'advice', label: 'Advice' },
   { key: 'remark', label: 'Remark' },
@@ -38,6 +41,11 @@ function displayValue(value: unknown): string {
   if (value === null || value === undefined || value === '') return '-'
   return String(value)
 }
+
+function formatFetchedAt(value: string | null | undefined) {
+  if (!value) return null
+  return new Date(value).toLocaleString()
+}
 </script>
 
 <template>
@@ -47,28 +55,39 @@ function displayValue(value: unknown): string {
     size="lg"
     @update:model-value="emit('update:modelValue', $event)"
   >
-    <div v-if="loading" class="flex items-center justify-center py-16">
-      <svg class="h-6 w-6 animate-spin text-[#01ADEF]" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-      </svg>
-    </div>
-
-    <div v-else-if="!detail" class="py-12 text-center">
-      <p class="text-sm font-medium text-slate-500">No detail available.</p>
+    <div v-if="!detail" class="py-10 text-center">
+      <p class="text-sm font-medium text-slate-500">
+        No detail available yet for this alarm.
+      </p>
+      <p class="mt-1 text-xs text-slate-400">
+        The backend fetches this automatically when the alarm is received — it may not have
+        succeeded yet, or the third-party lookup wasn't reachable at the time.
+      </p>
+      <UiBaseButton
+        variant="secondary"
+        class="mt-4"
+        :loading="retrying"
+        @click="emit('retry')"
+      >
+        Retry Now
+      </UiBaseButton>
     </div>
 
     <div v-else class="space-y-5">
+      <p v-if="formatFetchedAt(fetchedAt)" class="text-xs font-medium text-slate-400">
+        Fetched {{ formatFetchedAt(fetchedAt) }}
+      </p>
+
       <div class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
         <div v-for="field in FIELDS" :key="field.key">
           <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ field.label }}</p>
           <p class="mt-0.5 break-words text-sm font-medium text-[#0F1F52]">
-            {{ displayValue(detail.data[field.key]) }}
+            {{ displayValue(detail[field.key]) }}
           </p>
         </div>
       </div>
 
-      <div v-if="detail.data.materiel.length > 0">
+      <div v-if="detail.materiel.length > 0">
         <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Materiel</p>
         <div class="overflow-x-auto rounded-xl border border-[#E2E8F0]">
           <table class="w-full text-left text-sm">
@@ -80,7 +99,7 @@ function displayValue(value: unknown): string {
               </tr>
             </thead>
             <tbody class="divide-y divide-[#E2E8F0]">
-              <tr v-for="(item, index) in detail.data.materiel" :key="index">
+              <tr v-for="(item, index) in detail.materiel" :key="index">
                 <td class="px-4 py-2 text-slate-600">{{ displayValue(item.materielNum) }}</td>
                 <td class="px-4 py-2 text-slate-600">{{ displayValue(item.materielName) }}</td>
                 <td class="px-4 py-2 text-slate-600">{{ displayValue(item.materielAccount) }}</td>
@@ -92,6 +111,14 @@ function displayValue(value: unknown): string {
     </div>
 
     <template #footer>
+      <UiBaseButton
+        v-if="detail"
+        variant="ghost"
+        :loading="retrying"
+        @click="emit('retry')"
+      >
+        Refresh
+      </UiBaseButton>
       <UiBaseButton variant="secondary" @click="emit('update:modelValue', false)">Close</UiBaseButton>
     </template>
   </UiBaseModal>

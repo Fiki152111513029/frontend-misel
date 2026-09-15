@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { RobotAlarm, RobotAlarmDetailResponse } from '~/types/robot-alarm'
+import type { RobotAlarm } from '~/types/robot-alarm'
 
 definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'ICS Alarm Logs — Misel' })
@@ -10,18 +10,33 @@ const meta = ref<Awaited<ReturnType<typeof fetchAlarms>>['meta']>({ total: 0, pa
 const loading = ref(false)
 
 const showDetailDialog = ref(false)
-const detailLoading = ref(false)
-const detailResult = ref<RobotAlarmDetailResponse | null>(null)
-const detailDeviceLabel = ref('')
+const detailRetrying = ref(false)
+const detailItem = ref<RobotAlarm | null>(null)
 
-async function openDetail(item: RobotAlarm) {
-  if (!item.deviceName) return
-  detailDeviceLabel.value = item.deviceName
-  detailResult.value = null
+// The backend fetches alarm detail automatically as soon as it receives the
+// alarm (see ReceiveRobotAlarmWebhookUseCase) — this just displays whatever
+// is already on the row, no live call on open.
+function openDetail(item: RobotAlarm) {
+  detailItem.value = item
   showDetailDialog.value = true
-  detailLoading.value = true
-  detailResult.value = await fetchAlarmDetail(item.deviceName)
-  detailLoading.value = false
+}
+
+async function retryDetail() {
+  if (!detailItem.value?.deviceName) return
+  detailRetrying.value = true
+  const result = await fetchAlarmDetail(detailItem.value.deviceName)
+  detailRetrying.value = false
+  if (!result) return
+
+  const fetchedAt = new Date().toISOString()
+  detailItem.value = { ...detailItem.value, alarmDetail: result.data, alarmDetailFetchedAt: fetchedAt }
+  // Keep the underlying table row in sync too, so re-opening this alarm
+  // later (without another retry) still shows the refreshed detail.
+  const row = items.value.find(i => i.id === detailItem.value?.id)
+  if (row) {
+    row.alarmDetail = result.data
+    row.alarmDetailFetchedAt = fetchedAt
+  }
 }
 
 async function load(query?: { page?: number, limit?: number }) {
@@ -90,9 +105,11 @@ function handleLimitChange(limit: number) {
 
       <RobotAlarmsDetailDialog
         v-model="showDetailDialog"
-        :loading="detailLoading"
-        :detail="detailResult"
-        :device-label="detailDeviceLabel"
+        :retrying="detailRetrying"
+        :detail="detailItem?.alarmDetail ?? null"
+        :fetched-at="detailItem?.alarmDetailFetchedAt ?? null"
+        :device-label="detailItem?.deviceName ?? ''"
+        @retry="retryDetail"
       />
     </div>
   </IcsLogsPasswordGate>
