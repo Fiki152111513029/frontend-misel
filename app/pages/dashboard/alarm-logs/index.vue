@@ -1,11 +1,28 @@
 <script setup lang="ts">
+import type { RobotAlarm, RobotAlarmDetailResponse } from '~/types/robot-alarm'
+
 definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'ICS Alarm Logs — Misel' })
 
-const { fetchAlarms } = useRobotAlarms()
+const { fetchAlarms, fetchAlarmDetail } = useRobotAlarms()
 const items = ref<Awaited<ReturnType<typeof fetchAlarms>>['items']>([])
 const meta = ref<Awaited<ReturnType<typeof fetchAlarms>>['meta']>({ total: 0, page: 1, limit: 10, totalPages: 0 })
 const loading = ref(false)
+
+const showDetailDialog = ref(false)
+const detailLoading = ref(false)
+const detailResult = ref<RobotAlarmDetailResponse | null>(null)
+const detailDeviceLabel = ref('')
+
+async function openDetail(item: RobotAlarm) {
+  if (!item.deviceName) return
+  detailDeviceLabel.value = item.deviceName
+  detailResult.value = null
+  showDetailDialog.value = true
+  detailLoading.value = true
+  detailResult.value = await fetchAlarmDetail(item.deviceName)
+  detailLoading.value = false
+}
 
 async function load(query?: { page?: number, limit?: number }) {
   // Only show the loading state on a genuine first load (or when jumping
@@ -48,7 +65,7 @@ function handleLimitChange(limit: number) {
       <div>
         <h1 class="text-2xl font-extrabold text-[#0F1F52]">ICS Alarm Logs</h1>
         <p class="font-medium mt-1 text-sm text-slate-500">
-          Every device alarm RCS has reported — device offline, etc. Kept for 7 days, then purged automatically.
+          Every device alarm RCS has reported — device offline, etc. Kept for 4 days, then purged automatically.
         </p>
       </div>
 
@@ -57,7 +74,7 @@ function handleLimitChange(limit: number) {
           {{ meta.total }} record(s) found
         </p>
 
-        <RobotAlarmsTable :items="items" :loading="loading" />
+        <RobotAlarmsTable :items="items" :loading="loading" @detail="openDetail" />
       </UiBaseCard>
 
       <UiBasePagination
@@ -69,6 +86,13 @@ function handleLimitChange(limit: number) {
         item-label="alarms"
         @update:page="goToPage"
         @update:limit="handleLimitChange"
+      />
+
+      <RobotAlarmsDetailDialog
+        v-model="showDetailDialog"
+        :loading="detailLoading"
+        :detail="detailResult"
+        :device-label="detailDeviceLabel"
       />
     </div>
   </IcsLogsPasswordGate>

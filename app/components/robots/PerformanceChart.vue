@@ -66,10 +66,11 @@ const series = computed(() => [
   { name: 'Running', data: rows.value.map(row => row.runningMinutes) },
   { name: 'Idle', data: rows.value.map(row => row.idleMinutes) },
   { name: 'Charging', data: rows.value.map(row => row.chargingMinutes) },
-  // Independent of the three above (a robot can be "Idle" and in an active
-  // alarm at the same time) — stacked on top anyway so it's still visible
-  // per-robot, but deliberately left out of highestTotalMinutes/axisMax
-  // below since it isn't additional elapsed shift time.
+  // Mutually exclusive with the three above — the backend excludes any time
+  // under an active alarm from Running/Idle/Charging, resuming normal
+  // counting once the alarm is reported resolved — so this is genuine
+  // additional elapsed shift time and belongs in highestTotalMinutes/axisMax
+  // below, not just stacked on top for visibility.
   { name: 'Alarm', data: rows.value.map(row => row.alarmMinutes) },
 ])
 
@@ -78,7 +79,9 @@ const series = computed(() => [
 // which would flatten every bar to the same height and make the chart
 // useless for comparing robots.
 const highestTotalMinutes = computed(() => {
-  const totals = rows.value.map(row => row.runningMinutes + row.idleMinutes + row.chargingMinutes)
+  const totals = rows.value.map(
+    row => row.runningMinutes + row.idleMinutes + row.chargingMinutes + row.alarmMinutes,
+  )
   return Math.max(...totals, 0)
 })
 
@@ -153,7 +156,7 @@ function exportToExcel() {
     row.idleMinutes,
     row.chargingMinutes,
     row.alarmMinutes,
-    row.runningMinutes + row.idleMinutes + row.chargingMinutes,
+    row.runningMinutes + row.idleMinutes + row.chargingMinutes + row.alarmMinutes,
   ])
   const shiftName = shifts.value.find(s => s.id === shiftId.value)?.name ?? 'shift'
   const scope = viewMode.value === 'DAILY' ? selectedDate.value : selectedMonth.value

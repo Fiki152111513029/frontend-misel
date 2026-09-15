@@ -1,4 +1,9 @@
-import type { AlarmDashboardStats, RobotAlarmListResult, RobotAlarmQuery } from '~/types/robot-alarm'
+import type {
+  AlarmDashboardStats,
+  RobotAlarmDetailResponse,
+  RobotAlarmListResult,
+  RobotAlarmQuery,
+} from '~/types/robot-alarm'
 
 // Live/current alarm snapshot — Critical alarm count + per-zone alarm
 // density within the last N minutes only (reads 0 once nothing fresh has
@@ -25,4 +30,12 @@ export async function fetchRobotAlarms(query: RobotAlarmQuery = {}): Promise<Rob
 export async function fetchActiveAlarmDeviceNames(): Promise<string[]> {
   const { $http } = useNuxtApp()
   return (await $http.get('/robot-alarms/active-devices')) as string[]
+}
+
+// Extended abnormality detail (task/materiel context) for one device,
+// proxied by our backend from the third-party lookup — powers the Alarm
+// Logs "Detail" button.
+export async function fetchRobotAlarmDetail(deviceCode: string): Promise<RobotAlarmDetailResponse> {
+  const { $http } = useNuxtApp()
+  return (await $http.post('/robot-alarms/detail', { deviceCode })) as RobotAlarmDetailResponse
 }

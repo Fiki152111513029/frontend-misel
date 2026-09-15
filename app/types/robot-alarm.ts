@@ -46,3 +46,33 @@ export interface RobotAlarmListResult {
   items: RobotAlarm[]
   meta: RobotAlarmListMeta
 }
+
+export interface RobotAlarmDetailMateriel {
+  materielNum: string
+  materielName: string
+  materielAccount: string
+}
+
+export interface RobotAlarmDetailData {
+  alarmMsg: string
+  materiel: RobotAlarmDetailMateriel[]
+  targetPositionName: string
+  advice: string
+  remark: string
+  startPositionName: string
+  taskTypeName: string
+  startPosition: string
+  alarmFlag: number | null
+  targetPosition: string
+  outOrderId: string
+  taskTemplateName: string
+  shelfNumber: string
+  state: number | null
+  taskId: string
+}
+
+export interface RobotAlarmDetailResponse {
+  code: number
+  desc: string
+  data: RobotAlarmDetailData
+}
