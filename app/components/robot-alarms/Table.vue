@@ -7,10 +7,6 @@ interface Props {
 }
 defineProps<Props>()
 
-const emit = defineEmits<{
-  detail: [item: RobotAlarm]
-}>()
-
 const columns = [
   { key: 'receivedAt', label: 'Received At' },
   { key: 'device', label: 'Device' },
@@ -21,7 +17,6 @@ const columns = [
   { key: 'grade', label: 'Grade', width: '110px' },
   { key: 'status', label: 'Status', width: '100px' },
   { key: 'source', label: 'Source', width: '100px' },
-  { key: 'actions', label: '', width: '90px' },
 ]
 
 // RCS's own severity scale: 1 = Tip, 2 = Alert, 3 = Emergency.
@@ -113,16 +108,6 @@ function formatDate(value: string) {
           </td>
           <td class="px-4 py-3 text-sm text-slate-500">
             {{ item.alarmSource ?? '-' }}
-          </td>
-          <td class="px-4 py-3">
-            <button
-              type="button"
-              class="rounded-lg border border-[#E2E8F0] px-2.5 py-1.5 text-xs font-semibold text-[#0F1F52] transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              :disabled="!item.deviceName"
-              @click="emit('detail', item)"
-            >
-              Detail
-            </button>
           </td>
         </tr>
       </template>
