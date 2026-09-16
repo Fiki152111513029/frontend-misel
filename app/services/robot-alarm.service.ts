@@ -1,14 +1,13 @@
 import type { AlarmDashboardStats, RobotAlarmListResult, RobotAlarmQuery } from '~/types/robot-alarm'
 
-// Live/current alarm snapshot — Critical alarm count + per-zone alarm
-// density within the last N minutes only (reads 0 once nothing fresh has
-// come in, rather than carrying an old count forward) — powers the main
-// Dashboard's Critical Alarms stat and Abnormality chart.
-export async function fetchAlarmDashboardStats(minutes: number = 2): Promise<AlarmDashboardStats> {
+// Currently-active alarm snapshot — based on alarmStatus (0=active,
+// 1=resolved), not a time window. Critical (Emergency-grade) count,
+// per-zone density, and the active alarm list all derive from the same
+// active set — powers the main Dashboard's Critical Alarms stat and
+// Abnormality panel.
+export async function fetchAlarmDashboardStats(): Promise<AlarmDashboardStats> {
   const { $http } = useNuxtApp()
-  return (await $http.get('/robot-alarms/dashboard-stats', {
-    params: { minutes },
-  })) as AlarmDashboardStats
+  return (await $http.get('/robot-alarms/dashboard-stats')) as AlarmDashboardStats
 }
 
 // Every received robot alarm (pagination), newest first — the Alarm Logs

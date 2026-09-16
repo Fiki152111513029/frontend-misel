@@ -3,12 +3,29 @@ export interface AlarmZoneCount {
   count: number
 }
 
+// One currently-active alarm, based on alarmStatus (0 = active, 1 =
+// resolved) rather than a time window — the raw device/desc fields the
+// Abnormality panel lists per zone.
+export interface ActiveAlarmInfo {
+  deviceNum: string | null
+  deviceName: string | null
+  alarmType: number | null
+  alarmDesc: string | null
+  alarmGrade: number | null
+  areaId: number | null
+}
+
 export interface AlarmDashboardStats {
-  // Count of alarmGrade = 3 (Emergency, RCS's own severity scale) alarms
-  // received within the window.
+  // Count of currently-ACTIVE alarms (see activeAlarms) that are
+  // alarmGrade = 3 (Emergency, RCS's own severity scale) — not a time
+  // window. An alarm counts here from the moment it's reported active
+  // until RCS reports it resolved.
   criticalCount: number
-  // Alarm counts grouped by areaId within the window, sorted highest first.
+  // Currently-active alarm counts grouped by areaId, sorted highest first.
   byZone: AlarmZoneCount[]
+  // Every currently-active alarm — one per device+alarm key, whichever
+  // status was reported most recently.
+  activeAlarms: ActiveAlarmInfo[]
 }
 
 export interface RobotAlarm {

@@ -55,14 +55,16 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
 
 // Abnormality — real alarm counts from RCS's device-alarm webhook, grouped
 // by zone (areaId, an opaque RCS zone number with no local name mapping —
-// see backend/prisma/schema.prisma's RobotAlarm model). This is a live
-// "right now" snapshot, not a historical count — the backend only looks at
-// the last 2 minutes, so a zone with nothing fresh in that window naturally
-// drops out of stats.byZone and disappears here (down to the empty state
-// below) rather than keeping a stale count on screen. percent scales
-// relative to the busiest zone in range, not an absolute rate, since there's
-// no fixed "total possible alarms" denominator to divide by.
-interface ZoneError { label: string, percent: number }
+// see backend/prisma/schema.prisma's RobotAlarm model). Based on
+// alarmStatus (0=active, 1=resolved), not a time window — an alarm stays
+// counted here from the moment it's reported active until RCS reports it
+// resolved, however long that takes; a zone only drops out once every one
+// of its alarms has actually been resolved. percent scales relative to the
+// busiest zone right now, not an absolute rate, since there's no fixed
+// "total possible alarms" denominator to divide by.
+const MAX_ALARMS_SHOWN_PER_ZONE = 3
+interface ZoneAlarmEntry { deviceNum: string, alarmType: number | null, alarmDesc: string }
+interface ZoneError { label: string, percent: number, alarms: ZoneAlarmEntry[], moreCount: number }
 const { fetchDashboardStats } = useRobotAlarms()
 const zones = ref<ZoneError[]>([])
 
@@ -70,10 +72,19 @@ async function loadAlarmStats() {
   const stats = await fetchDashboardStats()
   if (!stats) return
   const maxCount = Math.max(...stats.byZone.map(zone => zone.count), 0)
-  zones.value = stats.byZone.slice(0, 5).map(zone => ({
-    label: `Zone ${zone.areaId}`,
-    percent: maxCount > 0 ? Math.round((zone.count / maxCount) * 100) : 0,
-  }))
+  zones.value = stats.byZone.slice(0, 5).map((zone) => {
+    const alarmsInZone = stats.activeAlarms.filter(alarm => alarm.areaId === zone.areaId)
+    return {
+      label: `Zone ${zone.areaId}`,
+      percent: maxCount > 0 ? Math.round((zone.count / maxCount) * 100) : 0,
+      alarms: alarmsInZone.slice(0, MAX_ALARMS_SHOWN_PER_ZONE).map(alarm => ({
+        deviceNum: alarm.deviceNum ?? alarm.deviceName ?? '-',
+        alarmType: alarm.alarmType,
+        alarmDesc: alarm.alarmDesc ?? '-',
+      })),
+      moreCount: Math.max(0, alarmsInZone.length - MAX_ALARMS_SHOWN_PER_ZONE),
+    }
+  })
 }
 
 function barColor(percent: number) {
@@ -221,6 +232,26 @@ async function loadRequestQueue() {
               :class="barColor(zone.percent)"
               :style="{ width: `${zone.percent}%` }"
             />
+          </div>
+
+          <div class="mt-1.5 space-y-1">
+            <div
+              v-for="(alarm, index) in zone.alarms"
+              :key="index"
+              class="flex items-center gap-1.5 text-[11px] text-slate-400"
+            >
+              <span class="truncate font-mono text-slate-500">{{ alarm.deviceNum }}</span>
+              <span class="truncate">— {{ alarm.alarmDesc }}</span>
+              <span
+                v-if="alarm.alarmType !== null"
+                class="ml-auto flex-shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-slate-400"
+              >
+                Type {{ alarm.alarmType }}
+              </span>
+            </div>
+            <p v-if="zone.moreCount > 0" class="text-[11px] text-slate-400">
+              +{{ zone.moreCount }} more
+            </p>
           </div>
         </div>
       </div>
