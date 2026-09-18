@@ -85,10 +85,15 @@ const highestTotalMinutes = computed(() => {
   return Math.max(...totals, 0)
 })
 
+// A full shift's "Complete" target — shown as a reference line even on a
+// light day where no robot has reached it yet, so the axis must stretch to
+// fit it too, not just the busiest robot's bar.
+const TARGET_MINUTES = 480
+
 // Rounded up to the next hour, plus a little headroom so the reference
-// line at highestTotalMinutes doesn't sit flush against the chart's own
-// top edge. Floored at 60 so an all-zero day doesn't collapse the axis.
-const axisMax = computed(() => Math.max(Math.ceil((highestTotalMinutes.value + 30) / 60) * 60, 60))
+// lines don't sit flush against the chart's own top edge. Floored at 60 so
+// an all-zero day doesn't collapse the axis.
+const axisMax = computed(() => Math.max(Math.ceil((Math.max(highestTotalMinutes.value, TARGET_MINUTES) + 30) / 60) * 60, 60))
 
 function formatMinutes(minutes: number) {
   const hours = Math.floor(minutes / 60)
@@ -122,15 +127,26 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
     },
   },
   annotations: {
-    yaxis: [{
-      y: highestTotalMinutes.value,
-      borderColor: '#94A3B8',
-      strokeDashArray: 4,
-      label: {
-        text: `${highestTotalMinutes.value} min (highest)`,
-        style: { color: '#94A3B8', background: 'transparent' },
+    yaxis: [
+      {
+        y: highestTotalMinutes.value,
+        borderColor: '#94A3B8',
+        strokeDashArray: 4,
+        label: {
+          text: `${highestTotalMinutes.value} min (highest)`,
+          style: { color: '#94A3B8', background: 'transparent' },
+        },
       },
-    }],
+      {
+        y: TARGET_MINUTES,
+        borderColor: '#10B981',
+        strokeDashArray: 4,
+        label: {
+          text: `Complete (${TARGET_MINUTES} min)`,
+          style: { color: '#10B981', background: 'transparent' },
+        },
+      },
+    ],
   },
   dataLabels: { enabled: false },
   legend: {

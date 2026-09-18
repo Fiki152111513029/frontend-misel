@@ -77,7 +77,11 @@ const series = computed(() => [
 // convention as the AMR Performance chart — a fixed ceiling would flatten
 // every bar for a light day and hide differences on a busy one.
 const highestMinutes = computed(() => Math.max(...rows.value.map(row => row.totalDurationMinutes), 0))
-const axisMax = computed(() => Math.max(Math.ceil((highestMinutes.value + 30) / 60) * 60, 60))
+// A full shift's "Complete" target — shown as a reference line even on a
+// light day where nobody has reached it yet, so the axis must stretch to
+// fit it too, not just the tallest bar.
+const TARGET_MINUTES = 465
+const axisMax = computed(() => Math.max(Math.ceil((Math.max(highestMinutes.value, TARGET_MINUTES) + 30) / 60) * 60, 60))
 
 function formatMinutes(minutes: number) {
   const hours = Math.floor(minutes / 60)
@@ -107,15 +111,26 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
     },
   },
   annotations: {
-    yaxis: [{
-      y: highestMinutes.value,
-      borderColor: '#94A3B8',
-      strokeDashArray: 4,
-      label: {
-        text: `${highestMinutes.value} min (highest)`,
-        style: { color: '#94A3B8', background: 'transparent' },
+    yaxis: [
+      {
+        y: highestMinutes.value,
+        borderColor: '#94A3B8',
+        strokeDashArray: 4,
+        label: {
+          text: `${highestMinutes.value} min (highest)`,
+          style: { color: '#94A3B8', background: 'transparent' },
+        },
       },
-    }],
+      {
+        y: TARGET_MINUTES,
+        borderColor: '#10B981',
+        strokeDashArray: 4,
+        label: {
+          text: `Complete (${TARGET_MINUTES} min)`,
+          style: { color: '#10B981', background: 'transparent' },
+        },
+      },
+    ],
   },
   dataLabels: {
     enabled: true,
