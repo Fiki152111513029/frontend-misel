@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ImageIcon, UploadCloud } from 'lucide-vue-next'
-import type { FactoryMap, UpdateFactoryMapInput } from '~/types/factory-map'
+import type { FactoryMap, FactoryMapFormInput, RackTarget } from '~/types/factory-map'
+import { parseTopologyLocations } from '~/utils/topologyLocations'
+import type { TopologyLocations } from '~/utils/topologyLocations'
 
 interface Props {
   modelValue: boolean
@@ -15,7 +17,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  submit: [input: UpdateFactoryMapInput]
+  submit: [input: FactoryMapFormInput]
   cancel: []
 }>()
 
@@ -25,6 +27,13 @@ const imageFile = ref<File | null>(null)
 const topologyFile = ref<File | null>(null)
 const imagePreviewUrl = ref<string | null>(null)
 const errors = reactive<{ name?: string, areaNumber?: string, topologyFile?: string }>({})
+
+// What the chosen topology file contains (create mode only): chargers and
+// parking areas are imported automatically, while each rack has to be
+// routed to Production or Warehouse Location here first — the file itself
+// can't tell those two apart.
+const detected = ref<TopologyLocations | null>(null)
+const rackTargets = ref<Record<string, RackTarget | null>>({})
 
 const isEditMode = computed(() => !!props.factoryMap)
 
@@ -37,6 +46,8 @@ function resetFields() {
   errors.name = undefined
   errors.areaNumber = undefined
   errors.topologyFile = undefined
+  detected.value = null
+  rackTargets.value = {}
 }
 
 watch(
@@ -54,12 +65,36 @@ function handleImagePick(event: Event) {
   imagePreviewUrl.value = URL.createObjectURL(file)
 }
 
-function handleTopologyPick(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
+async function handleTopologyPick(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
   if (!file) return
   topologyFile.value = file
   errors.topologyFile = undefined
+  detected.value = null
+  rackTargets.value = {}
+  if (isEditMode.value) return
+
+  try {
+    const locations = await parseTopologyLocations(file)
+    detected.value = locations
+    rackTargets.value = Object.fromEntries(locations.racks.map(rack => [rack.code, null]))
+  } catch {
+    topologyFile.value = null
+    errors.topologyFile = 'This file is not valid JSON'
+    input.value = ''
+  }
 }
+
+function toggleRack(code: string, target: RackTarget) {
+  rackTargets.value = { ...rackTargets.value, [code]: rackTargets.value[code] === target ? null : target }
+}
+
+function setAllRacks(target: RackTarget | null) {
+  rackTargets.value = Object.fromEntries((detected.value?.racks ?? []).map(rack => [rack.code, target]))
+}
+
+const assignedRackCount = computed(() => Object.values(rackTargets.value).filter(Boolean).length)
 
 function validate(): boolean {
   errors.name = undefined
@@ -93,6 +128,11 @@ function handleSubmit() {
     areaNumber: Number(areaNumberText.value),
     imageFile: imageFile.value ?? undefined,
     topologyFile: topologyFile.value ?? undefined,
+    rackAssignments: isEditMode.value
+      ? undefined
+      : Object.entries(rackTargets.value)
+          .filter((entry): entry is [string, RackTarget] => entry[1] !== null)
+          .map(([code, target]) => ({ code, target })),
   })
 }
 
@@ -105,7 +145,7 @@ function handleCancel() {
   <UiBaseModal
     :model-value="modelValue"
     :title="isEditMode ? 'Edit Factory Map' : 'Add Factory Map'"
-    size="sm"
+    :size="!isEditMode && detected ? 'lg' : 'sm'"
     @update:model-value="emit('update:modelValue', $event)"
   >
     <div class="space-y-4">
@@ -154,6 +194,56 @@ function handleCancel() {
         <p v-if="errors.topologyFile" role="alert" class="font-medium flex items-center gap-1.5 text-xs text-red-500">
           {{ errors.topologyFile }}
         </p>
+      </div>
+
+      <div v-if="detected && !isEditMode" class="space-y-3 rounded-xl border border-[#E2E8F0] bg-slate-50/60 p-4">
+        <p class="text-sm font-semibold text-[#0F1F52]">Locations found in this map</p>
+
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div class="rounded-lg bg-white px-3 py-2">
+            <p class="font-semibold text-[#0F1F52]">{{ detected.chargers.length }} Charger Area(s)</p>
+            <p class="text-slate-400">Node type 6 — added automatically</p>
+          </div>
+          <div class="rounded-lg bg-white px-3 py-2">
+            <p class="font-semibold text-[#0F1F52]">{{ detected.parkings.length }} Parking Area(s)</p>
+            <p class="text-slate-400">Node type 7 — added automatically</p>
+          </div>
+        </div>
+        <p class="text-[11px] text-slate-400">
+          Node “content” becomes the iRayple Location Code and “name” becomes the Name. Codes that already exist are skipped.
+        </p>
+
+        <div v-if="detected.racks.length > 0" class="space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-xs font-semibold text-[#0F1F52]">
+              Racks (type 1) — choose where each goes
+              <span class="font-normal text-slate-400">· {{ assignedRackCount }} / {{ detected.racks.length }} selected</span>
+            </p>
+            <div class="flex gap-1.5 text-[11px] font-semibold">
+              <button type="button" class="rounded-md border border-[#E2E8F0] bg-white px-2 py-1 text-slate-600 hover:border-[#01ADEF]" @click="setAllRacks('PRODUCTION')">All → Production</button>
+              <button type="button" class="rounded-md border border-[#E2E8F0] bg-white px-2 py-1 text-slate-600 hover:border-[#01ADEF]" @click="setAllRacks('WAREHOUSE')">All → Warehouse</button>
+              <button type="button" class="rounded-md border border-[#E2E8F0] bg-white px-2 py-1 text-slate-400 hover:border-slate-300" @click="setAllRacks(null)">Clear</button>
+            </div>
+          </div>
+
+          <div class="max-h-60 divide-y divide-[#E2E8F0] overflow-y-auto rounded-lg border border-[#E2E8F0] bg-white">
+            <div v-for="rack in detected.racks" :key="rack.code" class="flex items-center gap-3 px-3 py-1.5 text-xs">
+              <span class="min-w-0 flex-1 truncate font-mono font-medium text-[#0F1F52]">
+                {{ rack.code }}
+                <span v-if="rack.name !== rack.code" class="font-sans font-normal text-slate-400">· {{ rack.name }}</span>
+              </span>
+              <label class="flex cursor-pointer items-center gap-1.5 text-slate-600">
+                <input type="checkbox" class="accent-[#01ADEF]" :checked="rackTargets[rack.code] === 'PRODUCTION'" @change="toggleRack(rack.code, 'PRODUCTION')">
+                Production
+              </label>
+              <label class="flex cursor-pointer items-center gap-1.5 text-slate-600">
+                <input type="checkbox" class="accent-[#01ADEF]" :checked="rackTargets[rack.code] === 'WAREHOUSE'" @change="toggleRack(rack.code, 'WAREHOUSE')">
+                Warehouse
+              </label>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400">Racks left unchecked are not imported.</p>
+        </div>
       </div>
     </div>
 

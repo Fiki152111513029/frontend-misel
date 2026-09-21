@@ -9,6 +9,29 @@ export interface FactoryMap {
   createdAt: string
   updatedAt: string
   deletedAt: string | null
+  /** Only present on the create response — what got imported from the topology file's nodes. Null if that import itself errored (the map was still saved). */
+  locationSync?: TopologySyncResult | null
+}
+
+export type RackTarget = 'PRODUCTION' | 'WAREHOUSE'
+
+export interface RackAssignment {
+  code: string
+  target: RackTarget
+}
+
+export interface LocationSyncSummary {
+  created: number
+  skipped: number
+  failed: number
+  errors: { code: string, error: string }[]
+}
+
+export interface TopologySyncResult {
+  chargerAreas: LocationSyncSummary
+  parkingAreas: LocationSyncSummary
+  productionLocations: LocationSyncSummary
+  warehouseLocations: LocationSyncSummary
 }
 
 export interface CreateFactoryMapInput {
@@ -16,6 +39,8 @@ export interface CreateFactoryMapInput {
   areaNumber: number
   imageFile?: File
   topologyFile: File
+  /** Which Production/Warehouse Location each type-1 rack in the topology becomes. Racks not listed aren't imported. */
+  rackAssignments?: RackAssignment[]
 }
 
 export interface UpdateFactoryMapInput {
@@ -23,6 +48,11 @@ export interface UpdateFactoryMapInput {
   areaNumber?: number
   imageFile?: File
   topologyFile?: File
+}
+
+/** What the Add/Edit dialog emits — rackAssignments only ever applies when creating. */
+export interface FactoryMapFormInput extends UpdateFactoryMapInput {
+  rackAssignments?: RackAssignment[]
 }
 
 export type FactoryMapSortBy = 'name' | 'createdAt'

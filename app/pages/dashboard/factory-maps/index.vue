@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Plus } from 'lucide-vue-next'
-import type { FactoryMap, FactoryMapQuery, UpdateFactoryMapInput } from '~/types/factory-map'
+import type { FactoryMap, FactoryMapFormInput, FactoryMapQuery } from '~/types/factory-map'
 
 definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'Factory Maps — Misel' })
@@ -43,7 +43,7 @@ function openDelete(factoryMap: FactoryMap) {
   showDeleteDialog.value = true
 }
 
-async function handleFormSubmit(input: UpdateFactoryMapInput) {
+async function handleFormSubmit(input: FactoryMapFormInput) {
   submitting.value = true
   // The dialog's own validation guarantees name/areaNumber/topologyFile are
   // present when creating (they're only optional in edit mode, to keep the
@@ -56,6 +56,7 @@ async function handleFormSubmit(input: UpdateFactoryMapInput) {
         areaNumber: input.areaNumber!,
         imageFile: input.imageFile,
         topologyFile: input.topologyFile!,
+        rackAssignments: input.rackAssignments,
       })
   submitting.value = false
   if (ok) showFormDialog.value = false

@@ -23,6 +23,9 @@ export async function createFactoryMap(input: CreateFactoryMapInput): Promise<Fa
   formData.append('areaNumber', String(input.areaNumber))
   if (input.imageFile) formData.append('image', input.imageFile)
   formData.append('topology', input.topologyFile)
+  if (input.rackAssignments?.length) {
+    formData.append('rackAssignments', JSON.stringify(input.rackAssignments))
+  }
   return (await $http.post('/factory-maps', formData)) as FactoryMap
 }
 
