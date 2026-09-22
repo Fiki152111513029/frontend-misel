@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Truck } from 'lucide-vue-next'
+import { Camera, Truck } from 'lucide-vue-next'
 import { taskStatusLabel } from '~/utils/taskStatus'
 import { fetchMyActiveTrolleyActivities } from '~/services/trolley-activity.service'
 import type { LookupTrolleyTypeOption } from '~/types/trolley-activity'
@@ -84,6 +84,20 @@ const subtitle = computed(() => {
   if (step.value === 'location') return 'Scan the area'
   return mode.value === 'take' ? 'Review and confirm the pickup area' : 'Review and send the task'
 })
+
+// Camera scanning of the same QR labels this app prints, so an ordinary
+// phone works without a handheld scanner. The decoded text goes through the
+// exact same handleScanSubmit() path a typed/scanner-entered code does.
+const showScanner = ref(false)
+
+const scannerTitle = computed(() =>
+  step.value === 'location' ? 'Scan Area QR' : 'Scan Trolley QR',
+)
+
+async function handleCameraScanned(value: string) {
+  scanValue.value = value
+  await handleScanSubmit()
+}
 
 function focusScanInput() {
   nextTick(() => {
@@ -341,6 +355,14 @@ async function handleSubmit() {
             :label="step === 'location' ? 'Area Code' : 'Trolley Code'"
             placeholder="Waiting for scan…"
           />
+          <button
+            type="button"
+            class="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#01ADEF]/40 bg-white px-6 py-3 text-sm font-semibold text-[#01ADEF] transition-all hover:bg-[#01ADEF]/5 active:scale-[0.99]"
+            @click="showScanner = true"
+          >
+            <Camera class="h-4 w-4" />
+            Scan with camera
+          </button>
           <UiBaseButton type="submit" full-width variant="gradient">
             Confirm
           </UiBaseButton>
@@ -386,6 +408,13 @@ async function handleSubmit() {
         </UiBaseButton>
       </UiBaseCard>
     </template>
+
+    <UiQrScannerModal
+      v-model="showScanner"
+      :title="scannerTitle"
+      :hint="step === 'location' ? 'Point the camera at the area QR label' : 'Point the camera at the trolley QR label'"
+      @scanned="handleCameraScanned"
+    />
 
     <!-- Current Queue — same fields/polling behavior as Mainline, one card
          per trolley task still in flight. Visible regardless of mode. -->
