@@ -42,3 +42,19 @@ export interface LatestWebhookStatus {
   statusComment: string | null
   receivedAt: string
 }
+
+// Today's task counts bucketed by RCS's own subTaskStatus on the task-status
+// webhook payload: 1 = Not started, 2 = Running, 3 = Completing, 4 = Failed,
+// 5 = Cancel. One order counts once, under whichever status its most recent
+// webhook call reported.
+export interface TaskStatusSummary {
+  notStarted: number
+  running: number
+  completing: number
+  failed: number
+  cancelled: number
+  /** Orders counted above — excludes any whose latest call carried no subTaskStatus. */
+  total: number
+  /** Orders seen today whose latest call had no (or an unrecognized) subTaskStatus. */
+  unknown: number
+}

@@ -1,32 +1,47 @@
 ﻿<script setup lang="ts">
 import { fetchRobots } from '~/services/robot.service'
+import { fetchTaskStatusSummary } from '~/services/webhook-log.service'
 import { fetchTrolleyActivities } from '~/services/trolley-activity.service'
 import type { Robot } from '~/types/robot'
 
 const { isDark } = useTheme()
 
-// Performance — today's TrolleyActivity status breakdown (see
-// GetTrolleyActivityDashboardUseCase, days=1 = today's UTC calendar day).
-// No "Cancelled" bar — TaskStatus only has PENDING/IN_PROGRESS/COMPLETED/
-// FAILED, there's no cancelled state to source real data from.
+// Performance — today's task breakdown read straight off RCS's task-status
+// webhook payloads (subTaskStatus: 1=Not started, 2=Running, 3=Completing,
+// 4=Failed, 5=Cancel), not our own TrolleyActivity table. One order counts
+// once, under whichever status its most recent webhook call reported, so an
+// order reported repeatedly as it progresses isn't counted twice. Orders
+// whose latest call carried no subTaskStatus are left out entirely (the
+// backend reports them separately as `unknown`).
 interface StatusItem { label: string, value: number, color: string }
-const { fetchTrolleyActivityDashboard } = useTrolleyActivities()
+const STATUS_COLORS = {
+  notStarted: '#0991F3',
+  running: '#F6AE2D',
+  completing: '#014091',
+  failed: '#EF4444',
+  cancelled: '#94A3B8',
+} as const
 const statuses = ref<StatusItem[]>([
-  { label: 'Completed', value: 0, color: '#014091' },
-  { label: 'In progress', value: 0, color: '#F6AE2D' },
-  { label: 'Not Start', value: 0, color: '#0991F3' },
-  { label: 'Failed', value: 0, color: '#EF4444' },
+  { label: 'Not started', value: 0, color: STATUS_COLORS.notStarted },
+  { label: 'Running', value: 0, color: STATUS_COLORS.running },
+  { label: 'Completing', value: 0, color: STATUS_COLORS.completing },
+  { label: 'Failed', value: 0, color: STATUS_COLORS.failed },
+  { label: 'Cancel', value: 0, color: STATUS_COLORS.cancelled },
 ])
 
 async function loadTaskStatus() {
-  const stats = await fetchTrolleyActivityDashboard(1)
-  if (!stats) return
-  statuses.value = [
-    { label: 'Completed', value: stats.totals.completed, color: '#014091' },
-    { label: 'In progress', value: stats.totals.inProgress, color: '#F6AE2D' },
-    { label: 'Not Start', value: stats.totals.pending, color: '#0991F3' },
-    { label: 'Failed', value: stats.totals.failed, color: '#EF4444' },
-  ]
+  try {
+    const summary = await fetchTaskStatusSummary()
+    statuses.value = [
+      { label: 'Not started', value: summary.notStarted, color: STATUS_COLORS.notStarted },
+      { label: 'Running', value: summary.running, color: STATUS_COLORS.running },
+      { label: 'Completing', value: summary.completing, color: STATUS_COLORS.completing },
+      { label: 'Failed', value: summary.failed, color: STATUS_COLORS.failed },
+      { label: 'Cancel', value: summary.cancelled, color: STATUS_COLORS.cancelled },
+    ]
+  } catch {
+    // Non-fatal — keep showing the last known counts if a refresh tick fails.
+  }
 }
 
 const total = computed(() => statuses.value.reduce((sum, status) => sum + status.value, 0))

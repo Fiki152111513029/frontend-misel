@@ -53,6 +53,37 @@ function toggleGroup(resource: string, value: boolean) {
   }
 }
 
+// A write permission does nothing on its own — the backend drops
+// create/update/delete for any resource whose own read wasn't granted (see
+// resolveEffectivePermissions). Mirrored here so the form can't be saved in
+// a state that silently means something else: unticking a resource's read
+// unticks its writes too, and ticking a write ticks that read back on.
+const WRITE_ACTIONS = ['create', 'update', 'delete']
+
+function actionOf(code: string) {
+  return code.slice(code.lastIndexOf('.') + 1)
+}
+
+function readPermissionOf(resource: string) {
+  return (groupedPermissions.value[resource] ?? []).find(p => actionOf(p.code) === 'read')
+}
+
+function onPermissionToggle(permission: Permission, resource: string) {
+  const action = actionOf(permission.code)
+  const read = readPermissionOf(resource)
+  if (!read) return
+
+  if (action === 'read' && !checked[permission.id]) {
+    for (const other of groupedPermissions.value[resource] ?? []) {
+      if (WRITE_ACTIONS.includes(actionOf(other.code))) checked[other.id] = false
+    }
+    return
+  }
+  if (WRITE_ACTIONS.includes(action) && checked[permission.id]) {
+    checked[read.id] = true
+  }
+}
+
 function handleSubmit() {
   const permissionIds = Object.entries(checked)
     .filter(([, isChecked]) => isChecked)
@@ -72,6 +103,12 @@ function handleCancel() {
     size="lg"
     @update:model-value="emit('update:modelValue', $event)"
   >
+    <p class="mb-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+      Read controls whether the data shows at all; create, update and delete control the
+      Add, Edit and Delete buttons. A write permission needs its own read — unticking read
+      unticks them too.
+    </p>
+
     <div class="max-h-96 space-y-5 overflow-y-auto pr-1">
       <div v-for="(perms, resource) in groupedPermissions" :key="resource">
         <div class="mb-2 flex items-center justify-between">
@@ -102,6 +139,7 @@ function handleCancel() {
             :key="permission.id"
             v-model="checked[permission.id]"
             :label="permission.code"
+            @update:model-value="onPermissionToggle(permission, String(resource))"
           />
         </div>
       </div>

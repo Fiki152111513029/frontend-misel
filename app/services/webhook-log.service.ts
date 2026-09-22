@@ -1,4 +1,4 @@
-import type { LatestWebhookStatus, WebhookLogListResult, WebhookLogQuery } from '~/types/webhook-log'
+import type { LatestWebhookStatus, TaskStatusSummary, WebhookLogListResult, WebhookLogQuery } from '~/types/webhook-log'
 
 export async function fetchWebhookLogs(query: WebhookLogQuery = {}): Promise<WebhookLogListResult> {
   const { $http } = useNuxtApp()
@@ -13,4 +13,12 @@ export async function fetchWebhookLogs(query: WebhookLogQuery = {}): Promise<Web
 export async function fetchLatestWebhookStatus(orderId: string): Promise<LatestWebhookStatus | null> {
   const { $http } = useNuxtApp()
   return (await $http.get('/webhooks-logs/latest', { params: { orderId } })) as LatestWebhookStatus | null
+}
+
+// Today's task breakdown straight off the raw task-status webhook payloads
+// (subTaskStatus), not our own Task/TrolleyActivity tables — powers the
+// Dashboard's Performance panel.
+export async function fetchTaskStatusSummary(): Promise<TaskStatusSummary> {
+  const { $http } = useNuxtApp()
+  return (await $http.get('/webhooks-logs/task-status-summary')) as TaskStatusSummary
 }
