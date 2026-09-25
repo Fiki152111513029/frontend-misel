@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, FolderKanban, BarChart3, User, Construction, Bot, MessageCircleCode, BatteryFull, ShoppingCart, LandPlot, Settings, Bell, Map as MapIcon,
+  LayoutDashboard, Users, FolderKanban, BarChart3, User, Construction, Bot, MessageCircleCode, BatteryFull, ShoppingCart, LandPlot, Settings, Bell, Boxes, Map as MapIcon,
 } from 'lucide-vue-next'
 
 export interface MenuChild { title: string, path: string, permission: string | null }
@@ -44,6 +44,7 @@ export const NAV_MENUS: MenuEntry[] = [
     children: [
       { title: 'Warehouse Trolley Task', path: '/dashboard/warehouse-trolley-task', permission: 'warehouse-trolley-task.read' },
       { title: 'Operator Trolley Task', path: '/dashboard/operator-trolley-task', permission: 'operator-trolley-task.read' },
+      { title: 'Custom Task', path: '/dashboard/custom-task', permission: 'custom-task.read' },
     ],
   },
   {
@@ -92,10 +93,12 @@ export const NAV_MENUS: MenuEntry[] = [
       { title: 'Trolley Types', path: '/dashboard/trolley-types', permission: 'trolley-type.read' },
     ],
   },
+  { title: 'Racks', icon: Boxes, path: '/dashboard/racks', permission: 'rack.read' },
   {
     title: 'Setting System',
     icon: Settings,
     children: [
+      { title: 'Customize Control Task', path: '/dashboard/control-tasks', permission: 'control-task.read' },
       { title: 'Model Code Process', path: '/dashboard/model-code-process', permission: 'model-code-process.read' },
       { title: 'Robots', path: '/dashboard/robots', permission: 'robot.read' },
       { title: 'Factory Maps', path: '/dashboard/factory-maps', permission: 'factory-map.read' },

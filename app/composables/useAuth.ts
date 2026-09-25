@@ -1,6 +1,7 @@
 import type { LoginCredentials, AuthState, LoginResponse, AuthUser } from '~/types/auth'
 import { ApiError } from '~/types/api'
 import { clearAllTrolleyTaskQueues } from '~/stores/trolley-task-queue'
+import { useCustomTaskQueueStore } from '~/stores/custom-task-queue'
 
 const AUTH_TOKEN_KEY = 'auth_token'
 const AUTH_USER_KEY = 'auth_user'
@@ -99,6 +100,7 @@ export function useAuth() {
     sessionStorage.removeItem(AUTH_USER_KEY)
     sessionStorage.removeItem(AUTH_REFRESH_TOKEN_KEY)
     clearAllTrolleyTaskQueues()
+    useCustomTaskQueueStore().clear()
     navigateTo('/login')
   }
 
