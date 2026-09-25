@@ -5,9 +5,8 @@ import type {
   ControlTaskSortBy,
   ControlTaskSortOrder,
 } from '~/types/control-task'
-import { TYPE_OF_GOODS_OPTIONS } from '~/types/control-task'
 
-export type ControlTaskSortKey = ControlTaskSortBy | 'typeOfGoods' | 'isActive'
+export type ControlTaskSortKey = ControlTaskSortBy | 'isActive'
 
 interface Props {
   items: ControlTask[]
@@ -26,20 +25,17 @@ const emit = defineEmits<{
 
 const { hasPermission } = useAuth()
 
+// One list drives both the header and the cell order below, so the two can
+// never drift apart. Model Code Process and Route are a join and a list with
+// no meaningful ordering, so they carry no sort control.
 const columns = [
-  { key: 'abjad', label: 'Abjad', width: '90px' },
-  { key: 'name', label: 'Name' },
-  { key: 'typeOfGoods', label: 'Type of Goods', width: '140px' },
-  { key: 'modelCodeProcess', label: 'Model Code Process', width: '170px' },
-  { key: 'route', label: 'Route' },
-  { key: 'isActive', label: 'Active', width: '90px' },
-  { key: 'actions', label: 'Actions', width: '140px' },
+  { key: 'abjad', label: 'Abjad', width: '90px', sortable: true },
+  { key: 'name', label: 'Name', sortable: true },
+  { key: 'modelCodeProcess', label: 'Model Code Process', width: '170px', sortable: false },
+  { key: 'route', label: 'Route', sortable: false },
+  { key: 'isActive', label: 'Active', width: '90px', sortable: true },
+  { key: 'actions', label: 'Actions', width: '140px', sortable: false },
 ]
-
-// Model Code Process and Route are joins/lists with no meaningful ordering,
-// so they are the two columns without a sort control.
-const UNSORTABLE_KEYS = ['modelCodeProcess', 'route', 'actions']
-const sortableColumns = columns.filter(col => !UNSORTABLE_KEYS.includes(col.key))
 
 const activeSort = ref<{ key: ControlTaskSortKey, order: ControlTaskSortOrder }>({
   key: props.sortBy ?? 'abjad',
@@ -51,10 +47,6 @@ function toggleSort(key: ControlTaskSortKey) {
     = activeSort.value.key === key && activeSort.value.order === 'asc' ? 'desc' : 'asc'
   activeSort.value = { key, order }
   emit('sort', { sortBy: key, sortOrder: order })
-}
-
-function typeOfGoodsLabel(value: ControlTask['typeOfGoods']) {
-  return TYPE_OF_GOODS_OPTIONS.find(option => option.value === value)?.label ?? value
 }
 
 const showQrModal = ref(false)
@@ -73,12 +65,13 @@ function openQr(controlTask: ControlTask) {
     <UiBaseTable :columns="columns" :loading="loading">
       <template #header>
         <th
-          v-for="col in sortableColumns"
+          v-for="col in columns"
           :key="col.key"
           :style="col.width ? `width: ${col.width}` : ''"
           class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
         >
           <button
+            v-if="col.sortable"
             type="button"
             class="inline-flex items-center gap-1 hover:text-[#01ADEF]"
             @click="toggleSort(col.key as ControlTaskSortKey)"
@@ -88,15 +81,7 @@ function openQr(controlTask: ControlTask) {
             <ChevronDown v-else-if="activeSort.key === col.key && activeSort.order === 'desc'" class="h-3.5 w-3.5" />
             <ChevronDown v-else class="h-3.5 w-3.5 opacity-30" />
           </button>
-        </th>
-        <th style="width: 170px" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Model Code Process
-        </th>
-        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Route
-        </th>
-        <th style="width: 140px" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Actions
+          <template v-else>{{ col.label }}</template>
         </th>
       </template>
 
@@ -118,9 +103,6 @@ function openQr(controlTask: ControlTask) {
           </td>
           <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.name }}
-          </td>
-          <td class="px-4 py-3 text-sm font-medium text-slate-600">
-            {{ typeOfGoodsLabel(item.typeOfGoods) }}
           </td>
           <td class="px-4 py-3 text-sm font-medium text-slate-600">
             {{ item.modelCodeProcess?.name ?? '—' }}

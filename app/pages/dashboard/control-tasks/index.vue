@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import { Plus, Search } from 'lucide-vue-next'
 import type { ControlTaskSortKey } from '~/components/control-tasks/Table.vue'
-import type {
-  ControlTask,
-  CreateControlTaskInput,
-  TypeOfGoods,
-} from '~/types/control-task'
-import { TYPE_OF_GOODS_OPTIONS } from '~/types/control-task'
+import type { ControlTask, CreateControlTaskInput } from '~/types/control-task'
 
 definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'Customize Control Task — Misel' })
@@ -26,12 +21,11 @@ const {
   setFilters,
 } = useControlTasks()
 
-// Type of Goods and Active aren't sortable server-side, so those columns are
-// sorted client-side over the currently loaded page only.
+// Active isn't sortable server-side, so that column is sorted client-side
+// over the currently loaded page only.
 const clientSort = ref<{ key: ControlTaskSortKey, order: 'asc' | 'desc' } | null>(null)
 
 const CLIENT_SORT_ACCESSORS: Record<string, (item: ControlTask) => string | number> = {
-  typeOfGoods: item => item.typeOfGoods,
   isActive: item => (item.isActive ? 1 : 0),
 }
 
@@ -57,7 +51,6 @@ const submitting = ref(false)
 const deleting = ref(false)
 
 const search = ref('')
-const typeOfGoodsFilter = ref<TypeOfGoods | ''>('')
 
 onMounted(() => {
   fetchControlTasks()
@@ -101,10 +94,7 @@ function handleFilterChange(patch: Partial<typeof filters.value>) {
 }
 
 function applyFilters() {
-  handleFilterChange({
-    search: search.value.trim() || undefined,
-    typeOfGoods: typeOfGoodsFilter.value || undefined,
-  })
+  handleFilterChange({ search: search.value.trim() || undefined })
 }
 
 function handleSort(patch: { sortBy: ControlTaskSortKey, sortOrder: 'asc' | 'desc' }) {
@@ -152,24 +142,16 @@ const controlClass
       </button>
     </div>
 
-    <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-      <div class="relative flex-1">
-        <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input
-          v-model="search"
-          type="search"
-          placeholder="Search by abjad, name or route code"
-          :class="`w-full pl-9 ${controlClass}`"
-          @keyup.enter="applyFilters"
-          @search="applyFilters"
-        >
-      </div>
-      <select v-model="typeOfGoodsFilter" :class="controlClass" @change="applyFilters">
-        <option value="">All Types of Goods</option>
-        <option v-for="option in TYPE_OF_GOODS_OPTIONS" :key="option.value" :value="option.value">
-          {{ option.label }}
-        </option>
-      </select>
+    <div class="relative mb-4">
+      <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <input
+        v-model="search"
+        type="search"
+        placeholder="Search by abjad, name or route code"
+        :class="`w-full pl-9 ${controlClass}`"
+        @keyup.enter="applyFilters"
+        @search="applyFilters"
+      >
     </div>
 
     <ControlTasksTable

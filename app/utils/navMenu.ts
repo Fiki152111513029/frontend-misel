@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, FolderKanban, BarChart3, User, Construction, Bot, MessageCircleCode, BatteryFull, ShoppingCart, LandPlot, Settings, Bell, Boxes, Map as MapIcon,
+  LayoutDashboard, Users, FolderKanban, BarChart3, User, Construction, Bot, MessageCircleCode, BatteryFull, ShoppingCart, LandPlot, Settings, Bell, Map as MapIcon,
 } from 'lucide-vue-next'
 
 export interface MenuChild { title: string, path: string, permission: string | null }
@@ -93,7 +93,6 @@ export const NAV_MENUS: MenuEntry[] = [
       { title: 'Trolley Types', path: '/dashboard/trolley-types', permission: 'trolley-type.read' },
     ],
   },
-  { title: 'Racks', icon: Boxes, path: '/dashboard/racks', permission: 'rack.read' },
   {
     title: 'Setting System',
     icon: Settings,

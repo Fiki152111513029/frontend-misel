@@ -1,11 +1,3 @@
-export type TypeOfGoods = 'PALLET' | 'TROLLEY' | 'RACK'
-
-export const TYPE_OF_GOODS_OPTIONS: { value: TypeOfGoods, label: string }[] = [
-  { value: 'PALLET', label: 'Pallet' },
-  { value: 'TROLLEY', label: 'Trolley' },
-  { value: 'RACK', label: 'Rack' },
-]
-
 export interface ControlTaskModelCodeProcess {
   id: string
   name: string
@@ -16,7 +8,6 @@ export interface ControlTask {
   id: string
   abjad: string
   name: string
-  typeOfGoods: TypeOfGoods
   modelCodeProcessId: string
   modelCodeProcess: ControlTaskModelCodeProcess | null
   /** The legs in the order the operator chose — repeats are allowed. */
@@ -32,7 +23,6 @@ export interface ControlTask {
 export interface CreateControlTaskInput {
   abjad: string
   name: string
-  typeOfGoods: TypeOfGoods
   modelCodeProcessId: string
   route: string[]
   isActive?: boolean
@@ -47,7 +37,6 @@ export interface ControlTaskQuery {
   page?: number
   limit?: number
   search?: string
-  typeOfGoods?: TypeOfGoods
   sortBy?: ControlTaskSortBy
   sortOrder?: ControlTaskSortOrder
 }

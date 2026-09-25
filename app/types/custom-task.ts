@@ -1,12 +1,9 @@
-import type { TypeOfGoods } from '~/types/control-task'
-
 // What a scanned abjad resolves to: exactly the RCS task order that would be
 // sent, so the confirmation screen and the submit cannot disagree.
 export interface CustomTaskPreview {
   controlTaskId: string
   abjad: string
   name: string
-  typeOfGoods: TypeOfGoods
   route: string[]
   taskPath: string
   modelProcessCode: string

@@ -1,10 +1,5 @@
 <script setup lang="ts">
-import type {
-  ControlTask,
-  CreateControlTaskInput,
-  TypeOfGoods,
-} from '~/types/control-task'
-import { TYPE_OF_GOODS_OPTIONS } from '~/types/control-task'
+import type { ControlTask, CreateControlTaskInput } from '~/types/control-task'
 
 interface Props {
   modelValue: boolean
@@ -31,7 +26,6 @@ const { production, warehouse, fetchRouteOptions } = useRouteOptions()
 
 const abjad = ref('')
 const name = ref('')
-const typeOfGoods = ref<TypeOfGoods>('PALLET')
 const modelCodeProcessId = ref('')
 const route = ref<string[]>([])
 const isActive = ref(true)
@@ -45,7 +39,6 @@ const errors = reactive<{
 function resetFields() {
   abjad.value = props.controlTask?.abjad ?? ''
   name.value = props.controlTask?.name ?? ''
-  typeOfGoods.value = props.controlTask?.typeOfGoods ?? 'PALLET'
   modelCodeProcessId.value = props.controlTask?.modelCodeProcessId ?? ''
   route.value = [...(props.controlTask?.route ?? [])]
   isActive.value = props.controlTask?.isActive ?? true
@@ -103,7 +96,6 @@ function handleSubmit() {
   emit('submit', {
     abjad: abjad.value.trim(),
     name: name.value.trim(),
-    typeOfGoods: typeOfGoods.value,
     modelCodeProcessId: modelCodeProcessId.value,
     route: route.value,
     isActive: isActive.value,
@@ -133,34 +125,20 @@ const selectClass
         <UiBaseInput v-model="name" label="Name" required :error="errors.name" />
       </div>
 
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div class="space-y-1.5">
-          <label class="block text-sm font-medium text-slate-700">
-            Type of Goods
-            <span class="ml-0.5 text-[#01ADEF]">*</span>
-          </label>
-          <select v-model="typeOfGoods" :class="selectClass">
-            <option v-for="option in TYPE_OF_GOODS_OPTIONS" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
-        </div>
-
-        <div class="space-y-1.5">
-          <label class="block text-sm font-medium text-slate-700">
-            Model Code Process
-            <span class="ml-0.5 text-[#01ADEF]">*</span>
-          </label>
-          <select v-model="modelCodeProcessId" :class="selectClass">
-            <option value="" disabled>Select a Model Code Process</option>
-            <option v-for="process in activeModelCodeProcesses" :key="process.id" :value="process.id">
-              {{ process.name }}
-            </option>
-          </select>
-          <p v-if="errors.modelCodeProcessId" class="mt-1 text-xs text-red-500">
-            {{ errors.modelCodeProcessId }}
-          </p>
-        </div>
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-slate-700">
+          Model Code Process
+          <span class="ml-0.5 text-[#01ADEF]">*</span>
+        </label>
+        <select v-model="modelCodeProcessId" :class="selectClass">
+          <option value="" disabled>Select a Model Code Process</option>
+          <option v-for="process in activeModelCodeProcesses" :key="process.id" :value="process.id">
+            {{ process.name }}
+          </option>
+        </select>
+        <p v-if="errors.modelCodeProcessId" class="mt-1 text-xs text-red-500">
+          {{ errors.modelCodeProcessId }}
+        </p>
       </div>
 
       <ControlTasksRouteBuilder

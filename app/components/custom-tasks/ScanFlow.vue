@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Camera, Route as RouteIcon } from 'lucide-vue-next'
 import { taskStatusLabel } from '~/utils/taskStatus'
-import { TYPE_OF_GOODS_OPTIONS } from '~/types/control-task'
 import type { CustomTaskPreview } from '~/types/custom-task'
 
 // The same shape as the Trolley Task scan flow, minus the Take/Drop choice:
@@ -29,10 +28,6 @@ const subtitle = computed(() =>
     ? 'Scan a Control Task to run it'
     : 'Check the details, then send the task',
 )
-
-function typeOfGoodsLabel(value: CustomTaskPreview['typeOfGoods']) {
-  return TYPE_OF_GOODS_OPTIONS.find(option => option.value === value)?.label ?? value
-}
 
 function focusScanInput() {
   nextTick(() => {
@@ -146,7 +141,6 @@ async function handleSubmit() {
       </span>
       <UiBaseInput :model-value="preview.abjad" label="Abjad" disabled />
       <UiBaseInput :model-value="preview.name" label="Name" disabled />
-      <UiBaseInput :model-value="typeOfGoodsLabel(preview.typeOfGoods)" label="Type of Goods" disabled />
       <UiBaseInput :model-value="preview.modelProcessCode" label="Model Process Code" disabled />
 
       <div class="space-y-1.5">
