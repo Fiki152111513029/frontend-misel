@@ -75,9 +75,9 @@ export function useTrolleyActivities() {
     }
   }
 
-  async function fetchTrolleyActivityDashboard(days?: number) {
+  async function fetchTrolleyActivityDashboard(days?: number, date?: string) {
     try {
-      return await trolleyActivityService.fetchTrolleyActivityDashboard(days)
+      return await trolleyActivityService.fetchTrolleyActivityDashboard(days, date)
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : 'Failed to load trolley activity dashboard')
       return null

@@ -15,10 +15,19 @@ export async function fetchLatestWebhookStatus(orderId: string): Promise<LatestW
   return (await $http.get('/webhooks-logs/latest', { params: { orderId } })) as LatestWebhookStatus | null
 }
 
-// Today's task breakdown straight off the raw task-status webhook payloads
-// (subTaskStatus), not our own Task/TrolleyActivity tables — powers the
-// Dashboard's Performance panel.
-export async function fetchTaskStatusSummary(): Promise<TaskStatusSummary> {
+// One day's task breakdown straight off the raw task-status webhook
+// payloads (RCS's `status` code), not our own Task/TrolleyActivity tables —
+// powers the Dashboard's Performance panel. `date` defaults to today
+// server-side; `areaId` is a Factory Map's areaNumber.
+export async function fetchTaskStatusSummary(
+  areaId?: number | null,
+  date?: string,
+): Promise<TaskStatusSummary> {
   const { $http } = useNuxtApp()
-  return (await $http.get('/webhooks-logs/task-status-summary')) as TaskStatusSummary
+  return (await $http.get('/webhooks-logs/task-status-summary', {
+    params: {
+      ...(areaId == null ? {} : { areaId }),
+      ...(date ? { date } : {}),
+    },
+  })) as TaskStatusSummary
 }

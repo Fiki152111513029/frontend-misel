@@ -7,9 +7,21 @@ const POLL_INTERVAL_MS = 5000
 const rows = ref<FleetStatusRow[]>([])
 const loading = ref(true)
 
+// Scoped to whichever Factory Map is on screen (see stores/dashboard-area)
+// so this table lists the robots the map is actually drawing. A map with no
+// areaNumber matches no robot, which is why the map shows no markers for it
+// — the table says the same rather than falling back to every area.
+const dashboardFilters = useDashboardFiltersStore()
+
 async function load() {
+  if (!dashboardFilters.isAreaResolved) return
+  if (dashboardFilters.areaNumber == null) {
+    rows.value = []
+    loading.value = false
+    return
+  }
   try {
-    rows.value = await fetchFleetStatus()
+    rows.value = await fetchFleetStatus(dashboardFilters.areaNumber)
   } catch {
     // Non-fatal — keep showing the last known data if a refresh tick fails.
   } finally {
@@ -18,6 +30,9 @@ async function load() {
 }
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
+
+// Switching maps must re-scope immediately, not on the next poll tick.
+watch(() => [dashboardFilters.areaNumber, dashboardFilters.isAreaResolved], load)
 
 onMounted(async () => {
   await load()
@@ -70,6 +85,9 @@ function batteryColor(battery: number) {
           <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
         </svg>
         <p class="font-semibold text-[#0F1F52]">AMR Fleet Real-time Status</p>
+        <span v-if="dashboardFilters.mapName" class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+          {{ dashboardFilters.mapName }}
+        </span>
       </div>
       <div class="flex items-center gap-4 text-xs font-medium text-slate-500">
         <span class="flex items-center gap-1.5">
@@ -97,7 +115,9 @@ function batteryColor(battery: number) {
         <tbody class="divide-y divide-[#E2E8F0]">
           <tr v-if="!loading && rows.length === 0">
             <td colspan="4" class="px-5 py-8 text-center text-sm text-slate-400">
-              No robots found
+              {{ dashboardFilters.isAreaResolved && dashboardFilters.areaNumber === null
+                ? 'This map has no area number, so no robots are linked to it'
+                : 'No robots found' }}
             </td>
           </tr>
           <tr v-for="row in rows" :key="row.unitId">

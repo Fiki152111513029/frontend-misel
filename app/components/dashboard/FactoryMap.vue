@@ -77,6 +77,14 @@ const selectedMap = computed(
   () => factoryMaps.value.find(m => m.id === selectedMapId.value) ?? null,
 )
 
+// Publish the selection so the Dashboard's other panels (AMR Fleet
+// Real-time Status, Performance, AMR Performance) describe the same floor
+// this map is showing, instead of the whole site.
+const dashboardFilters = useDashboardFiltersStore()
+watch(selectedMap, (map) => {
+  if (map) dashboardFilters.setArea({ areaNumber: map.areaNumber, mapName: map.name })
+}, { immediate: true })
+
 const topology = ref<TopologyData | null>(null)
 const loading = ref(true)
 const loadError = ref(false)
@@ -596,6 +604,7 @@ onMounted(async () => {
     selectedMapId.value = factoryMaps.value[0].id
   } else {
     loading.value = false
+    dashboardFilters.markAreaResolvedWithoutMap()
   }
   await loadStockStatus()
   robotPollTimer = setInterval(loadLiveRobots, ROBOT_POLL_MS)

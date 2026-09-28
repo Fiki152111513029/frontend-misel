@@ -47,9 +47,12 @@ export async function fetchRobotSystemStatus(): Promise<RobotSystemStatus> {
   return (await $http.get('/robots/system-status')) as RobotSystemStatus
 }
 
-export async function fetchFleetStatus(): Promise<FleetStatusRow[]> {
+// `areaId` is a Factory Map's areaNumber — omit it for every area.
+export async function fetchFleetStatus(areaId?: number | null): Promise<FleetStatusRow[]> {
   const { $http } = useNuxtApp()
-  return (await $http.get('/robots/fleet-status')) as FleetStatusRow[]
+  return (await $http.get('/robots/fleet-status', {
+    params: areaId == null ? {} : { areaId },
+  })) as FleetStatusRow[]
 }
 
 export async function fetchRobotActivity(
@@ -63,13 +66,21 @@ export async function fetchRobotActivity(
 // Running/Idle/Charging minutes per robot for one Shift (see
 // shift.service.ts) on one UTC calendar day (YYYY-MM-DD) — the AMR
 // Performance chart's daily view.
+// A null `shiftId` means every shift — the whole UTC day, not one shift's
+// slice of it. That is what the AMR Performance chart sends for "All
+// Shifts", and the only thing it can send when no Shift exists yet.
 export async function fetchRobotStatusSummary(
   date: string,
-  shiftId: string,
+  shiftId: string | null,
+  areaId?: number | null,
 ): Promise<RobotStatusSummaryRow[]> {
   const { $http } = useNuxtApp()
   return (await $http.get('/robots/status-summary', {
-    params: { date, shiftId },
+    params: {
+      date,
+      ...(shiftId ? { shiftId } : {}),
+      ...(areaId == null ? {} : { areaId }),
+    },
   })) as RobotStatusSummaryRow[]
 }
 
@@ -78,11 +89,17 @@ export async function fetchRobotStatusSummary(
 // chart's Average/Total per Month views.
 export async function fetchRobotStatusMonthlySummary(
   month: string,
-  shiftId: string,
+  shiftId: string | null,
   mode: RobotStatusMonthlyMode,
+  areaId?: number | null,
 ): Promise<RobotStatusSummaryRow[]> {
   const { $http } = useNuxtApp()
   return (await $http.get('/robots/status-summary/monthly', {
-    params: { month, shiftId, mode },
+    params: {
+      month,
+      mode,
+      ...(shiftId ? { shiftId } : {}),
+      ...(areaId == null ? {} : { areaId }),
+    },
   })) as RobotStatusSummaryRow[]
 }

@@ -29,8 +29,11 @@ const loading = ref(false)
 const isViewingCurrentShift = computed(() => viewMode.value === 'DAILY' && selectedDate.value === today.value)
 const { shifts, shiftId, initShiftFilter, refreshShiftFilter, handleManualShiftChange } = useShiftFilter(isViewingCurrentShift)
 
+// A null shiftId is "All Shifts" — the whole day with no assigned-shift
+// filter — so it is a selection to honour, not a reason to bail out. It is
+// also what this chart is left with when no Shift has been configured at
+// all, which is exactly when bailing out would leave it permanently empty.
 async function load() {
-  if (!shiftId.value) return
   loading.value = true
   // Backend already sorts highest to lowest.
   rows.value = viewMode.value === 'DAILY'
@@ -123,7 +126,9 @@ const chartOptions = computed<ApexCharts.ApexOptions>(() => ({
 function exportToExcel() {
   const headers = ['Trolley Code', 'Trolley Name', 'Trolley Type', 'Supply Count']
   const dataRows = rows.value.map(row => [row.trolleyCode, row.trolleyName, row.trolleyTypeName, row.count])
-  const shiftName = shifts.value.find(s => s.id === shiftId.value)?.name ?? 'shift'
+  const shiftName = shiftId.value
+    ? (shifts.value.find(s => s.id === shiftId.value)?.name ?? 'shift')
+    : 'all-shifts'
   const scope = viewMode.value === 'DAILY' ? selectedDate.value : selectedMonth.value
   const filename = `trolley-frequency_${scope}_${shiftName.toLowerCase().replace(/\s+/g, '-')}_${viewMode.value.toLowerCase()}.csv`
   downloadCsv(filename, headers, dataRows)
@@ -144,6 +149,10 @@ function exportToExcel() {
           class="rounded-xl border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-medium text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
           @change="handleManualShiftChange"
         >
+          <!-- Whole day, no shift window and no assigned-shift filter.
+               Always offered, and the only thing on the list when no Shift
+               has been configured. -->
+          <option :value="null">All Shifts</option>
           <option v-for="option in shifts" :key="option.id" :value="option.id">
             {{ option.name }}
           </option>

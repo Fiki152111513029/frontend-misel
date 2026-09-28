@@ -6,38 +6,56 @@ import type { Robot } from '~/types/robot'
 
 const { isDark } = useTheme()
 
-// Performance — today's task breakdown read straight off RCS's task-status
-// webhook payloads (subTaskStatus: 1=Not started, 2=Running, 3=Completing,
-// 4=Failed, 5=Cancel), not our own TrolleyActivity table. One order counts
-// once, under whichever status its most recent webhook call reported, so an
-// order reported repeatedly as it progresses isn't counted twice. Orders
-// whose latest call carried no subTaskStatus are left out entirely (the
-// backend reports them separately as `unknown`).
+// Performance — the selected day's task breakdown read straight off RCS's
+// task-status webhook payloads, not our own TrolleyActivity table. The
+// bucket comes from the payload's `status` (RCS's order-status code, the
+// same one Tasks/Alarm Logs label via utils/taskStatus.ts), not
+// subTaskStatus, which only describes the step within a task. One order
+// counts once, under whichever status its most recent webhook call that day
+// reported, so an order reported repeatedly as it progresses is not counted
+// twice. Orders whose latest call carried no recognized `status` are left
+// out entirely (the backend reports them separately as `unknown`).
 interface StatusItem { label: string, value: number, color: string }
 const STATUS_COLORS = {
   notStarted: '#0991F3',
-  running: '#F6AE2D',
-  completing: '#014091',
+  inProgress: '#F6AE2D',
+  completed: '#014091',
   failed: '#EF4444',
   cancelled: '#94A3B8',
 } as const
 const statuses = ref<StatusItem[]>([
-  { label: 'Not started', value: 0, color: STATUS_COLORS.notStarted },
-  { label: 'Running', value: 0, color: STATUS_COLORS.running },
-  { label: 'Completing', value: 0, color: STATUS_COLORS.completing },
+  { label: 'Not Start', value: 0, color: STATUS_COLORS.notStarted },
+  { label: 'In Progress', value: 0, color: STATUS_COLORS.inProgress },
+  { label: 'Completed', value: 0, color: STATUS_COLORS.completed },
   { label: 'Failed', value: 0, color: STATUS_COLORS.failed },
-  { label: 'Cancel', value: 0, color: STATUS_COLORS.cancelled },
+  { label: 'Cancelled', value: 0, color: STATUS_COLORS.cancelled },
 ])
 
+// Performance follows both Dashboard filters: the Factory Map on screen and
+// the day picked in the stats bar. An order belongs to an area through the
+// robot that ran it (the webhook payload's deviceCode), so the backend keeps
+// only the orders run by robots in this map's area. The Abnormality, Charger
+// Status and Request Queue sections below stay live and site-wide — they
+// aren't day- or robot-scoped in the same way.
+const dashboardFilters = useDashboardFiltersStore()
+
 async function loadTaskStatus() {
+  if (!dashboardFilters.isAreaResolved) return
+  if (dashboardFilters.areaNumber == null) {
+    statuses.value = statuses.value.map(status => ({ ...status, value: 0 }))
+    return
+  }
   try {
-    const summary = await fetchTaskStatusSummary()
+    const summary = await fetchTaskStatusSummary(
+      dashboardFilters.areaNumber,
+      dashboardFilters.selectedDate,
+    )
     statuses.value = [
-      { label: 'Not started', value: summary.notStarted, color: STATUS_COLORS.notStarted },
-      { label: 'Running', value: summary.running, color: STATUS_COLORS.running },
-      { label: 'Completing', value: summary.completing, color: STATUS_COLORS.completing },
+      { label: 'Not Start', value: summary.notStarted, color: STATUS_COLORS.notStarted },
+      { label: 'In Progress', value: summary.inProgress, color: STATUS_COLORS.inProgress },
+      { label: 'Completed', value: summary.completed, color: STATUS_COLORS.completed },
       { label: 'Failed', value: summary.failed, color: STATUS_COLORS.failed },
-      { label: 'Cancel', value: summary.cancelled, color: STATUS_COLORS.cancelled },
+      { label: 'Cancelled', value: summary.cancelled, color: STATUS_COLORS.cancelled },
     ]
   } catch {
     // Non-fatal — keep showing the last known counts if a refresh tick fails.
@@ -140,6 +158,12 @@ onMounted(async () => {
   }, POLL_INTERVAL_MS)
 })
 
+// Switching map or day must re-scope immediately, not on the next poll tick.
+watch(
+  () => [dashboardFilters.areaNumber, dashboardFilters.isAreaResolved, dashboardFilters.selectedDate],
+  loadTaskStatus,
+)
+
 onBeforeUnmount(() => {
   if (pollTimer) {
     clearInterval(pollTimer)
@@ -194,7 +218,9 @@ async function loadRequestQueue() {
       <div class="flex items-start justify-between">
         <div>
           <p class="font-semibold text-[#0F1F52]">Performance</p>
-          <p class="font-medium mt-0.5 text-xs text-slate-400">Today</p>
+          <p class="font-medium mt-0.5 text-xs text-slate-400">
+            {{ dashboardFilters.isToday ? 'Today' : dashboardFilters.selectedDate }}<template v-if="dashboardFilters.mapName"> · {{ dashboardFilters.mapName }}</template>
+          </p>
         </div>
         <p class="text-xs font-medium text-slate-400">TOTAL : {{ total }}</p>
       </div>

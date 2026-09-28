@@ -7,6 +7,10 @@
 // overriding a shift the user picked manually themselves (until they
 // reload), so it can't yank the selection out from under someone comparing
 // a specific shift or a past date.
+// shiftId stays null when no Shift has been configured at all. What that
+// means is up to the caller: the AMR Performance chart reads it as "All
+// Shifts" and still renders, while the Trolley Activities charts treat it
+// as "nothing to ask for yet" because their endpoints require a shift.
 export function useShiftFilter(isViewingCurrent: ComputedRef<boolean>) {
   const { items: shifts, fetchShiftOptions, currentShiftId, fetchCurrentShift } = useShiftOptions()
   const shiftId = ref<string | null>(null)
@@ -31,6 +35,8 @@ export function useShiftFilter(isViewingCurrent: ComputedRef<boolean>) {
     applyCurrentShiftIfEligible()
     // Still nothing selected (e.g. no shift is "current" right now) — fall
     // back to the first one so the chart isn't left with no data at all.
+    // With no shifts configured at all there is nothing to pick, so it
+    // stays null.
     if (!shiftId.value && shifts.value.length > 0) shiftId.value = shifts.value[0]!.id
   }
 

@@ -17,7 +17,7 @@ export function useTrolleyShiftSummary() {
 
   async function fetchDurationSummary(
     date: string,
-    shiftId: string,
+    shiftId: string | null,
     direction: PickupDirection,
   ): Promise<OperatorDurationSummaryRow[]> {
     try {
@@ -30,7 +30,7 @@ export function useTrolleyShiftSummary() {
 
   async function fetchDurationMonthlySummary(
     month: string,
-    shiftId: string,
+    shiftId: string | null,
     mode: TrolleyShiftMonthlyMode,
     direction: PickupDirection,
   ): Promise<OperatorDurationSummaryRow[]> {
@@ -42,7 +42,7 @@ export function useTrolleyShiftSummary() {
     }
   }
 
-  async function fetchFrequencySummary(date: string, shiftId: string): Promise<TrolleySupplyFrequencyRow[]> {
+  async function fetchFrequencySummary(date: string, shiftId: string | null): Promise<TrolleySupplyFrequencyRow[]> {
     try {
       return await fetchTrolleyFrequencySummary(date, shiftId)
     } catch (e) {
@@ -53,7 +53,7 @@ export function useTrolleyShiftSummary() {
 
   async function fetchFrequencyMonthlySummary(
     month: string,
-    shiftId: string,
+    shiftId: string | null,
     mode: TrolleyShiftMonthlyMode,
   ): Promise<TrolleySupplyFrequencyRow[]> {
     try {

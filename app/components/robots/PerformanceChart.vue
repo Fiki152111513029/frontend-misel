@@ -21,7 +21,15 @@ const VIEW_MODE_OPTIONS: { value: ViewMode, label: string }[] = [
 ]
 
 const viewMode = ref<ViewMode>('DAILY')
-const selectedDate = ref(today.value)
+
+// Scoped to the Dashboard's two shared filters (see stores/dashboard-filters):
+// the Factory Map on screen, and the day picked in the stats bar. The Daily
+// view no longer carries its own date input — one day picker drives the
+// whole Dashboard, so this card can never disagree with Performance or
+// Total Production beside it. The month pickers stay local, since the
+// monthly views are this card's own thing.
+const dashboardFilters = useDashboardFiltersStore()
+const selectedDate = computed(() => dashboardFilters.selectedDate)
 const selectedMonth = ref(currentMonth.value)
 const rows = ref<RobotStatusSummaryRow[]>([])
 const loading = ref(false)
@@ -33,12 +41,26 @@ const loading = ref(false)
 const isViewingCurrentShift = computed(() => viewMode.value === 'DAILY' && selectedDate.value === today.value)
 const { shifts, shiftId, initShiftFilter, refreshShiftFilter, handleManualShiftChange } = useShiftFilter(isViewingCurrentShift)
 
+// A map with no areaNumber is linked to no robot, so there is nothing to
+// chart for it — same rule the map itself uses to decide which markers to
+// draw.
+// A null shiftId is "All Shifts" — the whole day rather than one shift's
+// slice of it — so it is a selection to honour, not a reason to bail out.
+// It is also what the chart is left with when no Shift has been configured
+// at all, which is exactly when bailing out would leave it permanently
+// empty.
 async function load() {
-  if (!shiftId.value) return
+  if (!dashboardFilters.isAreaResolved) return
+  if (dashboardFilters.areaNumber == null) {
+    rows.value = []
+    loading.value = false
+    return
+  }
   loading.value = true
+  const areaId = dashboardFilters.areaNumber
   rows.value = viewMode.value === 'DAILY'
-    ? await fetchStatusSummary(selectedDate.value, shiftId.value)
-    : await fetchMonthlyStatusSummary(selectedMonth.value, shiftId.value, viewMode.value)
+    ? await fetchStatusSummary(selectedDate.value, shiftId.value, areaId)
+    : await fetchMonthlyStatusSummary(selectedMonth.value, shiftId.value, viewMode.value, areaId)
   loading.value = false
 }
 
@@ -59,7 +81,7 @@ onBeforeUnmount(() => {
     refreshTimer = null
   }
 })
-watch([shiftId, viewMode, selectedDate, selectedMonth], load)
+watch([shiftId, viewMode, selectedDate, selectedMonth, () => dashboardFilters.areaNumber, () => dashboardFilters.isAreaResolved], load)
 
 const categories = computed(() => rows.value.map(row => row.robotName))
 const series = computed(() => [
@@ -174,7 +196,9 @@ function exportToExcel() {
     row.alarmMinutes,
     row.runningMinutes + row.idleMinutes + row.chargingMinutes + row.alarmMinutes,
   ])
-  const shiftName = shifts.value.find(s => s.id === shiftId.value)?.name ?? 'shift'
+  const shiftName = shiftId.value
+    ? (shifts.value.find(s => s.id === shiftId.value)?.name ?? 'shift')
+    : 'all-shifts'
   const scope = viewMode.value === 'DAILY' ? selectedDate.value : selectedMonth.value
   const filename = `amr-performance_${scope}_${shiftName.toLowerCase().replace(/\s+/g, '-')}_${viewMode.value.toLowerCase()}.csv`
   downloadCsv(filename, headers, dataRows)
@@ -186,7 +210,9 @@ function exportToExcel() {
     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] px-6 py-4">
       <div>
         <p class="font-semibold text-[#0F1F52]">AMR Performance</p>
-        <p class="font-medium mt-0.5 text-xs text-slate-500">Running / Idle / Charging minutes per robot</p>
+        <p class="font-medium mt-0.5 text-xs text-slate-500">
+          Running / Idle / Charging minutes per robot<template v-if="dashboardFilters.mapName"> · {{ dashboardFilters.mapName }}</template>
+        </p>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
@@ -195,6 +221,9 @@ function exportToExcel() {
           class="rounded-xl border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-medium text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
           @change="handleManualShiftChange"
         >
+          <!-- Whole day, no shift window. Always offered, and the only
+               thing on the list when no Shift has been configured. -->
+          <option :value="null">All Shifts</option>
           <option v-for="option in shifts" :key="option.id" :value="option.id">
             {{ option.name }}
           </option>
@@ -213,13 +242,13 @@ function exportToExcel() {
           </button>
         </div>
 
-        <input
+        <span
           v-if="viewMode === 'DAILY'"
-          v-model="selectedDate"
-          type="date"
-          :max="today"
-          class="rounded-xl border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-medium text-[#0F1F52] outline-none transition-colors focus:border-[#01ADEF]"
-        />
+          class="rounded-xl border border-[#E2E8F0] bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500"
+          title="Set by the date picker at the top of the Dashboard"
+        >
+          {{ selectedDate }}
+        </span>
         <input
           v-else
           v-model="selectedMonth"

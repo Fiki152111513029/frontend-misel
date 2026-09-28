@@ -11,9 +11,13 @@ import type {
 export function useRobotStatusSummary() {
   const toast = useToast()
 
-  async function fetchStatusSummary(date: string, shiftId: string): Promise<RobotStatusSummaryRow[]> {
+  async function fetchStatusSummary(
+    date: string,
+    shiftId: string | null,
+    areaId?: number | null,
+  ): Promise<RobotStatusSummaryRow[]> {
     try {
-      return await fetchRobotStatusSummary(date, shiftId)
+      return await fetchRobotStatusSummary(date, shiftId, areaId)
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : 'Failed to load AMR performance data')
       return []
@@ -22,11 +26,12 @@ export function useRobotStatusSummary() {
 
   async function fetchMonthlyStatusSummary(
     month: string,
-    shiftId: string,
+    shiftId: string | null,
     mode: RobotStatusMonthlyMode,
+    areaId?: number | null,
   ): Promise<RobotStatusSummaryRow[]> {
     try {
-      return await fetchRobotStatusMonthlySummary(month, shiftId, mode)
+      return await fetchRobotStatusMonthlySummary(month, shiftId, mode, areaId)
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : 'Failed to load AMR performance data')
       return []

@@ -56,11 +56,15 @@ export async function deleteTrolleyActivity(id: string): Promise<void> {
 }
 
 export async function fetchTrolleyActivityDashboard(
-  days: number = 7,
+  days: number | undefined = 7,
+  date?: string,
 ): Promise<TrolleyActivityDashboardStats> {
   const { $http } = useNuxtApp()
   return (await $http.get('/trolley-activities/dashboard', {
-    params: { days },
+    // `date` scopes to that one calendar day and takes precedence over
+    // `days` server-side — the Dashboard passes it so Total Production
+    // follows the day picker.
+    params: { ...(days == null ? {} : { days }), ...(date ? { date } : {}) },
   })) as TrolleyActivityDashboardStats
 }
 
@@ -96,24 +100,24 @@ export async function fetchMyActiveTrolleyActivities(): Promise<MyActiveTrolleyA
 // direction (WAREHOUSE = "Dealer Operator", PRODUCTION = "Supply Operator").
 export async function fetchOperatorDurationSummary(
   date: string,
-  shiftId: string,
+  shiftId: string | null,
   direction: PickupDirection,
 ): Promise<OperatorDurationSummaryRow[]> {
   const { $http } = useNuxtApp()
   return (await $http.get('/trolley-activities/operator-duration-summary', {
-    params: { date, shiftId, direction },
+    params: { date, direction, ...(shiftId ? { shiftId } : {}) },
   })) as OperatorDurationSummaryRow[]
 }
 
 export async function fetchOperatorDurationMonthlySummary(
   month: string,
-  shiftId: string,
+  shiftId: string | null,
   mode: TrolleyShiftMonthlyMode,
   direction: PickupDirection,
 ): Promise<OperatorDurationSummaryRow[]> {
   const { $http } = useNuxtApp()
   return (await $http.get('/trolley-activities/operator-duration-summary/monthly', {
-    params: { month, shiftId, mode, direction },
+    params: { month, mode, direction, ...(shiftId ? { shiftId } : {}) },
   })) as OperatorDurationSummaryRow[]
 }
 
@@ -121,21 +125,21 @@ export async function fetchOperatorDurationMonthlySummary(
 // calendar day — sorted highest to lowest.
 export async function fetchTrolleyFrequencySummary(
   date: string,
-  shiftId: string,
+  shiftId: string | null,
 ): Promise<TrolleySupplyFrequencyRow[]> {
   const { $http } = useNuxtApp()
   return (await $http.get('/trolley-activities/trolley-frequency-summary', {
-    params: { date, shiftId },
+    params: { date, ...(shiftId ? { shiftId } : {}) },
   })) as TrolleySupplyFrequencyRow[]
 }
 
 export async function fetchTrolleyFrequencyMonthlySummary(
   month: string,
-  shiftId: string,
+  shiftId: string | null,
   mode: TrolleyShiftMonthlyMode,
 ): Promise<TrolleySupplyFrequencyRow[]> {
   const { $http } = useNuxtApp()
   return (await $http.get('/trolley-activities/trolley-frequency-summary/monthly', {
-    params: { month, shiftId, mode },
+    params: { month, mode, ...(shiftId ? { shiftId } : {}) },
   })) as TrolleySupplyFrequencyRow[]
 }
