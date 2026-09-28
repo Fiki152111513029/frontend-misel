@@ -31,12 +31,16 @@ const statuses = ref<StatusItem[]>([
   { label: 'Cancelled', value: 0, color: STATUS_COLORS.cancelled },
 ])
 
-// Performance follows both Dashboard filters: the Factory Map on screen and
-// the day picked in the stats bar. An order belongs to an area through the
-// robot that ran it (the webhook payload's deviceCode), so the backend keeps
-// only the orders run by robots in this map's area. The Abnormality, Charger
-// Status and Request Queue sections below stay live and site-wide — they
-// aren't day- or robot-scoped in the same way.
+// Every section of this card is scoped to the Factory Map on screen, each
+// by whatever actually ties its data to an area:
+//   Performance   — the robot that ran the order (the webhook payload's
+//                   deviceCode), resolved to an areaId server-side. Also
+//                   the only section scoped to the day picker; the three
+//                   below are live readings with no history behind them.
+//   Abnormality   — the alarm's own areaId.
+//   Charger Status / Request Queue — the location codes this map draws,
+//                   since a Charger Area and a pickup code have no areaId
+//                   of their own.
 const dashboardFilters = useDashboardFiltersStore()
 
 async function loadTaskStatus() {
@@ -104,8 +108,14 @@ const zones = ref<ZoneError[]>([])
 async function loadAlarmStats() {
   const stats = await fetchDashboardStats()
   if (!stats) return
-  const maxCount = Math.max(...stats.byZone.map(zone => zone.count), 0)
-  zones.value = stats.byZone.slice(0, 5).map((zone) => {
+  // An alarm carries its own areaId, so this scopes straight to the map's
+  // areaNumber — no need for the node-code route the two sections below
+  // take. A map with no areaNumber matches no alarm, same as it draws no
+  // robots.
+  const areaNumber = dashboardFilters.areaNumber
+  const byZone = stats.byZone.filter(zone => zone.areaId === areaNumber)
+  const maxCount = Math.max(...byZone.map(zone => zone.count), 0)
+  zones.value = byZone.slice(0, 5).map((zone) => {
     const alarmsInZone = stats.activeAlarms.filter(alarm => alarm.areaId === zone.areaId)
     return {
       label: `Zone ${zone.areaId}`,
@@ -163,6 +173,14 @@ watch(
   () => [dashboardFilters.areaNumber, dashboardFilters.isAreaResolved, dashboardFilters.selectedDate],
   loadTaskStatus,
 )
+// Alarms key off areaNumber; the queue keys off the map's node set, which
+// only settles once that map's topology has loaded. `hubs` is a computed,
+// so it re-scopes on its own.
+watch(() => dashboardFilters.areaNumber, loadAlarmStats)
+watch(
+  () => [dashboardFilters.mapLocationCodes, dashboardFilters.isMapTopologyResolved],
+  loadRequestQueue,
+)
 
 onBeforeUnmount(() => {
   if (pollTimer) {
@@ -175,16 +193,25 @@ function isCharging(robot: Robot) {
   return robot.state?.toLowerCase().includes('charg') ?? false
 }
 
+// A Charger Area is identified only by its iRayple location code — it has
+// no areaId — so "on this map" means "this map draws a node with that
+// code", exactly the rule the map itself uses to place charger icons.
 interface ChargerHub { id: string, unit: string | null, battery: number | null }
-const hubs = computed<ChargerHub[]>(() => chargerAreas.value.map((area) => {
-  const occupant = robots.value.find(robot => robot.position === area.iRaypleLocationCode && isCharging(robot))
-  return { id: area.name, unit: occupant?.name ?? null, battery: occupant?.battery ?? null }
-}))
+const hubs = computed<ChargerHub[]>(() => {
+  if (!dashboardFilters.isMapTopologyResolved) return []
+  return chargerAreas.value
+    .filter(area => dashboardFilters.isOnCurrentMap(area.iRaypleLocationCode))
+    .map((area) => {
+      const occupant = robots.value.find(robot => robot.position === area.iRaypleLocationCode && isCharging(robot))
+      return { id: area.name, unit: occupant?.name ?? null, battery: occupant?.battery ?? null }
+    })
+})
 
 // Request Queue — real trolley activities still PENDING (Take Trolley
 // scanned, Drop Trolley not submitted yet), newest first, capped to a
 // handful for this compact card.
 interface QueueRequest { id: string, title: string, route: string, eta: string }
+const QUEUE_ROWS_SHOWN = 5
 const requests = ref<QueueRequest[]>([])
 
 function formatElapsed(startDate: string) {
@@ -195,14 +222,29 @@ function formatElapsed(startDate: string) {
 }
 
 async function loadRequestQueue() {
+  if (!dashboardFilters.isMapTopologyResolved) {
+    requests.value = []
+    return
+  }
   try {
-    const result = await fetchTrolleyActivities({ status: 'PENDING', page: 1, limit: 5 })
-    requests.value = result.items.map(item => ({
-      id: item.id,
-      title: `${item.trolley.name} (${item.trolley.code})`,
-      route: `${item.pickupLocationCode} → ${item.droppingLocationCode ?? '?'}`,
-      eta: formatElapsed(item.startDate),
-    }))
+    // Fetched wider than the five shown, because the map filter below
+    // removes rows — taking only five up front could leave this map with
+    // an empty queue while it actually has pending work.
+    const result = await fetchTrolleyActivities({ status: 'PENDING', page: 1, limit: 50 })
+    requests.value = result.items
+      // A trip touches this map if either end of it is a node here — the
+      // pickup and the dropping can legitimately sit on different floors.
+      .filter(item =>
+        dashboardFilters.isOnCurrentMap(item.pickupLocationCode)
+        || dashboardFilters.isOnCurrentMap(item.droppingLocationCode),
+      )
+      .slice(0, QUEUE_ROWS_SHOWN)
+      .map(item => ({
+        id: item.id,
+        title: `${item.trolley.name} (${item.trolley.code})`,
+        route: `${item.pickupLocationCode} → ${item.droppingLocationCode ?? '?'}`,
+        eta: formatElapsed(item.startDate),
+      }))
   } catch {
     // Non-fatal — keep showing the last known queue if a refresh tick fails.
   }
@@ -251,7 +293,9 @@ async function loadRequestQueue() {
       <div class="flex items-start justify-between">
         <div>
           <p class="font-semibold text-[#0F1F52]">Abnormality</p>
-          <p class="font-medium mt-0.5 text-xs text-slate-400">Error density by zone</p>
+          <p class="font-medium mt-0.5 text-xs text-slate-400">
+            Error density by zone<template v-if="dashboardFilters.mapName"> · {{ dashboardFilters.mapName }}</template>
+          </p>
         </div>
         <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
@@ -259,7 +303,9 @@ async function loadRequestQueue() {
       </div>
 
       <div v-if="zones.length === 0" class="mt-4 text-center text-xs text-slate-400">
-        No active alarms right now.
+        {{ dashboardFilters.areaNumber === null
+          ? 'This map has no area number, so no alarms are linked to it.'
+          : 'No active alarms on this map right now.' }}
       </div>
       <div v-else class="mt-4 space-y-4">
         <div v-for="zone in zones" :key="zone.label">
@@ -308,7 +354,9 @@ async function loadRequestQueue() {
       </div>
 
       <div v-if="hubs.length === 0" class="mt-4 text-center text-xs text-slate-400">
-        No charger areas configured yet.
+        {{ dashboardFilters.isMapTopologyResolved
+          ? 'No charger areas on this map.'
+          : 'Loading this map…' }}
       </div>
       <div v-else class="mt-4 grid grid-cols-2 gap-3">
         <div
@@ -345,7 +393,9 @@ async function loadRequestQueue() {
       </div>
 
       <div v-if="requests.length === 0" class="mt-4 text-center text-xs text-slate-400">
-        No pending trolley activities right now.
+        {{ dashboardFilters.isMapTopologyResolved
+          ? 'No pending trolley activities on this map right now.'
+          : 'Loading this map…' }}
       </div>
       <div v-else class="mt-3 divide-y divide-[#E2E8F0]">
         <div v-for="request in requests" :key="request.id" class="flex items-center gap-3 py-3">

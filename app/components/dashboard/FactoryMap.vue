@@ -182,6 +182,18 @@ const namedNodes = computed<NamedNode[]>(() => {
     .filter(node => locationCodes.value.has(node.content))
 })
 
+// The nodes this map draws, published for the sibling panels that are keyed
+// by location code rather than by areaId (Charger Status, Request Queue) —
+// they show exactly what is on the map, nothing from another floor. Fires
+// again as the topology and the location-code lookup finish loading, so the
+// set converges rather than being read once too early.
+watch([namedNodes, topology], () => {
+  dashboardFilters.setMapLocationCodes(
+    new Set(namedNodes.value.map(node => node.content)),
+    topology.value !== null,
+  )
+}, { immediate: true })
+
 // Charger/Parking take priority (distinct icons regardless of trolley
 // occupancy). Only FULL gets its own icon — EMPTY and "no data from RCS
 // yet" both just render the plain default marker.
