@@ -36,6 +36,7 @@ export const NAV_MENUS: MenuEntry[] = [
     children: [
       { title: 'Tasks', path: '/dashboard/tasks', permission: 'task.read' },
       { title: 'Task Trolley Activities', path: '/dashboard/task-trolley-activities', permission: 'trolley-activity.read' },
+      { title: 'Custom Tasks', path: '/dashboard/custom-tasks', permission: 'custom-task.read' },
     ],
   },
   {
