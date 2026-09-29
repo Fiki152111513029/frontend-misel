@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, ChevronUp } from 'lucide-vue-next'
+import { Ban, ChevronDown, ChevronUp } from 'lucide-vue-next'
 import type {
   CustomTaskRun,
   CustomTaskRunSortBy,
@@ -18,7 +18,10 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   sort: [patch: { sortBy: CustomTaskRunSortBy, sortOrder: CustomTaskRunSortOrder }]
+  cancel: [run: CustomTaskRun]
 }>()
+
+const { hasPermission } = useAuth()
 
 // One list drives both the header and the cells below, so a non-sortable
 // column in the middle can never knock the two out of alignment.
@@ -32,7 +35,14 @@ const columns = [
   { key: 'robot', label: 'Robot', width: '120px', sortable: false },
   { key: 'operator', label: 'Operator', width: '150px', sortable: false },
   { key: 'status', label: 'Status', width: '120px', sortable: false },
+  { key: 'actions', label: 'Actions', width: '110px', sortable: false },
 ]
+
+// Only a run still in flight can be cancelled — the backend rejects the
+// rest anyway, so the button is hidden rather than left to fail.
+function isCancellable(run: CustomTaskRun) {
+  return run.status === 'PENDING' || run.status === 'IN_PROGRESS'
+}
 
 const activeSort = ref<{ key: CustomTaskRunSortBy, order: CustomTaskRunSortOrder }>({
   key: props.sortBy ?? 'createdAt',
@@ -51,6 +61,18 @@ const STATUS_LABEL: Record<CustomTaskRun['status'], string> = {
   IN_PROGRESS: 'In Progress',
   COMPLETED: 'Completed',
   FAILED: 'Failed',
+}
+
+// A cancelled run is stored as FAILED (TaskStatus has no CANCELLED member),
+// so cancelledAt is what tells the two apart on screen.
+function statusLabel(run: CustomTaskRun) {
+  return run.cancelledAt ? 'Cancelled' : STATUS_LABEL[run.status]
+}
+
+function statusClass(run: CustomTaskRun) {
+  return run.cancelledAt
+    ? 'bg-slate-100 text-slate-500'
+    : taskStatusStyle(run.status)
 }
 
 function formatReleased(value: string) {
@@ -133,9 +155,21 @@ function formatReleased(value: string) {
             {{ item.operator.fullName }}
           </td>
           <td class="px-4 py-3">
-            <span class="rounded-full px-2.5 py-1 text-xs font-medium" :class="taskStatusStyle(item.status)">
-              {{ STATUS_LABEL[item.status] }}
+            <span class="rounded-full px-2.5 py-1 text-xs font-medium" :class="statusClass(item)">
+              {{ statusLabel(item) }}
             </span>
+          </td>
+          <td class="px-4 py-3">
+            <button
+              v-if="isCancellable(item) && hasPermission('custom-task.update')"
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-500 transition-colors hover:bg-red-100"
+              @click="emit('cancel', item)"
+            >
+              <Ban class="h-3.5 w-3.5" />
+              Cancel
+            </button>
+            <span v-else class="text-xs text-slate-300">—</span>
           </td>
         </tr>
       </template>

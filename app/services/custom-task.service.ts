@@ -1,5 +1,6 @@
 import type {
   CustomTaskPreview,
+  CustomTaskRun,
   CustomTaskRunListResult,
   CustomTaskRunQuery,
   ReleasedCustomTask,
@@ -28,4 +29,11 @@ export async function fetchCustomTaskRuns(
   return (await $http.get('/custom-tasks/runs', {
     params: query,
   })) as CustomTaskRunListResult
+}
+
+// Marks a run cancelled in our own database. RCS has no cancel endpoint in
+// this integration, so the robot itself is not stopped.
+export async function cancelCustomTaskRun(id: string): Promise<CustomTaskRun> {
+  const { $http } = useNuxtApp()
+  return (await $http.patch(`/custom-tasks/runs/${id}/cancel`)) as CustomTaskRun
 }

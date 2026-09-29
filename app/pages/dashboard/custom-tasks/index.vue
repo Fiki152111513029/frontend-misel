@@ -3,9 +3,13 @@ import { Search } from 'lucide-vue-next'
 import type { CustomTaskRun, CustomTaskRunSortBy } from '~/types/custom-task'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Custom Tasks — Misel' })
+useHead({ title: 'Task Custom — Misel' })
 
-const { items, meta, loading, filters, fetchRuns, setFilters } = useCustomTaskRuns()
+const { items, meta, loading, filters, fetchRuns, cancelRun, setFilters } = useCustomTaskRuns()
+
+const cancellingRun = ref<CustomTaskRun | null>(null)
+const showCancelDialog = ref(false)
+const cancelling = ref(false)
 
 const search = ref('')
 const statusFilter = ref<CustomTaskRun['status'] | ''>('')
@@ -39,6 +43,19 @@ function applyFilters() {
   fetchRuns()
 }
 
+function openCancel(run: CustomTaskRun) {
+  cancellingRun.value = run
+  showCancelDialog.value = true
+}
+
+async function handleCancelConfirm() {
+  if (!cancellingRun.value) return
+  cancelling.value = true
+  const ok = await cancelRun(cancellingRun.value.id)
+  cancelling.value = false
+  if (ok) showCancelDialog.value = false
+}
+
 function handleSort(patch: { sortBy: CustomTaskRunSortBy, sortOrder: 'asc' | 'desc' }) {
   setFilters({ ...patch, page: 1 })
   fetchRuns()
@@ -61,9 +78,9 @@ const controlClass
 <template>
   <div class="animate-fade-in">
     <div class="mb-6">
-      <h1 class="text-2xl font-extrabold text-[#0F1F52]">Custom Tasks</h1>
+      <h1 class="text-2xl font-extrabold text-[#0F1F52]">Task Custom</h1>
       <p class="font-medium mt-1 text-sm text-slate-500">
-        Every Custom Task sent to RCS from the scan page, newest first
+        Every Task Custom sent to RCS from the scan page, newest first
       </p>
     </div>
 
@@ -103,6 +120,7 @@ const controlClass
       :sort-by="filters.sortBy"
       :sort-order="filters.sortOrder"
       @sort="handleSort"
+      @cancel="openCancel"
     />
 
     <UiBasePagination
@@ -114,6 +132,14 @@ const controlClass
       item-label="custom tasks"
       @update:page="goToPage"
       @update:limit="handleLimitChange"
+    />
+
+    <CustomTasksCancelDialog
+      v-model="showCancelDialog"
+      :run="cancellingRun"
+      :cancelling="cancelling"
+      @confirm="handleCancelConfirm"
+      @cancel="showCancelDialog = false"
     />
   </div>
 </template>

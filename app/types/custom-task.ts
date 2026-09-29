@@ -30,6 +30,8 @@ export interface CustomTaskRun {
   taskPath: string
   modelProcessCode: string
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
+  /** Set when an operator cancelled it; `status` is FAILED alongside this. */
+  cancelledAt: string | null
   robot: { id: string, name: string } | null
   operator: { id: string, fullName: string }
   createdAt: string

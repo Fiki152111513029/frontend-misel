@@ -3,6 +3,7 @@ import {
   releaseCustomTask as releaseCustomTaskSvc,
 } from '~/services/custom-task.service'
 import { ApiError } from '~/types/api'
+import { cancelCustomTaskRun as cancelCustomTaskRunSvc } from '~/services/custom-task.service'
 import type { CustomTaskRunQuery } from '~/types/custom-task'
 
 export function useCustomTasks() {
@@ -44,12 +45,25 @@ export function useCustomTaskRuns() {
     }
   }
 
+  async function cancelRun(id: string) {
+    try {
+      const run = await cancelCustomTaskRunSvc(id)
+      toast.success(`Custom task ${run.abjad} cancelled`)
+      await fetchRuns()
+      return true
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to cancel that task')
+      return false
+    }
+  }
+
   return {
     items: computed(() => store.items),
     meta: computed(() => store.meta),
     loading: computed(() => store.loading),
     filters: computed(() => store.filters),
     fetchRuns,
+    cancelRun,
     setFilters: store.setFilters,
   }
 }
