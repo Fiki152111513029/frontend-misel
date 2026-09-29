@@ -90,7 +90,7 @@ const controlClass
         <input
           v-model="search"
           type="search"
-          placeholder="Search by abjad, name or order id"
+          placeholder="Search by code, name or order id"
           :class="`w-full pl-9 ${controlClass}`"
           @keyup.enter="applyFilters"
           @search="applyFilters"

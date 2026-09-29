@@ -6,7 +6,7 @@ import type { ControlTask, CreateControlTaskInput } from '~/types/control-task'
 definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'Customize Control Task — Misel' })
 
-const SERVER_SORT_KEYS = ['abjad', 'name', 'createdAt'] as const
+const SERVER_SORT_KEYS = ['code', 'name', 'createdAt'] as const
 
 const { hasPermission } = useAuth()
 const {
@@ -147,7 +147,7 @@ const controlClass
       <input
         v-model="search"
         type="search"
-        placeholder="Search by abjad, name or route code"
+        placeholder="Search by code, name or route code"
         :class="`w-full pl-9 ${controlClass}`"
         @keyup.enter="applyFilters"
         @search="applyFilters"

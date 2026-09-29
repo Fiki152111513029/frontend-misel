@@ -27,7 +27,7 @@ const { hasPermission } = useAuth()
 // column in the middle can never knock the two out of alignment.
 const columns = [
   { key: 'createdAt', label: 'Released', width: '150px', sortable: true },
-  { key: 'abjad', label: 'Abjad', width: '90px', sortable: true },
+  { key: 'code', label: 'Code', width: '90px', sortable: true },
   { key: 'name', label: 'Name', sortable: true },
   { key: 'orderId', label: 'Order ID', width: '190px', sortable: false },
   { key: 'modelProcessCode', label: 'Model Process Code', width: '170px', sortable: false },
@@ -126,7 +126,7 @@ function formatReleased(value: string) {
           </td>
           <td class="px-4 py-3">
             <span class="inline-flex min-w-7 items-center justify-center rounded-lg bg-[#0F1F52] px-2 py-1 text-xs font-bold text-white">
-              {{ item.abjad }}
+              {{ item.code }}
             </span>
           </td>
           <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">

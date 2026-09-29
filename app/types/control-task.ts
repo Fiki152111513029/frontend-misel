@@ -6,7 +6,7 @@ export interface ControlTaskModelCodeProcess {
 
 export interface ControlTask {
   id: string
-  abjad: string
+  code: string
   name: string
   modelCodeProcessId: string
   modelCodeProcess: ControlTaskModelCodeProcess | null
@@ -21,7 +21,7 @@ export interface ControlTask {
 }
 
 export interface CreateControlTaskInput {
-  abjad: string
+  code: string
   name: string
   modelCodeProcessId: string
   route: string[]
@@ -30,7 +30,7 @@ export interface CreateControlTaskInput {
 
 export type UpdateControlTaskInput = Partial<CreateControlTaskInput>
 
-export type ControlTaskSortBy = 'abjad' | 'name' | 'createdAt'
+export type ControlTaskSortBy = 'code' | 'name' | 'createdAt'
 export type ControlTaskSortOrder = 'asc' | 'desc'
 
 export interface ControlTaskQuery {

@@ -5,7 +5,7 @@ import type { CustomTaskPreview } from '~/types/custom-task'
 
 // The same shape as the Trolley Task scan flow, minus the Take/Drop choice:
 // a Custom Task has nothing to pick, so it opens straight on the scanner.
-// Two steps only — scan the abjad on a Control Task QR label, confirm the
+// Two steps only — scan the code on a Control Task QR label, confirm the
 // task order it resolves to, submit. The lookup is read-only; submit is the
 // single call that reaches RCS (/ics/taskOrder/addTask), and nothing is
 // written to our own tables either way.
@@ -68,15 +68,15 @@ function changeTask() {
 async function handleSubmit() {
   if (!preview.value) return
   submitting.value = true
-  const released = await releaseCustomTask(preview.value.abjad)
+  const released = await releaseCustomTask(preview.value.code)
   submitting.value = false
   if (!released) return
 
-  toast.success(`Custom task ${released.abjad} submitted`)
+  toast.success(`Custom task ${released.code} submitted`)
 
   queue.addTask({
     orderId: released.orderId,
-    abjad: released.abjad,
+    code: released.code,
     name: released.name,
     taskPath: released.taskPath,
   })
@@ -103,7 +103,7 @@ async function handleSubmit() {
         class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-600 transition-colors hover:bg-emerald-100"
         @click="changeTask"
       >
-        Task: {{ preview.abjad }} · Change
+        Task: {{ preview.code }} · Change
       </button>
     </div>
 
@@ -139,7 +139,7 @@ async function handleSubmit() {
       <span class="inline-flex items-center rounded-lg bg-slate-200 px-3 py-1.5 text-sm font-semibold text-[#0F1F52]">
         Custom Task
       </span>
-      <UiBaseInput :model-value="preview.abjad" label="Abjad" disabled />
+      <UiBaseInput :model-value="preview.code" label="Code" disabled />
       <UiBaseInput :model-value="preview.name" label="Name" disabled />
       <UiBaseInput :model-value="preview.modelProcessCode" label="Model Process Code" disabled />
 
@@ -186,7 +186,7 @@ async function handleSubmit() {
         <p class="font-semibold uppercase tracking-wide text-[#01ADEF]">Current Queue</p>
         <p class="font-medium text-slate-500">
           Task :
-          <span class="font-medium text-[#0F1F52]">{{ item.name }} ({{ item.abjad }})</span>
+          <span class="font-medium text-[#0F1F52]">{{ item.name }} ({{ item.code }})</span>
         </p>
         <p class="font-medium text-slate-500">
           Order ID :

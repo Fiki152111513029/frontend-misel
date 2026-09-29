@@ -27,7 +27,7 @@ const emit = defineEmits<{
   >
     <p class="font-medium text-sm text-slate-600">
       Are you sure you want to delete
-      <strong>{{ controlTask?.abjad }} — {{ controlTask?.name }}</strong>? This
+      <strong>{{ controlTask?.code }} — {{ controlTask?.name }}</strong>? This
       action cannot be undone.
     </p>
 

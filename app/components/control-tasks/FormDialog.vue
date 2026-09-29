@@ -24,25 +24,25 @@ const activeModelCodeProcesses = computed(() =>
 )
 const { production, warehouse, fetchRouteOptions } = useRouteOptions()
 
-const abjad = ref('')
+const code = ref('')
 const name = ref('')
 const modelCodeProcessId = ref('')
 const route = ref<string[]>([])
 const isActive = ref(true)
 const errors = reactive<{
-  abjad?: string
+  code?: string
   name?: string
   modelCodeProcessId?: string
   route?: string
 }>({})
 
 function resetFields() {
-  abjad.value = props.controlTask?.abjad ?? ''
+  code.value = props.controlTask?.code ?? ''
   name.value = props.controlTask?.name ?? ''
   modelCodeProcessId.value = props.controlTask?.modelCodeProcessId ?? ''
   route.value = [...(props.controlTask?.route ?? [])]
   isActive.value = props.controlTask?.isActive ?? true
-  errors.abjad = undefined
+  errors.code = undefined
   errors.name = undefined
   errors.modelCodeProcessId = undefined
   errors.route = undefined
@@ -63,15 +63,15 @@ watch(
 const isEditMode = computed(() => !!props.controlTask)
 
 function validate(): boolean {
-  errors.abjad = undefined
+  errors.code = undefined
   errors.name = undefined
   errors.modelCodeProcessId = undefined
   errors.route = undefined
 
-  if (!abjad.value.trim()) {
-    errors.abjad = 'Abjad is required'
-  } else if (abjad.value.trim().length > 20) {
-    errors.abjad = 'Abjad must be at most 20 characters'
+  if (!code.value.trim()) {
+    errors.code = 'Code is required'
+  } else if (code.value.trim().length > 20) {
+    errors.code = 'Code must be at most 20 characters'
   }
 
   if (!name.value.trim()) {
@@ -88,13 +88,13 @@ function validate(): boolean {
     errors.route = 'Add at least one location to the route'
   }
 
-  return !errors.abjad && !errors.name && !errors.modelCodeProcessId && !errors.route
+  return !errors.code && !errors.name && !errors.modelCodeProcessId && !errors.route
 }
 
 function handleSubmit() {
   if (!validate()) return
   emit('submit', {
-    abjad: abjad.value.trim(),
+    code: code.value.trim(),
     name: name.value.trim(),
     modelCodeProcessId: modelCodeProcessId.value,
     route: route.value,
@@ -116,10 +116,10 @@ const selectClass
     <div class="space-y-4">
       <div class="grid gap-4 sm:grid-cols-2">
         <UiBaseInput
-          v-model="abjad"
-          label="Abjad"
+          v-model="code"
+          label="Code"
           required
-          :error="errors.abjad"
+          :error="errors.code"
           placeholder="A"
         />
         <UiBaseInput v-model="name" label="Name" required :error="errors.name" />

@@ -4,7 +4,7 @@ import type { LatestWebhookStatus } from '~/types/webhook-log'
 
 export interface CustomTaskQueueItem {
   orderId: string
-  abjad: string
+  code: string
   name: string
   taskPath: string
   webhookStatus: LatestWebhookStatus | null
@@ -43,7 +43,7 @@ export const useCustomTaskQueueStore = defineStore('custom-task-queue', () => {
           if (!terminalSince.has(item.orderId)) {
             terminalSince.set(item.orderId, Date.now())
             if (isTaskCompleted(status)) {
-              toast.success(`Custom task ${item.abjad} completed`)
+              toast.success(`Custom task ${item.code} completed`)
             }
           }
           if (Date.now() - terminalSince.get(item.orderId)! >= TERMINAL_GRACE_MS) {
@@ -66,7 +66,7 @@ export const useCustomTaskQueueStore = defineStore('custom-task-queue', () => {
 
   async function addTask(input: {
     orderId: string
-    abjad: string
+    code: string
     name: string
     taskPath: string
   }) {

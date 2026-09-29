@@ -26,7 +26,7 @@ const emit = defineEmits<{
     @update:model-value="emit('update:modelValue', $event)"
   >
     <p class="font-medium text-sm text-slate-600">
-      Cancel <strong>{{ run?.abjad }} — {{ run?.name }}</strong>?
+      Cancel <strong>{{ run?.code }} — {{ run?.name }}</strong>?
     </p>
     <p class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
       This asks RCS to stop the order, so a robot already on its way will be

@@ -17,7 +17,7 @@ export const useControlTasksStore = defineStore('control-tasks', () => {
     page: 1,
     limit: 10,
     search: '',
-    sortBy: 'abjad',
+    sortBy: 'code',
     sortOrder: 'asc',
   })
 

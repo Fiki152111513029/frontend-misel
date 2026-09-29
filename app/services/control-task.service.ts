@@ -22,9 +22,9 @@ export async function fetchControlTask(id: string): Promise<ControlTask> {
 }
 
 // Resolves the value encoded in a Control Task QR label back to its task.
-export async function fetchControlTaskByAbjad(abjad: string): Promise<ControlTask> {
+export async function fetchControlTaskByCode(code: string): Promise<ControlTask> {
   const { $http } = useNuxtApp()
-  return (await $http.get(`/control-tasks/by-abjad/${encodeURIComponent(abjad)}`)) as ControlTask
+  return (await $http.get(`/control-tasks/by-code/${encodeURIComponent(code)}`)) as ControlTask
 }
 
 // Every iRayple Location Code a route leg can be, from both the Production

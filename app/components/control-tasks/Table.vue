@@ -29,7 +29,7 @@ const { hasPermission } = useAuth()
 // never drift apart. Model Code Process and Route are a join and a list with
 // no meaningful ordering, so they carry no sort control.
 const columns = [
-  { key: 'abjad', label: 'Abjad', width: '90px', sortable: true },
+  { key: 'code', label: 'Code', width: '90px', sortable: true },
   { key: 'name', label: 'Name', sortable: true },
   { key: 'modelCodeProcess', label: 'Model Code Process', width: '170px', sortable: false },
   { key: 'route', label: 'Route', sortable: false },
@@ -38,7 +38,7 @@ const columns = [
 ]
 
 const activeSort = ref<{ key: ControlTaskSortKey, order: ControlTaskSortOrder }>({
-  key: props.sortBy ?? 'abjad',
+  key: props.sortBy ?? 'code',
   order: props.sortOrder ?? 'asc',
 })
 
@@ -52,7 +52,7 @@ function toggleSort(key: ControlTaskSortKey) {
 const showQrModal = ref(false)
 const qrControlTask = ref<ControlTask | null>(null)
 
-// The QR encodes `abjad`, the same value GET /control-tasks/by-abjad resolves,
+// The QR encodes `code`, the same value GET /control-tasks/by-code resolves,
 // so a scan on the floor lands straight on this task.
 function openQr(controlTask: ControlTask) {
   qrControlTask.value = controlTask
@@ -98,7 +98,7 @@ function openQr(controlTask: ControlTask) {
         >
           <td class="px-4 py-3">
             <span class="inline-flex min-w-7 items-center justify-center rounded-lg bg-[#0F1F52] px-2 py-1 text-xs font-bold text-white">
-              {{ item.abjad }}
+              {{ item.code }}
             </span>
           </td>
           <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
@@ -164,7 +164,7 @@ function openQr(controlTask: ControlTask) {
     <UiQrCodeModal
       v-model="showQrModal"
       :title="qrControlTask ? `${qrControlTask.name} · QR Code` : 'QR Code'"
-      :value="qrControlTask?.abjad ?? ''"
+      :value="qrControlTask?.code ?? ''"
     />
   </UiBaseCard>
 </template>

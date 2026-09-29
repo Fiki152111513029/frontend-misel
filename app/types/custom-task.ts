@@ -1,8 +1,8 @@
-// What a scanned abjad resolves to: exactly the RCS task order that would be
+// What a scanned code resolves to: exactly the RCS task order that would be
 // sent, so the confirmation screen and the submit cannot disagree.
 export interface CustomTaskPreview {
   controlTaskId: string
-  abjad: string
+  code: string
   name: string
   route: string[]
   taskPath: string
@@ -12,7 +12,7 @@ export interface CustomTaskPreview {
 }
 
 export interface ReleasedCustomTask extends CustomTaskPreview {
-  /** The abjad followed by %Y%m%d%H%M%S — what RCS and the webhooks call it. */
+  /** The code followed by %Y%m%d%H%M%S — what RCS and the webhooks call it. */
   orderId: string
   releasedAt: string
 }
@@ -25,7 +25,7 @@ export interface CustomTaskRun {
   id: string
   orderId: string
   controlTaskId: string | null
-  abjad: string
+  code: string
   name: string
   taskPath: string
   modelProcessCode: string
@@ -38,7 +38,7 @@ export interface CustomTaskRun {
   updatedAt: string
 }
 
-export type CustomTaskRunSortBy = 'createdAt' | 'abjad' | 'name'
+export type CustomTaskRunSortBy = 'createdAt' | 'code' | 'name'
 export type CustomTaskRunSortOrder = 'asc' | 'desc'
 
 export interface CustomTaskRunQuery {

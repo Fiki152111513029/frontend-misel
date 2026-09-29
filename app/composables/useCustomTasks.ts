@@ -9,18 +9,18 @@ import type { CustomTaskRunQuery } from '~/types/custom-task'
 export function useCustomTasks() {
   const toast = useToast()
 
-  async function lookupCustomTask(abjad: string) {
+  async function lookupCustomTask(code: string) {
     try {
-      return await lookupCustomTaskSvc(abjad)
+      return await lookupCustomTaskSvc(code)
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : 'Failed to look up that code')
       return null
     }
   }
 
-  async function releaseCustomTask(abjad: string) {
+  async function releaseCustomTask(code: string) {
     try {
-      return await releaseCustomTaskSvc(abjad)
+      return await releaseCustomTaskSvc(code)
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : 'Failed to submit the task')
       return null
@@ -48,7 +48,7 @@ export function useCustomTaskRuns() {
   async function cancelRun(id: string) {
     try {
       const run = await cancelCustomTaskRunSvc(id)
-      toast.success(`Custom task ${run.abjad} cancelled`)
+      toast.success(`Custom task ${run.code} cancelled`)
       await fetchRuns()
       return true
     } catch (e) {
