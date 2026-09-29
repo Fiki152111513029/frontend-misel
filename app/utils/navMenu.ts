@@ -106,6 +106,34 @@ export const NAV_MENUS: MenuEntry[] = [
   { title: 'Customers',icon: Users, path: '/dashboard/customers', permission: 'customer.read' },  
 ]
 
+// Every page an admin can pick as a role's post-login landing page (see
+// Role.landingPath), flattened out of the sidebar so the dropdown can never
+// offer a route that does not exist. `permission` comes along so the Roles
+// form can warn when the chosen page needs a permission that role was not
+// granted — otherwise the user would land there and be bounced straight
+// back out by permission.global.ts.
+export interface LandingPageOption {
+  title: string
+  path: string
+  permission: string | null
+  group: string | null
+}
+
+export function landingPageOptions(): LandingPageOption[] {
+  const options: LandingPageOption[] = []
+  for (const menu of NAV_MENUS) {
+    if (isSectionLabel(menu)) continue
+    if (isMenuGroup(menu)) {
+      for (const child of menu.children) {
+        options.push({ ...child, group: menu.title })
+      }
+    } else {
+      options.push({ title: menu.title, path: menu.path, permission: menu.permission, group: null })
+    }
+  }
+  return options
+}
+
 // Exact match only — a path not registered here (dynamic detail routes,
 // pages not yet wired into the nav, etc.) is left unrestricted rather than
 // guessed at via prefix matching.

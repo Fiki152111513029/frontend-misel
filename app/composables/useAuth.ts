@@ -16,6 +16,7 @@ interface LoginApiResponse {
     email: string | null
     fullName: string
     role: string
+    landingPath: string | null
     permissions: string[]
   }
 }
@@ -46,6 +47,7 @@ export function useAuth() {
         name: response.user.fullName,
         email: response.user.email,
         role: response.user.role,
+        landingPath: response.user.landingPath ?? null,
         permissions: response.user.permissions,
         token: response.accessToken,
       }

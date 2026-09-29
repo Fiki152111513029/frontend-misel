@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronUp, Pencil, Shield, Trash2 } from 'lucide-vue-next'
 import type { Role } from '~/types/role'
+import { getBuiltInRoleHome } from '~/utils/roleHome'
 
 export type RoleSortKey = 'name' | 'description' | 'permissions'
 export type RoleSortOrder = 'asc' | 'desc'
@@ -24,13 +25,18 @@ const emit = defineEmits<{
 const { hasPermission } = useAuth()
 
 const columns = [
-  { key: 'name', label: 'Name' },
-  { key: 'description', label: 'Description' },
-  { key: 'permissions', label: 'Permissions', width: '120px' },
-  { key: 'actions', label: 'Actions', width: '150px' },
+  { key: 'name', label: 'Name', sortable: true },
+  { key: 'description', label: 'Description', sortable: true },
+  { key: 'landingPath', label: 'Landing Page', width: '200px', sortable: false },
+  { key: 'permissions', label: 'Permissions', width: '120px', sortable: true },
+  { key: 'actions', label: 'Actions', width: '150px', sortable: false },
 ]
 
-const sortableColumns = columns.filter(col => col.key !== 'actions')
+// A role with nothing set still lands somewhere — show which page that is,
+// greyed out, rather than a bare dash that reads like "nowhere".
+function landingLabel(role: Role) {
+  return role.landingPath ?? getBuiltInRoleHome(role.name)
+}
 
 const activeSort = ref<{ key: RoleSortKey, order: RoleSortOrder }>({
   key: props.sortBy ?? 'name',
@@ -49,12 +55,13 @@ function toggleSort(key: RoleSortKey) {
     <UiBaseTable :columns="columns" :loading="loading">
       <template #header>
         <th
-          v-for="col in sortableColumns"
+          v-for="col in columns"
           :key="col.key"
           :style="col.width ? `width: ${col.width}` : ''"
           class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
         >
           <button
+            v-if="col.sortable"
             type="button"
             class="inline-flex items-center gap-1 hover:text-[#01ADEF]"
             @click="toggleSort(col.key as RoleSortKey)"
@@ -64,9 +71,7 @@ function toggleSort(key: RoleSortKey) {
             <ChevronDown v-else-if="activeSort.key === col.key && activeSort.order === 'desc'" class="h-3.5 w-3.5" />
             <ChevronDown v-else class="h-3.5 w-3.5 opacity-30" />
           </button>
-        </th>
-        <th style="width: 150px" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Actions
+          <template v-else>{{ col.label }}</template>
         </th>
       </template>
 
@@ -86,6 +91,13 @@ function toggleSort(key: RoleSortKey) {
           </td>
           <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.description || '—' }}
+          </td>
+          <td class="px-4 py-3">
+            <span
+              class="font-mono text-xs"
+              :class="item.landingPath ? 'text-[#0F1F52]' : 'text-slate-400'"
+            >{{ landingLabel(item) }}</span>
+            <span v-if="!item.landingPath" class="ml-1.5 text-[11px] text-slate-400">(default)</span>
           </td>
           <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.permissions.length }}

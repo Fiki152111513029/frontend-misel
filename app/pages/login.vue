@@ -24,7 +24,7 @@ async function handleLogin(credentials: { identifier: string; password: string; 
     if (result.user?.role === 'Operator') {
       collapse()
     }
-    await router.push(getRoleHomePath(result.user?.role))
+    await router.push(getRoleHomePath(result.user?.role, result.user?.landingPath))
   } else {
     serverError.value = result.message ?? 'Login failed. Please try again.'
   }

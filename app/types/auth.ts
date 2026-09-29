@@ -9,6 +9,8 @@ export interface AuthUser {
   name: string
   email: string | null
   role: string
+  /** Configured per role in User Management > Roles; null = built-in default. */
+  landingPath: string | null
   permissions: string[]
   token: string
 }
