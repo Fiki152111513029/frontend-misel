@@ -29,9 +29,8 @@ const emit = defineEmits<{
       Cancel <strong>{{ run?.abjad }} — {{ run?.name }}</strong>?
     </p>
     <p class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
-      This only marks the task cancelled here. RCS has no cancel endpoint in
-      this integration, so a robot already on its way will keep going — stop
-      it from the RCS console if you need it to halt.
+      This asks RCS to stop the order, so a robot already on its way will be
+      pulled off it. If RCS refuses, nothing is changed here either.
     </p>
 
     <template #footer>
