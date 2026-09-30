@@ -19,8 +19,19 @@ export const useCustomTaskRunsStore = defineStore('custom-task-runs', () => {
     sortOrder: 'desc',
   })
 
-  async function loadRuns() {
-    loading.value = true
+  // A background poll must not flip `loading`, or the table drops into its
+  // skeleton every few seconds and the page visibly blinks — the Dashboard
+  // panels avoid this the same way, by swapping the rows in place and
+  // leaving the last known data on screen while a refresh is in flight.
+  // Only a first load or a deliberate filter/page change shows the spinner.
+  let inFlight = false
+
+  async function loadRuns(options: { silent?: boolean } = {}) {
+    // A slow response must not let ticks pile up on top of each other,
+    // which would make the rows jump around as they resolve out of order.
+    if (options.silent && inFlight) return
+    inFlight = true
+    if (!options.silent) loading.value = true
     error.value = null
     try {
       const result = await fetchCustomTaskRuns(filters.value)
@@ -30,6 +41,7 @@ export const useCustomTaskRunsStore = defineStore('custom-task-runs', () => {
       error.value = e instanceof ApiError ? e.message : 'Failed to load custom tasks'
       throw e
     } finally {
+      inFlight = false
       loading.value = false
     }
   }

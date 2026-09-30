@@ -5,7 +5,7 @@ import type { CustomTaskRun, CustomTaskRunSortBy } from '~/types/custom-task'
 definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'Task Custom — Misel' })
 
-const { items, meta, loading, filters, fetchRuns, cancelRun, setFilters } = useCustomTaskRuns()
+const { items, meta, loading, filters, fetchRuns, refreshRuns, cancelRun, setFilters } = useCustomTaskRuns()
 
 const cancellingRun = ref<CustomTaskRun | null>(null)
 const showCancelDialog = ref(false)
@@ -17,13 +17,16 @@ const dateFilter = ref('')
 
 // A task that is still running has its status written back by the RCS
 // task-status webhook, so refresh on a timer rather than making the
-// operator reload to see it finish.
+// operator reload to see it finish. The ticks go through refreshRuns(),
+// which swaps the rows in place without raising the loading flag — same as
+// the Dashboard panels. fetchRuns() (with the spinner) is kept for the
+// first load and for deliberate filter/sort/page changes.
 const POLL_INTERVAL_MS = 5000
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(async () => {
   await fetchRuns()
-  pollTimer = setInterval(() => fetchRuns(), POLL_INTERVAL_MS)
+  pollTimer = setInterval(refreshRuns, POLL_INTERVAL_MS)
 })
 
 onBeforeUnmount(() => {

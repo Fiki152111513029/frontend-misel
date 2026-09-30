@@ -45,6 +45,18 @@ export function useCustomTaskRuns() {
     }
   }
 
+  // The background poll: same request, but it leaves the table showing what
+  // it already has and stays quiet on failure. A toast every few seconds
+  // while the backend is briefly unreachable would be worse than the stale
+  // rows it is warning about — the next tick recovers on its own.
+  async function refreshRuns() {
+    try {
+      await store.loadRuns({ silent: true })
+    } catch {
+      // Non-fatal — this tick keeps the previous rows.
+    }
+  }
+
   async function cancelRun(id: string) {
     try {
       const run = await cancelCustomTaskRunSvc(id)
@@ -63,6 +75,7 @@ export function useCustomTaskRuns() {
     loading: computed(() => store.loading),
     filters: computed(() => store.filters),
     fetchRuns,
+    refreshRuns,
     cancelRun,
     setFilters: store.setFilters,
   }
