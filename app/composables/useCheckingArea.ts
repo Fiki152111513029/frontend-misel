@@ -15,11 +15,9 @@ export function useCheckingArea() {
   // brief outage does not produce a toast every few seconds.
   let inFlight = false
 
+  // `areaId` null means "every area" — the backend merges them, since a
+  // Warehouse Location records no area of its own.
   async function fetchRows(areaId: number | null, options: { silent?: boolean } = {}) {
-    if (areaId == null) {
-      items.value = []
-      return
-    }
     if (options.silent && inFlight) return
     inFlight = true
     if (!options.silent) loading.value = true
