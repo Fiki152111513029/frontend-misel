@@ -46,6 +46,7 @@ export const NAV_MENUS: MenuEntry[] = [
       { title: 'Warehouse Trolley Task', path: '/dashboard/warehouse-trolley-task', permission: 'warehouse-trolley-task.read' },
       { title: 'Operator Trolley Task', path: '/dashboard/operator-trolley-task', permission: 'operator-trolley-task.read' },
       { title: 'Custom Task', path: '/dashboard/custom-task', permission: 'custom-task.read' },
+      { title: 'Checking Area', path: '/dashboard/checking-area', permission: 'checking-area.read' },
     ],
   },
   {
