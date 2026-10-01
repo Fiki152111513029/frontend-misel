@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Warehouse, Bot, BarChart3, ShieldCheck, ArrowRight } from 'lucide-vue-next'
-import logoSrc from '~/assets/images/logomisbot.png'
+import logoSrc from '~/assets/images/Logo-iFactis-Move-X.png'
 import bgHeroSrc from '~/assets/images/bg-hero.png'
 
 definePageMeta({
@@ -52,8 +52,8 @@ function goToLogin() {
       <div class="mb-8 flex animate-fade-in items-center justify-center">
         <img
           :src="logoSrc"
-          alt="Misel Logo"
-          class="h-auto w-full max-w-xs object-contain sm:max-w-sm"
+          alt="iFactis Move-X"
+          class="h-28 w-auto object-contain sm:h-32"
           loading="eager"
           @error="($event.target as HTMLImageElement).style.display = 'none'"
         />

@@ -2,7 +2,7 @@
 import {
   ChevronLeft, ChevronRight, ChevronDown,
 } from 'lucide-vue-next'
-import logoSrc from '~/assets/images/logomisbot.png'
+import logoSrc from '~/assets/images/Logo-iFactis-Move-X.png'
 import robotPromoSrc from '~/assets/images/irayplay.png'
 import { NAV_MENUS, isMenuGroup, isSectionLabel } from '~/utils/navMenu'
 import type { MenuEntry, MenuGroup } from '~/utils/navMenu'
@@ -48,10 +48,15 @@ const menus = computed<MenuEntry[]>(() => {
 const isGroup = isMenuGroup
 const isLabel = isSectionLabel
 
+// A bare startsWith() lit up every menu whose path is a prefix of another —
+// standing on /dashboard/custom-tasks also highlighted /dashboard/custom-task
+// (and its whole group) because one path is literally the start of the other.
+// Requiring a "/" after the match keeps detail routes like
+// /dashboard/trolleys/<id> highlighting their own menu, without letting a
+// sibling claim it too.
 function isActive(path: string) {
-  return path === '/dashboard'
-    ? route.path === '/dashboard'
-    : route.path.startsWith(path)
+  if (path === '/dashboard') return route.path === '/dashboard'
+  return route.path === path || route.path.startsWith(`${path}/`)
 }
 
 function isGroupActive(menu: MenuGroup) {
@@ -114,16 +119,17 @@ function toggleGroup(title: string) {
       class="flex h-16 items-center border-b border-white/10 px-4 flex-shrink-0"
       :class="isCollapsed ? 'justify-center' : 'justify-between'"
     >
-      <div class="flex items-center gap-3 overflow-hidden">
-        <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-[#01ADEF]">
-          <img :src="logoSrc" alt="Logo" class="h-6 w-6 object-contain" @error="($event.target as HTMLImageElement).style.display='none'" />
-        </div>
-        <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0 w-0" enter-to-class="opacity-100" leave-active-class="transition duration-150" leave-to-class="opacity-0">
-          <span v-if="!isCollapsed" class="whitespace-nowrap font-bold text-white text-[17px]">
-            Misel
-          </span>
-        </Transition>
-      </div>
+      <!-- The wordmark carries the product name itself, so there is no
+           separate text label beside it. Collapsed, it shrinks to fit the
+           72px rail; expanded, it is capped by height so a wide logo never
+           pushes the collapse button off the row. -->
+      <img
+        :src="logoSrc"
+        alt="iFactis Move-X"
+        class="w-auto object-contain"
+        :class="isCollapsed ? 'h-7 max-w-[40px]' : 'h-8 max-w-[180px]'"
+        @error="($event.target as HTMLImageElement).style.display = 'none'"
+      >
       <button
         v-if="!isCollapsed"
         class="hidden lg:flex h-7 w-7 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white transition-colors flex-shrink-0"

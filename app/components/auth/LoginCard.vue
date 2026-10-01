@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import logoSrc from '~/assets/images/logomisbot.png'
+import logoSrc from '~/assets/images/Logo-iFactis-Move-X.png'
 
 interface Props {
   serverError?: string | null
@@ -23,8 +23,8 @@ const emit = defineEmits<{
       <div class="mb-8 flex justify-center">
         <img
           :src="logoSrc"
-          alt="Misel Logo"
-          class="h-auto w-[200px] object-contain"
+          alt="iFactis Move-X"
+          class="h-20 w-auto object-contain"
           loading="eager"
           @error="($event.target as HTMLImageElement).style.display = 'none'"
         />
