@@ -75,7 +75,7 @@ function goToLogin() {
         class="animate-slide-up text-5xl font-semibold tracking-tight text-[#254384] sm:text-6xl"
         style="animation-delay: 0.05s"
       >
-        By Mitrainti Group
+        By Ichii
       </h1>
 
       <!-- Tagline -->
@@ -151,7 +151,7 @@ function goToLogin() {
 
     <!-- Footer -->
     <footer class="relative z-10 w-full bg-[#0B2A6B] py-7 text-center text-xs text-white/70">
-      &copy; {{ new Date().getFullYear() }} Mitrainti Group. All rights reserved.
+      &copy; {{ new Date().getFullYear() }} Ichii. All rights reserved.
     </footer>
   </div>
 </template>

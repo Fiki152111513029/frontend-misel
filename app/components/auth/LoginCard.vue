@@ -97,7 +97,7 @@ const emit = defineEmits<{
 
     <!-- Footer -->
     <p class="font-medium mt-5 text-center text-xs text-slate-400">
-      &copy; {{ new Date().getFullYear() }}  Mitrainti Group. All rights reserved.
+      &copy; {{ new Date().getFullYear() }}  Ichii. All rights reserved.
     </p>
   </div>
 </template>

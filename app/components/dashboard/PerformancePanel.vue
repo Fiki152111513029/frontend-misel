@@ -4,6 +4,19 @@ import { fetchTaskStatusSummary } from '~/services/webhook-log.service'
 import { fetchTrolleyActivities } from '~/services/trolley-activity.service'
 import type { Robot } from '~/types/robot'
 
+// The panel is taller than its sections need to be visible all at once, so
+// it caps itself and scrolls. The default matches the Dashboard's own
+// layout; a page that already pins the column to a measured height (Fleet
+// Overview, which matches the Factory Map card exactly) passes "max-h-none"
+// so this cap cannot hold it short of its container.
+interface Props {
+  maxHeightClass?: string
+}
+
+withDefaults(defineProps<Props>(), {
+  maxHeightClass: 'max-h-[460px] 2xl:max-h-[600px]',
+})
+
 const { isDark } = useTheme()
 
 // Performance — the selected day's task breakdown read straight off RCS's
@@ -253,7 +266,8 @@ async function loadRequestQueue() {
 
 <template>
   <div
-    class="flex h-full max-h-[460px] flex-col overflow-y-auto rounded-2xl border border-[#E2E8F0] bg-white transition-colors duration-200 2xl:max-h-[600px]"
+    class="flex h-full flex-col overflow-y-auto rounded-2xl border border-[#E2E8F0] bg-white transition-colors duration-200"
+    :class="maxHeightClass"
   >
     <!-- Performance -->
     <section class="border-b border-[#E2E8F0] p-5">

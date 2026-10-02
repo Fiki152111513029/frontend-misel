@@ -300,7 +300,7 @@ function toggleGroup(title: string) {
           <div class="relative mt-3 h-1 w-8 rounded-full bg-[#F2994A]" />
 
           <p class="font-medium relative mt-3 text-xs text-white/60">
-            By Mitrainti Group
+            By Ichii
           </p>
         </div>
       </div>
