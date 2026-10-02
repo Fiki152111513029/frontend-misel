@@ -21,6 +21,31 @@ const dashboardFilters = useDashboardFiltersStore()
 const readableDate = computed(() => new Date(`${dashboardFilters.selectedDate}T00:00:00`)
   .toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }))
 
+// There is no data for a day that has not happened yet, so the calendar
+// stops at today rather than letting someone pick into the future and get
+// empty widgets with no explanation.
+const todayIso = computed(() => {
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+})
+
+const dateInputRef = ref<HTMLInputElement | null>(null)
+
+function openDatePicker() {
+  const input = dateInputRef.value
+  if (!input) return
+  // showPicker() is the only reliable way to open a date input's calendar
+  // from somewhere else on the page. It throws if the browser blocks it
+  // (not a user gesture, or unsupported), so fall back to focusing the
+  // field, which still allows typing the date.
+  try {
+    input.showPicker()
+  } catch {
+    input.focus()
+  }
+}
+
 // Fleet and Critical Alarms are live readings with no history behind them,
 // so they always describe right now regardless of the day picked; only
 // Total Production is day-scoped.
@@ -70,24 +95,34 @@ const activeUnits = computed(() => fleet.value.filter(row => isOnline(row.status
 
 <template>
   <div class="flex flex-wrap items-center gap-3">
-    <label
-      class="relative inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-medium text-[#0F1F52] transition-colors hover:border-slate-300"
-      :title="dashboardFilters.isToday ? 'Showing today' : 'Showing a past day'"
-    >
-      <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-      </svg>
-      {{ readableDate }}
-      <!-- The native picker sits invisibly over the whole chip so the date
-           is editable without a second control cluttering the bar. -->
+    <!-- The chip is the click target and the native input only supplies the
+         picker. Clicking a date input does NOT open its calendar — only its
+         small indicator icon does — so an invisible input stretched over the
+         chip left almost all of it dead. The button calls showPicker()
+         instead, and the input is pointer-events-none so it can never
+         swallow the click. -->
+    <div class="relative inline-flex">
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-medium text-[#0F1F52] transition-colors hover:border-slate-300"
+        :title="dashboardFilters.isToday ? 'Showing today' : 'Showing a past day'"
+        @click="openDatePicker"
+      >
+        <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+        </svg>
+        {{ readableDate }}
+      </button>
       <input
+        ref="dateInputRef"
         :value="dashboardFilters.selectedDate"
+        :max="todayIso"
         type="date"
-        class="absolute inset-0 cursor-pointer opacity-0"
+        class="pointer-events-none absolute inset-0 h-full w-full opacity-0"
         aria-label="Dashboard date"
         @change="dashboardFilters.setDate(($event.target as HTMLInputElement).value)"
       >
-    </label>
+    </div>
 
     <button
       v-if="!dashboardFilters.isToday"

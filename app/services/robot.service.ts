@@ -9,6 +9,7 @@ import type {
   RobotStatusMonthlyMode,
   RobotStatusSummaryRow,
   RobotSystemStatus,
+  RobotTaskSummaryRow,
   UpdateRobotInput,
 } from '~/types/robot'
 
@@ -102,4 +103,19 @@ export async function fetchRobotStatusMonthlySummary(
       ...(areaId == null ? {} : { areaId }),
     },
   })) as RobotStatusSummaryRow[]
+}
+
+// Per-robot task counts for the Fleet Overview tiles. `date` limits it to
+// one calendar day; omitted, it counts everything.
+export async function fetchRobotTaskSummary(
+  areaId?: number | null,
+  date?: string,
+): Promise<RobotTaskSummaryRow[]> {
+  const { $http } = useNuxtApp()
+  return (await $http.get('/robots/task-summary', {
+    params: {
+      ...(areaId == null ? {} : { areaId }),
+      ...(date ? { date } : {}),
+    },
+  })) as RobotTaskSummaryRow[]
 }

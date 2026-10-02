@@ -29,6 +29,7 @@ export function isSectionLabel(menu: MenuEntry): menu is MenuSectionLabel {
 // Management > Roles > [role] — no code change needed to regrant a menu.
 export const NAV_MENUS: MenuEntry[] = [ 
   { title: 'Dashboard', icon: BarChart3, path: '/dashboard', permission: 'dashboard.read' },
+  { title: 'Fleet Overview', icon: LayoutDashboard, path: '/dashboard/fleet-overview', permission: 'dashboard.read' },
   { label: 'All Menu' },
   {
     title: 'All Tasks',

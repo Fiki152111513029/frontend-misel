@@ -123,3 +123,16 @@ export interface RobotStatusSummaryRow {
   // and in an active alarm).
   alarmMinutes: number
 }
+
+// Per-robot task counts behind the Fleet Overview tiles. PENDING is folded
+// into inProgress server-side — the tiles have no "not started" column.
+export interface RobotTaskSummaryRow {
+  robotId: string
+  robotName: string
+  unitId: string
+  total: number
+  completed: number
+  inProgress: number
+  failed: number
+  cancelled: number
+}
