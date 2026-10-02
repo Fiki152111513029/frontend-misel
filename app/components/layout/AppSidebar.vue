@@ -284,7 +284,7 @@ function toggleGroup(title: string) {
 
         <img
           :src="robotPromoSrc"
-          alt="Misel Robot"
+          alt="Ichii Robot"
           class="pointer-events-none absolute -top-14 left-1/2 z-10 w-[160px] -translate-x-1/2 object-contain drop-shadow-[0_12px_20px_rgba(0,0,0,0.35)]"
         />
 

@@ -3,7 +3,7 @@ import { PackageCheck, PackageOpen, RefreshCw } from 'lucide-vue-next'
 import type { BinStatus } from '~/types/checking-area'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Checking Area — Misel' })
+useHead({ title: 'Checking Area — Ichii' })
 
 // Same single-column shape as the Custom Task scan page: pick one storage,
 // read what RCS says about it, correct it with one button. No area picker —

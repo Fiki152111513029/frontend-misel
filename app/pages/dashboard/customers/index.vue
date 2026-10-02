@@ -8,7 +8,7 @@ import type {
 } from '~/types/customer'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Customers — Misel' })
+useHead({ title: 'Customers — Ichii' })
 
 const { hasPermission } = useAuth()
 const {

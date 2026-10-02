@@ -2,7 +2,7 @@
 import type { WebhookLogSortBy, WebhookLogSortOrder } from '~/components/webhook-logs/Table.vue'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'ICS Webhook Logs — Misel' })
+useHead({ title: 'ICS Webhook Logs — Ichii' })
 
 const { webhookLogs, loading, fetchWebhookLogs } = useWebhookLogs()
 

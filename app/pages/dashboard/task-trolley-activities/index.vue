@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Trolley Activities — Misel' })
+useHead({ title: 'Trolley Activities — Ichii' })
 
 // The activity list below is open to everyone with trolley-activity.read
 // (Operator/Warehouse included, to see their own history) — only the

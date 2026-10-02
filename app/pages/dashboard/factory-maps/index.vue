@@ -3,7 +3,7 @@ import { Plus } from 'lucide-vue-next'
 import type { FactoryMap, FactoryMapFormInput, FactoryMapQuery } from '~/types/factory-map'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Factory Maps — Misel' })
+useHead({ title: 'Factory Maps — Ichii' })
 
 const {
   items,

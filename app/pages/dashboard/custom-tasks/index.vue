@@ -3,7 +3,7 @@ import { Search } from 'lucide-vue-next'
 import type { CustomTaskRun, CustomTaskRunSortBy } from '~/types/custom-task'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Task Custom — Misel' })
+useHead({ title: 'Task Custom — Ichii' })
 
 const { items, meta, loading, filters, fetchRuns, refreshRuns, cancelRun, setFilters } = useCustomTaskRuns()
 

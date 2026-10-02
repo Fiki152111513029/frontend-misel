@@ -6,7 +6,7 @@ import type { BoxType, BoxTypeQuery, CreateBoxTypeInput } from '~/types/box-type
 const SERVER_SORT_KEYS = ['name', 'ordering', 'createdAt'] as const
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Box Types — Misel' })
+useHead({ title: 'Box Types — Ichii' })
 
 const {
   items,

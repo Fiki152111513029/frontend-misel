@@ -87,7 +87,7 @@ const emit = defineEmits<{
       <p class="font-medium mt-4 text-center text-sm text-slate-500">
         Need access?
         <a
-          href="mailto:admin@misel.co.id"
+          href="mailto:admin@Ichii.co.id"
           class="font-medium text-[#01ADEF] hover:text-[#0095D4] transition-colors"
         >
           Contact administrator

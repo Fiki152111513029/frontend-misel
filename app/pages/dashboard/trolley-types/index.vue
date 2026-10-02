@@ -8,7 +8,7 @@ import type {
 } from '~/types/trolley-type'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Trolley Types — Misel' })
+useHead({ title: 'Trolley Types — Ichii' })
 
 const { hasPermission } = useAuth()
 const {

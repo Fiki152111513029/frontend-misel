@@ -7,7 +7,7 @@ import type {
 } from '~/types/parking-area'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Parking Areas — Misel' })
+useHead({ title: 'Parking Areas — Ichii' })
 
 const SERVER_SORT_KEYS = ['name', 'createdAt'] as const
 

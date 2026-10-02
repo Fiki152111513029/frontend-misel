@@ -9,7 +9,7 @@ import type {
 const SERVER_SORT_KEYS = ['name', 'order', 'createdAt'] as const
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Production Line Areas — Misel' })
+useHead({ title: 'Production Line Areas — Ichii' })
 
 const { hasPermission } = useAuth()
 const {

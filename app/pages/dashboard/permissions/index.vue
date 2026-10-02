@@ -4,7 +4,7 @@ import type { PermissionSortKey, PermissionSortOrder } from '~/components/permis
 import type { CreatePermissionInput, Permission } from '~/types/permission'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Permissions — Misel' })
+useHead({ title: 'Permissions — Ichii' })
 
 const { hasPermission } = useAuth()
 const { items, loading, search, fetchPermissions, createPermission, updatePermission, deletePermission } =

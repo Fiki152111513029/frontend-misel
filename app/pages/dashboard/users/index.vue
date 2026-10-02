@@ -4,7 +4,7 @@ import type { UserSortKey, UserSortOrder } from '~/components/users/Table.vue'
 import type { CreateUserInput, User, UserFormValues } from '~/types/user'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'User Management — Misel' })
+useHead({ title: 'User Management — Ichii' })
 
 const { hasPermission } = useAuth()
 const { items, loading, fetchUsers, createUser, updateUser, deleteUser } = useUsers()

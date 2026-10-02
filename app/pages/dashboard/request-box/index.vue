@@ -4,7 +4,7 @@ import type { RequestBoxSortKey } from '~/components/request-boxes/Table.vue'
 import type { CreateRequestBoxInput, RequestBox } from '~/types/request-box'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Request Box — Misel' })
+useHead({ title: 'Request Box — Ichii' })
 
 const SERVER_SORT_KEYS = ['qty', 'createdAt'] as const
 

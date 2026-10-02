@@ -4,7 +4,7 @@ import type { TroubleShotSortKey } from '~/components/trouble-shot/Table.vue'
 import type { Task, TaskSortOrder, TaskStatus } from '~/types/task'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Trouble Shot — Misel' })
+useHead({ title: 'Trouble Shot — Ichii' })
 
 const { items, loading, fetchTasks, cancelTask } = useTasks()
 const toast = useToast()

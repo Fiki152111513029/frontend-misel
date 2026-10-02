@@ -7,7 +7,7 @@ definePageMeta({
   layout: false,
 })
 
-useHead({ title: 'Misel — Digital Solution for Better Future' })
+useHead({ title: 'Ichii — Digital Solution for Better Future' })
 
 const features = [
   {
@@ -110,7 +110,7 @@ function goToLogin() {
         </UiBaseButton>
 
         <a
-          href="mailto:admin@misel.co.id"
+          href="mailto:admin@Ichii.co.id"
           class="text-sm font-medium text-slate-500 hover:text-[#01ADEF] transition-colors"
         >
           Need access? Contact administrator

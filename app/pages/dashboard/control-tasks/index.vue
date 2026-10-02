@@ -4,7 +4,7 @@ import type { ControlTaskSortKey } from '~/components/control-tasks/Table.vue'
 import type { ControlTask, CreateControlTaskInput } from '~/types/control-task'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Customize Control Task — Misel' })
+useHead({ title: 'Customize Control Task — Ichii' })
 
 const SERVER_SORT_KEYS = ['code', 'name', 'createdAt'] as const
 
