@@ -44,17 +44,52 @@ watch(
   () => [dashboardFilters.areaNumber, dashboardFilters.isAreaResolved, dashboardFilters.selectedDate],
   () => refresh({ silent: true }),
 )
+
+// The card column is capped at exactly the map column's height and scrolls
+// inside itself, so a long fleet never stretches the page past the map.
+// Measured rather than hardcoded: the map card sizes itself (and changes at
+// the 2xl breakpoint), so copying a number here would quietly go stale.
+const mapColumnRef = ref<HTMLElement | null>(null)
+const mapColumnHeight = ref(0)
+let resizeObserver: ResizeObserver | null = null
+
+watch(mapColumnRef, (element) => {
+  resizeObserver?.disconnect()
+  resizeObserver = null
+  if (!element) {
+    mapColumnHeight.value = 0
+    return
+  }
+  resizeObserver = new ResizeObserver(() => {
+    mapColumnHeight.value = element.offsetHeight
+  })
+  resizeObserver.observe(element)
+})
+
+onBeforeUnmount(() => resizeObserver?.disconnect())
+
+const cardColumnStyle = computed(() =>
+  view.value === 'map' && mapColumnHeight.value > 0
+    ? { height: `${mapColumnHeight.value}px` }
+    : undefined,
+)
+
+const emptyMessage = computed(() =>
+  dashboardFilters.isAreaResolved && dashboardFilters.areaNumber === null
+    ? 'This map has no area number, so no robots are linked to it'
+    : 'No robots found',
+)
 </script>
 
 <template>
   <div class="animate-fade-in -m-4 space-y-4 bg-white p-4 md:-m-6 md:p-6">
     <DashboardStatsBar />
 
-    <div class="flex items-start gap-3">
-      <!-- Robot cards — always on the left, in both views. -->
+    <!-- Map view: cards on the left, scrolling within the map's height. -->
+    <div v-if="view === 'map'" class="flex items-start gap-3">
       <div
-        class="shrink-0 space-y-4"
-        :class="view === 'map' ? 'w-full max-w-[460px]' : 'w-[300px]'"
+        class="w-full max-w-[460px] shrink-0 space-y-4 overflow-y-auto pr-1"
+        :style="cardColumnStyle"
       >
         <FleetOverviewRobotCard
           v-for="robot in items"
@@ -62,63 +97,76 @@ watch(
           :robot="robot"
         />
         <p v-if="items.length === 0" class="rounded-2xl border border-dashed border-[#E2E8F0] py-12 text-center text-sm text-slate-400">
-          {{ dashboardFilters.isAreaResolved && dashboardFilters.areaNumber === null
-            ? 'This map has no area number, so no robots are linked to it'
-            : 'No robots found' }}
+          {{ emptyMessage }}
         </p>
       </div>
 
-      <!-- Toggle. Points the way it will move: > opens the task tiles, < -->
-      <!-- brings the map back. -->
       <button
         type="button"
         class="mt-6 flex h-10 w-7 shrink-0 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-slate-100 hover:text-[#0F1F52]"
-        :aria-label="view === 'map' ? 'Show task breakdown' : 'Show factory map'"
-        @click="view = view === 'map' ? 'tasks' : 'map'"
+        aria-label="Show task breakdown"
+        @click="view = 'tasks'"
       >
-        <ChevronRight v-if="view === 'map'" class="h-7 w-7" />
-        <ChevronLeft v-else class="h-7 w-7" />
+        <ChevronRight class="h-7 w-7" />
       </button>
 
-      <!-- Map view: the Dashboard's own map and side panel, unchanged. -->
-      <template v-if="view === 'map'">
-        <div class="min-w-0 flex-1 rounded-2xl shadow-xl shadow-slate-300/70">
-          <DashboardFactoryMap />
-        </div>
-        <div class="w-[340px] shrink-0 rounded-2xl shadow-xl shadow-slate-300/70 xl:w-[380px]">
-          <DashboardPerformancePanel />
-        </div>
-      </template>
+      <div ref="mapColumnRef" class="min-w-0 flex-1 rounded-2xl shadow-xl shadow-slate-300/70">
+        <DashboardFactoryMap />
+      </div>
+      <div class="w-[340px] shrink-0 rounded-2xl shadow-xl shadow-slate-300/70 xl:w-[380px]">
+        <DashboardPerformancePanel />
+      </div>
+    </div>
 
-      <!-- Task view: one row of tiles per robot, aligned with its card. -->
-      <div v-else class="min-w-0 flex-1 space-y-4">
+    <!-- Task view: one row per robot, card and tiles in the same row so they
+         stay aligned however tall either side gets. -->
+    <div v-else class="flex items-start gap-3">
+      <div class="min-w-0 flex-1 space-y-4">
         <div
           v-for="robot in items"
           :key="robot.id"
-          class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5"
+          class="grid grid-cols-1 gap-3 lg:grid-cols-[300px_1fr]"
         >
-          <FleetOverviewTaskTile
-            label="Total" tone="total"
-            :value="robot.tasks?.total ?? 0" :total="robot.tasks?.total ?? 0"
-          />
-          <FleetOverviewTaskTile
-            label="Completed" tone="completed"
-            :value="robot.tasks?.completed ?? 0" :total="robot.tasks?.total ?? 0"
-          />
-          <FleetOverviewTaskTile
-            label="In Progress" tone="inProgress"
-            :value="robot.tasks?.inProgress ?? 0" :total="robot.tasks?.total ?? 0"
-          />
-          <FleetOverviewTaskTile
-            label="Failed" tone="failed"
-            :value="robot.tasks?.failed ?? 0" :total="robot.tasks?.total ?? 0"
-          />
-          <FleetOverviewTaskTile
-            label="Cancelled" tone="cancelled"
-            :value="robot.tasks?.cancelled ?? 0" :total="robot.tasks?.total ?? 0"
-          />
+          <FleetOverviewRobotCard :robot="robot" />
+          <!-- h-full so the tiles stretch to the row's height, which the
+               taller of the two sides sets — otherwise they sit short and
+               their bottoms do not line up with the AMR card. -->
+          <div class="grid h-full grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+            <FleetOverviewTaskTile
+              label="Total" tone="total"
+              :value="robot.tasks?.total ?? 0" :total="robot.tasks?.total ?? 0"
+            />
+            <FleetOverviewTaskTile
+              label="Completed" tone="completed"
+              :value="robot.tasks?.completed ?? 0" :total="robot.tasks?.total ?? 0"
+            />
+            <FleetOverviewTaskTile
+              label="In Progress" tone="inProgress"
+              :value="robot.tasks?.inProgress ?? 0" :total="robot.tasks?.total ?? 0"
+            />
+            <FleetOverviewTaskTile
+              label="Failed" tone="failed"
+              :value="robot.tasks?.failed ?? 0" :total="robot.tasks?.total ?? 0"
+            />
+            <FleetOverviewTaskTile
+              label="Cancelled" tone="cancelled"
+              :value="robot.tasks?.cancelled ?? 0" :total="robot.tasks?.total ?? 0"
+            />
+          </div>
         </div>
+        <p v-if="items.length === 0" class="rounded-2xl border border-dashed border-[#E2E8F0] py-12 text-center text-sm text-slate-400">
+          {{ emptyMessage }}
+        </p>
       </div>
+
+      <button
+        type="button"
+        class="mt-6 flex h-10 w-7 shrink-0 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-slate-100 hover:text-[#0F1F52]"
+        aria-label="Show factory map"
+        @click="view = 'map'"
+      >
+        <ChevronLeft class="h-7 w-7" />
+      </button>
     </div>
   </div>
 </template>

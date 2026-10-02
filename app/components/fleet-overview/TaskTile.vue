@@ -31,12 +31,16 @@ const percent = computed(() => {
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-2xl shadow-sm">
+  <!-- Fills whatever height the row gives it, so a tile always lines up
+       with the AMR card beside it however tall that card happens to be.
+       The number stays centred in the space left over and the bar stays
+       pinned to the bottom. -->
+  <div class="flex h-full flex-col overflow-hidden rounded-2xl shadow-sm">
     <p class="px-3 py-2.5 text-center text-sm font-semibold text-white" :class="tone.header">
       {{ label }}
     </p>
-    <div class="px-4 pb-3 pt-4" :class="tone.body">
-      <p class="text-center">
+    <div class="flex flex-1 flex-col px-4 pb-3 pt-4" :class="tone.body">
+      <p class="flex flex-1 items-center justify-center text-center">
         <span class="text-3xl font-extrabold" :class="tone.value">{{ value.toLocaleString('en-US') }}</span>
         <span class="ml-1 text-sm font-medium" :class="tone.value">Task</span>
       </p>
