@@ -11,10 +11,17 @@ import type { Robot } from '~/types/robot'
 // so this cap cannot hold it short of its container.
 interface Props {
   maxHeightClass?: string
+  /**
+   * The Performance section at the top. Fleet Overview turns it off because
+   * its task tiles already break the same day down per robot, so showing it
+   * again beside them is just the same numbers twice.
+   */
+  showPerformance?: boolean
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   maxHeightClass: 'max-h-[460px] 2xl:max-h-[600px]',
+  showPerformance: true,
 })
 
 const { isDark } = useTheme()
@@ -57,6 +64,9 @@ const statuses = ref<StatusItem[]>([
 const dashboardFilters = useDashboardFiltersStore()
 
 async function loadTaskStatus() {
+  // Nothing renders these counts when the section is hidden, so skip the
+  // request entirely rather than polling for them every few seconds.
+  if (!props.showPerformance) return
   if (!dashboardFilters.isAreaResolved) return
   if (dashboardFilters.areaNumber == null) {
     statuses.value = statuses.value.map(status => ({ ...status, value: 0 }))
@@ -270,7 +280,7 @@ async function loadRequestQueue() {
     :class="maxHeightClass"
   >
     <!-- Performance -->
-    <section class="border-b border-[#E2E8F0] p-5">
+    <section v-if="showPerformance" class="border-b border-[#E2E8F0] p-5">
       <div class="flex items-start justify-between">
         <div>
           <p class="font-semibold text-[#0F1F52]">Performance</p>

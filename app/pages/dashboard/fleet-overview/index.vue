@@ -122,7 +122,7 @@ const emptyMessage = computed(() =>
         class="w-[340px] shrink-0 rounded-2xl shadow-xl shadow-slate-300/70 xl:w-[380px]"
         :style="mapHeightStyle"
       >
-        <DashboardPerformancePanel max-height-class="max-h-none" />
+        <DashboardPerformancePanel max-height-class="max-h-none" :show-performance="false" />
       </div>
     </div>
 
