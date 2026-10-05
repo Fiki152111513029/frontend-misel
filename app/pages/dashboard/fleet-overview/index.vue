@@ -84,7 +84,9 @@ const emptyMessage = computed(() =>
 
 <template>
   <div class="animate-fade-in -m-4 space-y-4 bg-white p-4 md:-m-6 md:p-6">
-    <DashboardStatsBar />
+    <!-- No alarm widget on this page to pair it with; the per-robot
+         Alarm Time tiles cover it instead. -->
+    <DashboardStatsBar :show-critical-alarms="false" />
 
     <!-- Map view: cards on the left, scrolling within the map's height. -->
     <div v-if="view === 'map'" class="flex items-start gap-3">

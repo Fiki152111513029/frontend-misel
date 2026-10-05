@@ -1,5 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { ApiError, type ApiErrorShape } from '~/types/api'
+import type { AuthState, AuthUser } from '~/types/auth'
 
 const AUTH_TOKEN_KEY = 'auth_token'
 const AUTH_USER_KEY = 'auth_user'
@@ -7,6 +8,42 @@ const AUTH_REFRESH_TOKEN_KEY = 'auth_refresh_token'
 
 interface RetriableRequestConfig extends InternalAxiosRequestConfig {
   _retriedAfterRefresh?: boolean
+}
+
+/** The user shape /auth/refresh returns — same as /auth/login's. */
+interface RefreshedUser {
+  id: string
+  fullName: string
+  email: string | null
+  role: string
+  landingPath: string | null
+  permissions: string[]
+}
+
+/**
+ * Writes the freshly-returned user to storage and into the live auth state,
+ * so a permission (or landing page) changed on the role since login takes
+ * effect on the next token refresh instead of requiring a re-login.
+ */
+function applyRefreshedUser(
+  storage: Storage,
+  user: RefreshedUser,
+  accessToken: string,
+) {
+  const authUser: AuthUser = {
+    id: user.id,
+    name: user.fullName,
+    email: user.email,
+    role: user.role,
+    landingPath: user.landingPath ?? null,
+    permissions: user.permissions,
+    token: accessToken,
+  }
+  storage.setItem(AUTH_USER_KEY, JSON.stringify(authUser))
+  // Storage alone is not enough — hasPermission() reads the in-memory
+  // state, which is only hydrated from storage on a page load.
+  const authState = useState<AuthState>('auth')
+  if (authState.value?.user) authState.value.user = authUser
 }
 
 export default defineNuxtPlugin(() => {
@@ -50,13 +87,21 @@ export default defineNuxtPlugin(() => {
           // Plain axios, not httpClient — this must never carry an
           // Authorization header or re-enter this same 401 handler.
           const response = await axios.post(`${config.public.apiBase}/auth/refresh`, { refreshToken })
-          const { accessToken, refreshToken: newRefreshToken } = response.data as {
+          const { accessToken, refreshToken: newRefreshToken, user } = response.data as {
             accessToken: string
             refreshToken: string
+            user?: RefreshedUser
           }
           const storage = getStorage()
           storage.setItem(AUTH_TOKEN_KEY, accessToken)
           storage.setItem(AUTH_REFRESH_TOKEN_KEY, newRefreshToken)
+          // The stored user — crucially its permission list — was written
+          // once at login and never updated, so a permission granted to the
+          // role afterwards stayed invisible until the person logged out and
+          // back in (which is how "Cancel Custom Task" went missing for
+          // sessions older than that permission). /auth/refresh already
+          // returns the current user, so take it rather than throw it away.
+          if (user) applyRefreshedUser(storage, user, accessToken)
           return accessToken
         } catch {
           return null
