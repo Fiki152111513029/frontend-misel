@@ -68,8 +68,7 @@ watch(mapColumnRef, (element) => {
 
 onBeforeUnmount(() => resizeObserver?.disconnect())
 
-// Both the card column and the Performance panel are pinned to this, so
-// all three columns end on the same line.
+// The card column is pinned to this, so it and the map end on the same line.
 const mapHeightStyle = computed(() =>
   view.value === 'map' && mapColumnHeight.value > 0
     ? { height: `${mapColumnHeight.value}px` }
@@ -114,15 +113,6 @@ const emptyMessage = computed(() =>
 
       <div ref="mapColumnRef" class="min-w-0 flex-1 rounded-2xl shadow-xl shadow-slate-300/70">
         <DashboardFactoryMap />
-      </div>
-      <!-- max-h-none hands the panel's height over to this column, which
-           is pinned to the map — its own default cap is shorter than the
-           map card and would leave a gap under it. -->
-      <div
-        class="w-[340px] shrink-0 rounded-2xl shadow-xl shadow-slate-300/70 xl:w-[380px]"
-        :style="mapHeightStyle"
-      >
-        <DashboardPerformancePanel max-height-class="max-h-none" :show-performance="false" />
       </div>
     </div>
 

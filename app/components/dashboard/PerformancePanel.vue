@@ -4,26 +4,6 @@ import { fetchTaskStatusSummary } from '~/services/webhook-log.service'
 import { fetchTrolleyActivities } from '~/services/trolley-activity.service'
 import type { Robot } from '~/types/robot'
 
-// The panel is taller than its sections need to be visible all at once, so
-// it caps itself and scrolls. The default matches the Dashboard's own
-// layout; a page that already pins the column to a measured height (Fleet
-// Overview, which matches the Factory Map card exactly) passes "max-h-none"
-// so this cap cannot hold it short of its container.
-interface Props {
-  maxHeightClass?: string
-  /**
-   * The Performance section at the top. Fleet Overview turns it off because
-   * its task tiles already break the same day down per robot, so showing it
-   * again beside them is just the same numbers twice.
-   */
-  showPerformance?: boolean
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  maxHeightClass: 'max-h-[460px] 2xl:max-h-[600px]',
-  showPerformance: true,
-})
-
 const { isDark } = useTheme()
 
 // Performance — the selected day's task breakdown read straight off RCS's
@@ -64,9 +44,6 @@ const statuses = ref<StatusItem[]>([
 const dashboardFilters = useDashboardFiltersStore()
 
 async function loadTaskStatus() {
-  // Nothing renders these counts when the section is hidden, so skip the
-  // request entirely rather than polling for them every few seconds.
-  if (!props.showPerformance) return
   if (!dashboardFilters.isAreaResolved) return
   if (dashboardFilters.areaNumber == null) {
     statuses.value = statuses.value.map(status => ({ ...status, value: 0 }))
@@ -276,11 +253,10 @@ async function loadRequestQueue() {
 
 <template>
   <div
-    class="flex h-full flex-col overflow-y-auto rounded-2xl border border-[#E2E8F0] bg-white transition-colors duration-200"
-    :class="maxHeightClass"
+    class="flex h-full max-h-[460px] flex-col overflow-y-auto rounded-2xl border border-[#E2E8F0] bg-white transition-colors duration-200 2xl:max-h-[600px]"
   >
     <!-- Performance -->
-    <section v-if="showPerformance" class="border-b border-[#E2E8F0] p-5">
+    <section class="border-b border-[#E2E8F0] p-5">
       <div class="flex items-start justify-between">
         <div>
           <p class="font-semibold text-[#0F1F52]">Performance</p>
