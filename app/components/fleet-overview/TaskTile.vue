@@ -48,16 +48,16 @@ const percent = computed(() => {
        The number stays centred in the space left over and the bar stays
        pinned to the bottom. -->
   <div class="flex h-full flex-col overflow-hidden rounded-2xl shadow-sm">
-    <p class="px-3 py-2.5 text-center text-sm font-semibold text-white" :class="tone.header">
+    <p class="px-3 py-3 text-center text-base font-semibold text-white" :class="tone.header">
       {{ label }}
     </p>
-    <div class="flex flex-1 flex-col px-4 pb-3 pt-4" :class="tone.body">
-      <p class="flex flex-1 items-center justify-center text-center">
-        <span class="text-3xl font-extrabold" :class="tone.value">{{ value.toLocaleString('en-US') }}</span>
-        <span class="ml-1 text-sm font-medium" :class="tone.value">{{ unit }}</span>
+    <div class="flex flex-1 flex-col px-4 pb-4 pt-5" :class="tone.body">
+      <p class="flex flex-1 items-baseline justify-center text-center">
+        <span class="text-4xl font-extrabold leading-none" :class="tone.value">{{ value.toLocaleString('en-US') }}</span>
+        <span class="ml-1.5 text-base font-medium" :class="tone.value">{{ unit }}</span>
       </p>
-      <div v-if="showShare" class="mt-4 flex items-center gap-2">
-        <span class="shrink-0 text-[11px] font-semibold" :class="tone.value">{{ percent }}%</span>
+      <div v-if="showShare" class="mt-5 flex items-center gap-2">
+        <span class="shrink-0 text-xs font-semibold" :class="tone.value">{{ percent }}%</span>
         <div class="h-2 flex-1 overflow-hidden rounded-full" :class="tone.track">
           <div
             class="h-full rounded-full transition-all"
