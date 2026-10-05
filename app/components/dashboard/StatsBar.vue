@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { fetchFleetStatus } from '~/services/robot.service'
-import { fetchAlarmDashboardStats } from '~/services/robot-alarm.service'
 import type { FleetStatusRow } from '~/types/robot'
 
 const POLL_INTERVAL_MS = 5000
 
 const fleet = ref<FleetStatusRow[]>([])
-const criticalAlarms = ref(0)
 // Total Production — today's trolley activity count (see
 // GetTrolleyActivityDashboardUseCase, days=1 = today's UTC calendar day).
 const totalProduction = ref(0)
@@ -46,19 +44,14 @@ function openDatePicker() {
   }
 }
 
-// Fleet and Critical Alarms are live readings with no history behind them,
-// so they always describe right now regardless of the day picked; only
-// Total Production is day-scoped.
+// Fleet is a live reading with no history behind it, so Active Units always
+// describes right now regardless of the day picked; only Total Production
+// is day-scoped.
 async function load() {
   try {
     fleet.value = await fetchFleetStatus(dashboardFilters.areaNumber)
   } catch {
     // Non-fatal — keep showing the last known counts if a refresh tick fails.
-  }
-  try {
-    criticalAlarms.value = (await fetchAlarmDashboardStats()).criticalCount
-  } catch {
-    // Non-fatal — same as above.
   }
   const stats = await fetchTrolleyActivityDashboard(undefined, dashboardFilters.selectedDate)
   if (stats) totalProduction.value = stats.totals.total
@@ -145,9 +138,5 @@ const activeUnits = computed(() => fleet.value.filter(row => isOnline(row.status
       <span class="font-bold">{{ activeUnits }} / {{ totalUnits }}</span>
     </div>
 
-    <div class="inline-flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2 text-sm text-red-600">
-      <span class="text-xs font-medium uppercase tracking-wide text-red-400">Critical Alarms</span>
-      <span class="font-bold">{{ String(criticalAlarms).padStart(2, '0') }}</span>
-    </div>
   </div>
 </template>
