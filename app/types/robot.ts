@@ -135,4 +135,6 @@ export interface RobotTaskSummaryRow {
   inProgress: number
   failed: number
   cancelled: number
+  /** Minutes under an active alarm over the same window — the AMR Performance chart's Alarm series. */
+  alarmMinutes: number
 }

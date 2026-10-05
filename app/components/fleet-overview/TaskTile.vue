@@ -4,10 +4,21 @@ interface Props {
   value: number
   /** Share of this robot's total, used for the bar and its caption. */
   total: number
-  tone: 'total' | 'completed' | 'inProgress' | 'failed' | 'cancelled'
+  tone: 'total' | 'completed' | 'inProgress' | 'failed' | 'cancelled' | 'alarm'
+  /** Word after the number. Defaults to Task; alarm time is in minutes. */
+  unit?: string
+  /**
+   * Alarm time is a duration, not a slice of the task count, so it has no
+   * honest percentage to show — the bar and its caption are hidden instead
+   * of inventing a denominator.
+   */
+  showShare?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  unit: 'Task',
+  showShare: true,
+})
 
 // One entry per tone keeps the header, number and bar in step — picking
 // them separately at each use site is how they drift apart.
@@ -17,6 +28,7 @@ const TONES = {
   inProgress: { header: 'bg-[#F6AE2D]', body: 'bg-amber-100/70', value: 'text-[#D98E12]', bar: 'bg-[#F6AE2D]', track: 'bg-white' },
   failed: { header: 'bg-[#EF4444]', body: 'bg-red-100/70', value: 'text-[#EF4444]', bar: 'bg-[#EF4444]', track: 'bg-white' },
   cancelled: { header: 'bg-[#94A3B8]', body: 'bg-slate-200/60', value: 'text-slate-400', bar: 'bg-[#94A3B8]', track: 'bg-white' },
+  alarm: { header: 'bg-[#F97316]', body: 'bg-orange-100/70', value: 'text-[#EA6A0C]', bar: 'bg-[#F97316]', track: 'bg-white' },
 } as const
 
 const tone = computed(() => TONES[props.tone])
@@ -42,9 +54,9 @@ const percent = computed(() => {
     <div class="flex flex-1 flex-col px-4 pb-3 pt-4" :class="tone.body">
       <p class="flex flex-1 items-center justify-center text-center">
         <span class="text-3xl font-extrabold" :class="tone.value">{{ value.toLocaleString('en-US') }}</span>
-        <span class="ml-1 text-sm font-medium" :class="tone.value">Task</span>
+        <span class="ml-1 text-sm font-medium" :class="tone.value">{{ unit }}</span>
       </p>
-      <div class="mt-4 flex items-center gap-2">
+      <div v-if="showShare" class="mt-4 flex items-center gap-2">
         <span class="shrink-0 text-[11px] font-semibold" :class="tone.value">{{ percent }}%</span>
         <div class="h-2 flex-1 overflow-hidden rounded-full" :class="tone.track">
           <div

@@ -156,9 +156,11 @@ const emptyMessage = computed(() =>
               label="Failed" tone="failed"
               :value="robot.tasks?.failed ?? 0" :total="robot.tasks?.total ?? 0"
             />
+            <!-- A duration, not a task count — the same alarmMinutes the
+                 AMR Performance chart plots, over the same day. -->
             <FleetOverviewTaskTile
-              label="Cancelled" tone="cancelled"
-              :value="robot.tasks?.cancelled ?? 0" :total="robot.tasks?.total ?? 0"
+              label="Alarm Time" tone="alarm" unit="Min" :show-share="false"
+              :value="robot.tasks?.alarmMinutes ?? 0" :total="robot.tasks?.total ?? 0"
             />
           </div>
         </div>
