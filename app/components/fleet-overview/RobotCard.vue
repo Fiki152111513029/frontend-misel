@@ -29,9 +29,16 @@ const batteryClass = computed(() => {
 <template>
   <div class="rounded-2xl bg-[#15308A] px-5 py-4 text-white shadow-sm">
     <div class="flex items-center gap-4">
-      <img :src="amrIconSrc" alt="" class="h-12 w-24 shrink-0 object-contain">
+      <!-- 96x64 is the artwork's own 3:2 ratio. The box used to be 96x48,
+           so object-contain shrank the robot to 72px wide and left a dead
+           strip beside it — same footprint, visibly bigger robot. -->
+      <img :src="amrIconSrc" alt="" class="h-16 w-24 shrink-0 object-contain">
       <div class="min-w-0 flex-1 text-right">
-        <p class="truncate text-2xl font-extrabold leading-tight sm:text-3xl">
+        <!-- A 7-character name at text-3xl lands within a pixel or two of
+             the 300px card's edge, so some names truncated and others did
+             not purely on glyph width. text-2xl clears it with room spare;
+             truncate stays as the guard for genuinely long names. -->
+        <p class="truncate text-2xl font-extrabold leading-tight">
           {{ robot.name }}
         </p>
         <p class="text-sm font-medium text-white/60">{{ robot.unitId }}</p>
