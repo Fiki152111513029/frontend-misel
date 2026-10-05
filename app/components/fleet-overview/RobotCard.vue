@@ -29,7 +29,7 @@ const batteryClass = computed(() => {
 <template>
   <div class="rounded-2xl bg-[#15308A] px-5 py-4 text-white shadow-sm">
     <div class="flex items-center gap-4">
-      <img :src="amrIconSrc" alt="" class="h-12 w-20 shrink-0 object-contain">
+      <img :src="amrIconSrc" alt="" class="w-[160px] shrink-0 object-contain">
       <div class="min-w-0 flex-1 text-right">
         <p class="truncate text-2xl font-extrabold leading-tight sm:text-3xl">
           {{ robot.name }}
