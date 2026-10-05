@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import amrIconSrc from '~/assets/images/iconamr.png'
+import amrIconSrc from '~/assets/images/irayplay.png'
 import type { FleetOverviewRobot } from '~/composables/useFleetOverview'
 
 interface Props {
