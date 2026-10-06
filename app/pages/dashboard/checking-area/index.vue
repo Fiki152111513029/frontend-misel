@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PackageCheck, PackageOpen, RefreshCw, Search } from 'lucide-vue-next'
+import { PackageCheck, PackageOpen, RefreshCw } from 'lucide-vue-next'
 import type { BinStatus } from '~/types/checking-area'
 
 definePageMeta({ layout: 'dashboard' })
@@ -15,27 +15,16 @@ const { items, loading, fetchRows, correctBin } = useCheckingArea()
 const selectedId = ref<string | null>(null)
 const selected = computed(() => items.value.find(row => row.id === selectedId.value) ?? null)
 
-// A plain <select> cannot be typed into, and a site with dozens of storages
-// makes scrolling it painful — this narrows the options by name or by
-// location code before the dropdown is opened.
-const search = ref('')
-
-const visibleItems = computed(() => {
-  const term = search.value.trim().toLowerCase()
-  if (!term) return items.value
-  return items.value.filter(row =>
-    row.name.toLowerCase().includes(term)
-    || row.iRaypleLocationCode.toLowerCase().includes(term),
-  )
-})
-
-// Narrowing the list must not silently leave a selection that is no longer
-// in it — the card below would keep describing a storage the dropdown no
-// longer shows. Move to the first match instead.
-watch(visibleItems, (rows) => {
-  if (rows.length === 0) return
-  if (!rows.some(row => row.id === selectedId.value)) selectedId.value = rows[0]!.id
-})
+// Searching happens inside the dropdown itself (UiSearchSelect), so the
+// page only has to hand it the full list — the location code rides along
+// as the hint so it is searchable too, not just the name.
+const storageOptions = computed(() =>
+  items.value.map(row => ({
+    value: row.id,
+    label: row.name,
+    hint: row.iRaypleLocationCode,
+  })),
+)
 
 // RCS is the system of record and other integrations write to it too, so
 // poll rather than trusting a snapshot the operator may stare at for
@@ -81,8 +70,6 @@ const statusClass = computed(() => {
   return 'text-slate-400'
 })
 
-const selectClass
-  = 'w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#0F1F52] outline-none focus:border-[#01ADEF] focus:ring-2 focus:ring-[#01ADEF]/15'
 </script>
 
 <template>
@@ -104,26 +91,14 @@ const selectClass
       </button>
     </div>
 
-    <div class="space-y-2">
-      <div class="relative">
-        <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input
-          v-model="search"
-          type="search"
-          placeholder="Search storage by name or code"
-          :class="`w-full pl-9 ${selectClass}`"
-        >
-      </div>
-
-      <select v-model="selectedId" :class="selectClass">
-        <option v-if="visibleItems.length === 0" :value="null">
-          {{ loading ? 'Loading…' : items.length === 0 ? 'No warehouse locations' : 'No storage matches that search' }}
-        </option>
-        <option v-for="row in visibleItems" :key="row.id" :value="row.id">
-          {{ row.name }} ({{ row.iRaypleLocationCode }})
-        </option>
-      </select>
-    </div>
+    <UiSearchSelect
+      v-model="selectedId"
+      :options="storageOptions"
+      :disabled="items.length === 0"
+      :placeholder="loading ? 'Loading…' : 'No warehouse locations'"
+      search-placeholder="Search storage by name or code"
+      empty-text="No storage matches that search"
+    />
 
     <UiBaseCard v-if="selected" class="space-y-3">
       <div class="flex items-baseline gap-2 text-sm">
