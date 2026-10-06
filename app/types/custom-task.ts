@@ -14,6 +14,12 @@ export interface CustomTaskPreview {
 export interface ReleasedCustomTask extends CustomTaskPreview {
   /** The code followed by %Y%m%d%H%M%S — what RCS and the webhooks call it. */
   orderId: string
+  /**
+   * The history row this release created, so the scan page can cancel it
+   * on the spot. Null if the row could not be saved — the task is running
+   * either way, there is just nothing to cancel through.
+   */
+  runId: string | null
   releasedAt: string
 }
 

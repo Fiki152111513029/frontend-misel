@@ -27,7 +27,22 @@ export function useCustomTasks() {
     }
   }
 
-  return { lookupCustomTask, releaseCustomTask }
+  // The scan page's own cancel: it has the run id from the release it just
+  // made, so it talks to the endpoint directly rather than going through
+  // useCustomTaskRuns(), whose cancel also reloads the history list this
+  // page never shows.
+  async function cancelReleasedTask(runId: string) {
+    try {
+      const run = await cancelCustomTaskRunSvc(runId)
+      toast.success(`Custom task ${run.code} cancelled`)
+      return true
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to cancel that task')
+      return false
+    }
+  }
+
+  return { lookupCustomTask, releaseCustomTask, cancelReleasedTask }
 }
 
 // The All Tasks > Custom Tasks history. Polled by that page so a task that

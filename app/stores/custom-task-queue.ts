@@ -4,6 +4,8 @@ import type { LatestWebhookStatus } from '~/types/webhook-log'
 
 export interface CustomTaskQueueItem {
   orderId: string
+  /** The history row, so this card can be cancelled without leaving the page. */
+  runId: string | null
   code: string
   name: string
   taskPath: string
@@ -66,6 +68,7 @@ export const useCustomTaskQueueStore = defineStore('custom-task-queue', () => {
 
   async function addTask(input: {
     orderId: string
+    runId: string | null
     code: string
     name: string
     taskPath: string
@@ -89,5 +92,13 @@ export const useCustomTaskQueueStore = defineStore('custom-task-queue', () => {
     }
   }
 
-  return { items, addTask, clear }
+  // Drops a card the moment its task is cancelled, rather than waiting for
+  // the poll to see a terminal status — the operator just acted on it, so
+  // leaving it sitting there reads as the cancel not having worked.
+  function removeTask(orderId: string) {
+    items.value = items.value.filter(item => item.orderId !== orderId)
+    terminalSince.delete(orderId)
+  }
+
+  return { items, addTask, removeTask, clear }
 })

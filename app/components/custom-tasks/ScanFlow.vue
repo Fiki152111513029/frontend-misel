@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Camera, Route as RouteIcon } from 'lucide-vue-next'
+import { Ban, Camera, Route as RouteIcon } from 'lucide-vue-next'
 import { taskStatusLabel } from '~/utils/taskStatus'
 import type { CustomTaskPreview } from '~/types/custom-task'
 
@@ -10,7 +10,8 @@ import type { CustomTaskPreview } from '~/types/custom-task'
 // single call that reaches RCS (/ics/taskOrder/addTask), and nothing is
 // written to our own tables either way.
 const toast = useToast()
-const { lookupCustomTask, releaseCustomTask } = useCustomTasks()
+const { lookupCustomTask, releaseCustomTask, cancelReleasedTask } = useCustomTasks()
+const { hasPermission } = useAuth()
 const queue = useCustomTaskQueueStore()
 
 type Step = 'scan' | 'ready'
@@ -65,6 +66,18 @@ function changeTask() {
   focusScanInput()
 }
 
+// Only one cancel at a time, so a double tap cannot fire two requests at
+// the same card.
+const cancellingOrderId = ref<string | null>(null)
+
+async function cancelQueued(item: { orderId: string, runId: string | null }) {
+  if (!item.runId || cancellingOrderId.value) return
+  cancellingOrderId.value = item.orderId
+  const ok = await cancelReleasedTask(item.runId)
+  cancellingOrderId.value = null
+  if (ok) queue.removeTask(item.orderId)
+}
+
 async function handleSubmit() {
   if (!preview.value) return
   submitting.value = true
@@ -76,6 +89,7 @@ async function handleSubmit() {
 
   queue.addTask({
     orderId: released.orderId,
+    runId: released.runId,
     code: released.code,
     name: released.name,
     taskPath: released.taskPath,
@@ -209,6 +223,21 @@ async function handleSubmit() {
             <template v-if="item.webhookStatus?.statusComment"> — {{ item.webhookStatus.statusComment }}</template>
           </span>
         </p>
+
+        <!-- Cancelling here saves walking over to All Tasks > Task Custom
+             to undo a task that was only just sent by mistake. Hidden when
+             the history row could not be saved, since there is nothing to
+             cancel through in that case. -->
+        <button
+          v-if="item.runId && hasPermission('custom-task.update')"
+          type="button"
+          :disabled="cancellingOrderId !== null"
+          class="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-500 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
+          @click="cancelQueued(item)"
+        >
+          <Ban class="h-3.5 w-3.5" />
+          {{ cancellingOrderId === item.orderId ? 'Cancelling…' : 'Cancel Task' }}
+        </button>
       </div>
     </div>
   </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PackageCheck, PackageOpen, RefreshCw } from 'lucide-vue-next'
+import { PackageCheck, PackageOpen, RefreshCw, Search } from 'lucide-vue-next'
 import type { BinStatus } from '~/types/checking-area'
 
 definePageMeta({ layout: 'dashboard' })
@@ -14,6 +14,28 @@ const { items, loading, fetchRows, correctBin } = useCheckingArea()
 
 const selectedId = ref<string | null>(null)
 const selected = computed(() => items.value.find(row => row.id === selectedId.value) ?? null)
+
+// A plain <select> cannot be typed into, and a site with dozens of storages
+// makes scrolling it painful — this narrows the options by name or by
+// location code before the dropdown is opened.
+const search = ref('')
+
+const visibleItems = computed(() => {
+  const term = search.value.trim().toLowerCase()
+  if (!term) return items.value
+  return items.value.filter(row =>
+    row.name.toLowerCase().includes(term)
+    || row.iRaypleLocationCode.toLowerCase().includes(term),
+  )
+})
+
+// Narrowing the list must not silently leave a selection that is no longer
+// in it — the card below would keep describing a storage the dropdown no
+// longer shows. Move to the first match instead.
+watch(visibleItems, (rows) => {
+  if (rows.length === 0) return
+  if (!rows.some(row => row.id === selectedId.value)) selectedId.value = rows[0]!.id
+})
 
 // RCS is the system of record and other integrations write to it too, so
 // poll rather than trusting a snapshot the operator may stare at for
@@ -82,14 +104,26 @@ const selectClass
       </button>
     </div>
 
-    <select v-model="selectedId" :class="selectClass">
-      <option v-if="items.length === 0" :value="null">
-        {{ loading ? 'Loading…' : 'No warehouse locations' }}
-      </option>
-      <option v-for="row in items" :key="row.id" :value="row.id">
-        {{ row.name }}
-      </option>
-    </select>
+    <div class="space-y-2">
+      <div class="relative">
+        <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <input
+          v-model="search"
+          type="search"
+          placeholder="Search storage by name or code"
+          :class="`w-full pl-9 ${selectClass}`"
+        >
+      </div>
+
+      <select v-model="selectedId" :class="selectClass">
+        <option v-if="visibleItems.length === 0" :value="null">
+          {{ loading ? 'Loading…' : items.length === 0 ? 'No warehouse locations' : 'No storage matches that search' }}
+        </option>
+        <option v-for="row in visibleItems" :key="row.id" :value="row.id">
+          {{ row.name }} ({{ row.iRaypleLocationCode }})
+        </option>
+      </select>
+    </div>
 
     <UiBaseCard v-if="selected" class="space-y-3">
       <div class="flex items-baseline gap-2 text-sm">
