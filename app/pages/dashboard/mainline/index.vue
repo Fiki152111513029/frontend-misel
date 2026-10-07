@@ -64,12 +64,10 @@ let systemStatusTimer: ReturnType<typeof setInterval> | null = null
 // fetched fresh on the same cadence as the task-status poll.
 const webhookStatus = ref<LatestWebhookStatus | null>(null)
 
-// How often we poll, and how long we keep polling after the task goes
-// terminal before giving up and blanking the Current Queue back to "-".
-// The faster cadence is because the last webhook update sometimes arrives a
+// How long we keep watching after the task goes terminal before blanking
+// the Current Queue back to "-". The last webhook update sometimes arrives a
 // beat late — RCS's status occasionally still shows the step before the
-// truly final one for a moment.
-const POLL_INTERVAL_MS = 3000
+// truly final one for a moment — so we hold the card open that much longer.
 const TERMINAL_GRACE_MS = 5000
 
 async function refreshQueueNumber(taskDbId: string) {
@@ -97,21 +95,28 @@ const showRcsModal = ref(false)
 
 // A released task locks Line Area switching until it reaches a terminal
 // status. Since completion happens on the robot/RCS side (not a frontend
-// action), we poll for the latest status instead of just trusting the
+// action), we wait to be told the latest status instead of just trusting the
 // release response.
 const isTaskActive = computed(
   () => !!lastReleasedTask.value && !isTaskTerminal(lastReleasedTask.value.status),
 )
 
-let pollTimer: ReturnType<typeof setInterval> | null = null
-let terminalSince: number | null = null
+// The task we are following. Set while it runs, cleared once it has been
+// terminal for the grace window above. `syncTrackedTask` below re-reads it
+// whenever the server says a task changed.
+let trackedTask: { dbId: string, taskId: string } | null = null
+let removalTimer: ReturnType<typeof setTimeout> | null = null
 
-function stopPolling() {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
+function cancelRemoval() {
+  if (removalTimer) {
+    clearTimeout(removalTimer)
+    removalTimer = null
   }
-  terminalSince = null
+}
+
+function stopTracking() {
+  trackedTask = null
+  cancelRemoval()
 }
 
 // Reset the Current Queue card back to its blank "-" state once a finished
@@ -138,46 +143,52 @@ function advanceToNextArea() {
   }
 }
 
-function startPolling(taskDbId: string, taskId: string) {
-  stopPolling()
-  pollTimer = setInterval(async () => {
-    await refreshWebhookStatus(taskId)
-    try {
-      const result = await fetchTasksSvc({
-        operatorId: user.value?.id,
-        limit: 20,
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-      })
-      const match = result.items.find(t => t.id === taskDbId)
-      if (match) {
-        lastReleasedTask.value = match
-        if (isTaskTerminal(match.status)) {
-          if (terminalSince === null) {
-            // First tick we've seen this task as finished — run the
-            // one-time completion side effect, then start the grace window
-            // (a slightly late webhook update can still land after this).
-            terminalSince = Date.now()
-            if (isTaskCompleted(match.status)) {
-              advanceToNextArea()
-            }
-          }
-          if (Date.now() - terminalSince >= TERMINAL_GRACE_MS) {
-            stopPolling()
-            clearCurrentQueue()
-          }
-        } else {
-          terminalSince = null
-        }
-      }
-    } catch {
-      // Transient error — the next tick retries.
-    }
-  }, POLL_INTERVAL_MS)
+function trackTask(taskDbId: string, taskId: string) {
+  stopTracking()
+  trackedTask = { dbId: taskDbId, taskId }
 }
 
+async function syncTrackedTask() {
+  const tracked = trackedTask
+  if (!tracked) return
+  await refreshWebhookStatus(tracked.taskId)
+  try {
+    const result = await fetchTasksSvc({
+      operatorId: user.value?.id,
+      limit: 20,
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
+    })
+    const match = result.items.find(t => t.id === tracked.dbId)
+    if (!match) return
+    lastReleasedTask.value = match
+
+    if (!isTaskTerminal(match.status)) {
+      // Back from terminal (or never there) — stand the countdown down.
+      cancelRemoval()
+      return
+    }
+    // Already counting down: keep showing the card so a late update can
+    // still land, and do not repeat the completion side effect.
+    if (removalTimer) return
+    if (isTaskCompleted(match.status)) {
+      advanceToNextArea()
+    }
+    removalTimer = setTimeout(() => {
+      stopTracking()
+      clearCurrentQueue()
+    }, TERMINAL_GRACE_MS)
+  } catch {
+    // Transient error — the next signal retries.
+  }
+}
+
+// Pushed from the server instead of polled — see useRealtime. The RCS task
+// webhook is what moves a task along, and that is exactly what emits this.
+useRealtime('tasks', syncTrackedTask)
+
 onBeforeUnmount(() => {
-  stopPolling()
+  stopTracking()
   if (systemStatusTimer) {
     clearInterval(systemStatusTimer)
     systemStatusTimer = null
@@ -211,7 +222,7 @@ async function restoreActiveTask() {
         refreshQueueNumber(active.id),
         refreshWebhookStatus(active.taskId),
       ])
-      startPolling(active.id, active.taskId)
+      trackTask(active.id, active.taskId)
     }
   } catch {
     // Non-fatal — worst case the page just starts as if it were a fresh session.
@@ -350,7 +361,7 @@ async function handleReleaseTask() {
       refreshQueueNumber(result.task.id),
       refreshWebhookStatus(result.task.taskId),
     ])
-    startPolling(result.task.id, result.task.taskId)
+    trackTask(result.task.id, result.task.taskId)
   }
 }
 

@@ -589,20 +589,11 @@ watch(selectedMap, () => {
   loadStockStatus()
 })
 
-const LOCATION_CODES_POLL_MS = 5000
+// Charger/Parking/Line codes only change when someone edits master data,
+// so this stays on a slow timer rather than earning a realtime topic.
+const LOCATION_CODES_POLL_MS = 60_000
 let locationCodesPollTimer: ReturnType<typeof setInterval> | null = null
-const STOCK_STATUS_POLL_MS = 5000
-let stockStatusPollTimer: ReturnType<typeof setInterval> | null = null
 
-// Which robots are mid-Trolley-Task — lighter cadence than robot position,
-// but tighter than location codes since it drives the marker icon while a
-// delivery is visibly in progress.
-const ACTIVE_TROLLEY_POLL_MS = 3000
-let activeTrolleyPollTimer: ReturnType<typeof setInterval> | null = null
-// Matches the ICS Alarm Logs page's own poll cadence — alarms don't need
-// anything faster than that.
-const ACTIVE_ALARM_POLL_MS = 5000
-let activeAlarmPollTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(async () => {
   await Promise.all([
@@ -621,11 +612,17 @@ onMounted(async () => {
   await loadStockStatus()
   robotPollTimer = setInterval(loadLiveRobots, ROBOT_POLL_MS)
   locationCodesPollTimer = setInterval(loadLocationCodes, LOCATION_CODES_POLL_MS)
-  activeTrolleyPollTimer = setInterval(loadActiveTrolleyActivitiesByRobot, ACTIVE_TROLLEY_POLL_MS)
-  activeAlarmPollTimer = setInterval(loadActiveAlarms, ACTIVE_ALARM_POLL_MS)
-  stockStatusPollTimer = setInterval(loadStockStatus, STOCK_STATUS_POLL_MS)
   animationFrameHandle = requestAnimationFrame(tickRobotAnimations)
 })
+
+// Everything except the robot positions above is pushed rather than polled.
+// Positions stay on their own fast timer because each GET /robots fetches
+// fresh telemetry from RCS, and that is what lets the markers glide instead
+// of jumping — the server's own telemetry poll only runs every 15s, far too
+// coarse to animate from.
+useRealtime('stock', loadStockStatus)
+useRealtime('alarms', loadActiveAlarms)
+useRealtime('trolley-activities', loadActiveTrolleyActivitiesByRobot)
 
 onBeforeUnmount(() => {
   if (robotPollTimer) {
@@ -639,18 +636,6 @@ onBeforeUnmount(() => {
   if (locationCodesPollTimer) {
     clearInterval(locationCodesPollTimer)
     locationCodesPollTimer = null
-  }
-  if (activeTrolleyPollTimer) {
-    clearInterval(activeTrolleyPollTimer)
-    activeTrolleyPollTimer = null
-  }
-  if (activeAlarmPollTimer) {
-    clearInterval(activeAlarmPollTimer)
-    activeAlarmPollTimer = null
-  }
-  if (stockStatusPollTimer) {
-    clearInterval(stockStatusPollTimer)
-    stockStatusPollTimer = null
   }
 })
 </script>

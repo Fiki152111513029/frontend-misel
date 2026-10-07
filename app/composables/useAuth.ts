@@ -103,6 +103,9 @@ export function useAuth() {
     sessionStorage.removeItem(AUTH_REFRESH_TOKEN_KEY)
     clearAllTrolleyTaskQueues()
     useCustomTaskQueueStore().clear()
+    // The socket is authenticated with this user's token, so it has to go
+    // with them — the next login opens a fresh one.
+    closeRealtime()
     navigateTo('/login')
   }
 

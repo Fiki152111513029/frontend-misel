@@ -19,24 +19,16 @@ const { items, load } = useFleetOverview()
 
 const view = ref<'map' | 'tasks'>('map')
 
-const POLL_INTERVAL_MS = 5000
-let pollTimer: ReturnType<typeof setInterval> | null = null
-
 function refresh(options: { silent?: boolean } = {}) {
   return load(dashboardFilters.areaNumber, dashboardFilters.selectedDate, options)
 }
 
 onMounted(async () => {
   await refresh()
-  pollTimer = setInterval(() => refresh({ silent: true }), POLL_INTERVAL_MS)
 })
 
-onBeforeUnmount(() => {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
-})
+// Pushed from the server instead of polled — see useRealtime.
+useRealtime(['robots', 'tasks', 'custom-tasks', 'trolley-activities'], () => refresh({ silent: true }))
 
 // The map card publishes the area, so the first load can land before a map
 // is picked — re-read once it settles, and whenever the day changes.

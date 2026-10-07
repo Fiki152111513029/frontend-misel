@@ -6,21 +6,12 @@ useHead({ title: 'ICS Webhook Logs — Ichii' })
 
 const { webhookLogs, loading, fetchWebhookLogs } = useWebhookLogs()
 
-let refreshTimer: ReturnType<typeof setInterval> | null = null
-
 onMounted(() => {
   fetchWebhookLogs()
-  refreshTimer = setInterval(() => {
-    fetchWebhookLogs()
-  }, 5000)
 })
 
-onBeforeUnmount(() => {
-  if (refreshTimer) {
-    clearInterval(refreshTimer)
-    refreshTimer = null
-  }
-})
+// Pushed from the server instead of polled — see useRealtime.
+useRealtime(['tasks', 'alarms'], fetchWebhookLogs)
 
 const dateFrom = ref('')
 const dateTo = ref('')

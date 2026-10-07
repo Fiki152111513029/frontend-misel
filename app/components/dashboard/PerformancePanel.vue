@@ -136,14 +136,6 @@ function barColor(percent: number) {
   return 'bg-[#2F6FED]'
 }
 
-// Charger Status — real Charger Area nodes, matched against whichever robot
-// (if any) is currently sitting at that node and reporting a "charging"
-// state. Robot position/state comes from GET /robots (fleet-status doesn't
-// carry position); "charging" uses the same substring rule as the backend's
-// toRobotStatusCategory() (robot-status-category.ts) so this stays
-// consistent with how "Charging" is detected everywhere else.
-const POLL_INTERVAL_MS = 5000
-
 const { items: chargerAreas, fetchChargerAreaOptions } = useChargerAreaOptions()
 const robots = ref<Robot[]>([])
 
@@ -156,17 +148,18 @@ async function loadRobots() {
   }
 }
 
-let pollTimer: ReturnType<typeof setInterval> | null = null
-
 onMounted(async () => {
   await Promise.all([fetchChargerAreaOptions(), loadRobots(), loadAlarmStats(), loadTaskStatus(), loadRequestQueue()])
-  pollTimer = setInterval(() => {
-    loadRobots()
-    loadAlarmStats()
-    loadTaskStatus()
-    loadRequestQueue()
-  }, POLL_INTERVAL_MS)
 })
+
+// Each section listens for the signal that actually concerns it, so an
+// alarm does not make the charger grid refetch and vice versa.
+useRealtime(['robots', 'stock'], loadRobots)
+useRealtime('alarms', loadAlarmStats)
+useRealtime('tasks', loadTaskStatus)
+
+// Pushed from the server instead of polled — see useRealtime.
+useRealtime('trolley-activities', loadRequestQueue)
 
 // Switching map or day must re-scope immediately, not on the next poll tick.
 watch(
@@ -181,13 +174,6 @@ watch(
   () => [dashboardFilters.mapLocationCodes, dashboardFilters.isMapTopologyResolved],
   loadRequestQueue,
 )
-
-onBeforeUnmount(() => {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
-})
 
 function isCharging(robot: Robot) {
   return robot.state?.toLowerCase().includes('charg') ?? false

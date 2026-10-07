@@ -58,18 +58,9 @@ function goBack() {
 
 onMounted(load)
 
-// New activity is recorded every time the Robots list is open elsewhere
-// (5s poll) — refresh this page on the same cadence so it stays live too.
-let refreshTimer: ReturnType<typeof setInterval> | null = null
-onMounted(() => {
-  refreshTimer = setInterval(load, 5000)
-})
-onBeforeUnmount(() => {
-  if (refreshTimer) {
-    clearInterval(refreshTimer)
-    refreshTimer = null
-  }
-})
+// New activity is recorded whenever the server's telemetry poll runs, so
+// this page refreshes on that signal rather than a timer of its own.
+useRealtime('robots', load)
 </script>
 
 <template>

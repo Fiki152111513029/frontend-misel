@@ -14,8 +14,6 @@ const props = withDefaults(defineProps<Props>(), {
   showCriticalAlarms: true,
 })
 
-const POLL_INTERVAL_MS = 5000
-
 const fleet = ref<FleetStatusRow[]>([])
 const criticalAlarms = ref(0)
 // Total Production — today's trolley activity count (see
@@ -79,21 +77,14 @@ async function load() {
   if (stats) totalProduction.value = stats.totals.total
 }
 
-let pollTimer: ReturnType<typeof setInterval> | null = null
-
 onMounted(async () => {
   await load()
-  pollTimer = setInterval(load, POLL_INTERVAL_MS)
 })
+
+// Pushed from the server instead of polled — see useRealtime.
+useRealtime(['robots', 'trolley-activities'], load)
 
 watch(() => [dashboardFilters.selectedDate, dashboardFilters.areaNumber], load)
-
-onBeforeUnmount(() => {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
-})
 
 // Online/Active means "not Offline" — Idle, In task, Charging, etc. all
 // count as active/online (only Offline, or no telemetry at all, doesn't).

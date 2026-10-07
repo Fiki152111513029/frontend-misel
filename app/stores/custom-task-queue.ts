@@ -21,49 +21,50 @@ export const useCustomTaskQueueStore = defineStore('custom-task-queue', () => {
   const items = ref<CustomTaskQueueItem[]>([])
   const toast = useToast()
 
-  const POLL_INTERVAL_MS = 3000
+  // A card disappears a short while after its task reaches a terminal
+  // status, so the operator sees the outcome before it goes.
   const TERMINAL_GRACE_MS = 5000
-  let pollTimer: ReturnType<typeof setInterval> | null = null
-  const terminalSince = new Map<string, number>()
+  const removalTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
   async function refreshItem(item: CustomTaskQueueItem) {
     try {
       item.webhookStatus = await fetchLatestWebhookStatus(item.orderId)
     } catch {
-      // Non-fatal — stays stale this tick.
+      // Non-fatal — this card keeps its previous status.
     }
   }
 
-  function ensurePolling() {
-    if (pollTimer) return
-    pollTimer = setInterval(async () => {
-      const toRemove = new Set<string>()
-      await Promise.all(items.value.map(async (item) => {
+  function scheduleRemoval(orderId: string) {
+    if (removalTimers.has(orderId)) return
+    removalTimers.set(
+      orderId,
+      setTimeout(() => {
+        removalTimers.delete(orderId)
+        items.value = items.value.filter(item => item.orderId !== orderId)
+      }, TERMINAL_GRACE_MS),
+    )
+  }
+
+  /**
+   * Re-reads every card's status. Driven by the realtime signal rather
+   * than a timer — the component rendering the queue subscribes and calls
+   * this, so nothing runs while no task is in flight.
+   */
+  async function refreshAll() {
+    await Promise.all(
+      items.value.map(async (item) => {
         await refreshItem(item)
         const status = item.webhookStatus?.status
         if (status && isTaskTerminal(status)) {
-          if (!terminalSince.has(item.orderId)) {
-            terminalSince.set(item.orderId, Date.now())
+          if (!removalTimers.has(item.orderId)) {
             if (isTaskCompleted(status)) {
               toast.success(`Custom task ${item.code} completed`)
             }
+            scheduleRemoval(item.orderId)
           }
-          if (Date.now() - terminalSince.get(item.orderId)! >= TERMINAL_GRACE_MS) {
-            terminalSince.delete(item.orderId)
-            toRemove.add(item.orderId)
-          }
-        } else {
-          terminalSince.delete(item.orderId)
         }
-      }))
-      if (toRemove.size > 0) {
-        items.value = items.value.filter(item => !toRemove.has(item.orderId))
-      }
-      if (items.value.length === 0 && pollTimer) {
-        clearInterval(pollTimer)
-        pollTimer = null
-      }
-    }, POLL_INTERVAL_MS)
+      }),
+    )
   }
 
   async function addTask(input: {
@@ -77,7 +78,6 @@ export const useCustomTaskQueueStore = defineStore('custom-task-queue', () => {
 
     const item: CustomTaskQueueItem = { ...input, webhookStatus: null }
     items.value.push(item)
-    ensurePolling()
     await refreshItem(item)
   }
 
@@ -85,11 +85,8 @@ export const useCustomTaskQueueStore = defineStore('custom-task-queue', () => {
   // operator's Current Queue into the next login.
   function clear() {
     items.value = []
-    terminalSince.clear()
-    if (pollTimer) {
-      clearInterval(pollTimer)
-      pollTimer = null
-    }
+    for (const timer of removalTimers.values()) clearTimeout(timer)
+    removalTimers.clear()
   }
 
   // Drops a card the moment its task is cancelled, rather than waiting for
@@ -97,8 +94,12 @@ export const useCustomTaskQueueStore = defineStore('custom-task-queue', () => {
   // leaving it sitting there reads as the cancel not having worked.
   function removeTask(orderId: string) {
     items.value = items.value.filter(item => item.orderId !== orderId)
-    terminalSince.delete(orderId)
+    const pending = removalTimers.get(orderId)
+    if (pending) {
+      clearTimeout(pending)
+      removalTimers.delete(orderId)
+    }
   }
 
-  return { items, addTask, removeTask, clear }
+  return { items, addTask, refreshAll, removeTask, clear }
 })

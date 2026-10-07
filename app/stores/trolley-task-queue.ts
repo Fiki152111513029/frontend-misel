@@ -18,51 +18,50 @@ function defineTrolleyTaskQueueStore(role: string) {
     const items = ref<TrolleyQueueItem[]>([])
     const toast = useToast()
 
-    const POLL_INTERVAL_MS = 3000
+    // A card disappears a short while after its task reaches a terminal
+    // status, so the operator sees the outcome before it goes.
     const TERMINAL_GRACE_MS = 5000
-    let pollTimer: ReturnType<typeof setInterval> | null = null
-    // How long each item's task has been terminal, keyed by activityId — a
-    // brief grace period covers a webhook update that arrives a beat late.
-    const terminalSince = new Map<string, number>()
+    const removalTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
     async function refreshItem(item: TrolleyQueueItem) {
       try {
         item.webhookStatus = await fetchLatestWebhookStatus(item.taskId)
       } catch {
-        // Non-fatal — stays stale this tick.
+        // Non-fatal — this card keeps its previous status.
       }
     }
 
-    function ensurePolling() {
-      if (pollTimer) return
-      pollTimer = setInterval(async () => {
-        const toRemove = new Set<string>()
-        await Promise.all(items.value.map(async (item) => {
+    function scheduleRemoval(activityId: string) {
+      if (removalTimers.has(activityId)) return
+      removalTimers.set(
+        activityId,
+        setTimeout(() => {
+          removalTimers.delete(activityId)
+          items.value = items.value.filter(item => item.activityId !== activityId)
+        }, TERMINAL_GRACE_MS),
+      )
+    }
+
+    /**
+     * Re-reads every card's status. Driven by the realtime signal rather
+     * than a timer — the page rendering the queue subscribes and calls
+     * this, so nothing runs while no task is in flight.
+     */
+    async function refreshAll() {
+      await Promise.all(
+        items.value.map(async (item) => {
           await refreshItem(item)
           const status = item.webhookStatus?.status
           if (status && isTaskTerminal(status)) {
-            if (!terminalSince.has(item.activityId)) {
-              terminalSince.set(item.activityId, Date.now())
+            if (!removalTimers.has(item.activityId)) {
               if (isTaskCompleted(status)) {
                 toast.success(`Trolley task ${item.trolleyCode} completed`)
               }
+              scheduleRemoval(item.activityId)
             }
-            if (Date.now() - terminalSince.get(item.activityId)! >= TERMINAL_GRACE_MS) {
-              terminalSince.delete(item.activityId)
-              toRemove.add(item.activityId)
-            }
-          } else {
-            terminalSince.delete(item.activityId)
           }
-        }))
-        if (toRemove.size > 0) {
-          items.value = items.value.filter(item => !toRemove.has(item.activityId))
-        }
-        if (items.value.length === 0 && pollTimer) {
-          clearInterval(pollTimer)
-          pollTimer = null
-        }
-      }, POLL_INTERVAL_MS)
+        }),
+      )
     }
 
     async function addTask(input: {
@@ -79,7 +78,6 @@ function defineTrolleyTaskQueueStore(role: string) {
 
       const item: TrolleyQueueItem = { ...input, queueNumber: null, webhookStatus: null }
       items.value.push(item)
-      ensurePolling()
 
       try {
         const sequence = await fetchTrolleyActivitySequence(item.activityId)
@@ -97,14 +95,11 @@ function defineTrolleyTaskQueueStore(role: string) {
     // otherwise just sit in memory untouched across the user switch.
     function clear() {
       items.value = []
-      terminalSince.clear()
-      if (pollTimer) {
-        clearInterval(pollTimer)
-        pollTimer = null
-      }
+      for (const timer of removalTimers.values()) clearTimeout(timer)
+      removalTimers.clear()
     }
 
-    return { items, addTask, clear }
+    return { items, addTask, refreshAll, clear }
   })
 }
 

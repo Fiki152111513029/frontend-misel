@@ -26,22 +26,29 @@ const storageOptions = computed(() =>
   })),
 )
 
-// RCS is the system of record and other integrations write to it too, so
-// poll rather than trusting a snapshot the operator may stare at for
-// minutes. Silent ticks keep the card from blinking.
-const POLL_INTERVAL_MS = 5000
-let pollTimer: ReturnType<typeof setInterval> | null = null
-
 onMounted(async () => {
   await fetchRows(null)
   selectedId.value = items.value[0]?.id ?? null
-  pollTimer = setInterval(() => fetchRows(null, { silent: true }), POLL_INTERVAL_MS)
+})
+
+// Pushed from the server instead of polled — see useRealtime.
+useRealtime(['stock', 'tasks'], () => fetchRows(null, { silent: true }))
+
+// RCS owns bin status and has no webhook for it, so a bin changed from
+// outside this app (a handheld, RCS itself) produces no signal at all. This
+// page exists to show the truth about bins, so it keeps one slow safety
+// re-read on top of the signals above.
+const SAFETY_REFRESH_MS = 60_000
+let safetyTimer: ReturnType<typeof setInterval> | null = null
+
+onMounted(() => {
+  safetyTimer = setInterval(() => fetchRows(null, { silent: true }), SAFETY_REFRESH_MS)
 })
 
 onBeforeUnmount(() => {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
+  if (safetyTimer) {
+    clearInterval(safetyTimer)
+    safetyTimer = null
   }
 })
 

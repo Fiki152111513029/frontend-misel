@@ -58,11 +58,14 @@ let refreshTimer: ReturnType<typeof setInterval> | null = null
 onMounted(async () => {
   await initShiftFilter()
   await load()
-  refreshTimer = setInterval(async () => {
-    await refreshShiftFilter()
-    await load()
-  }, AUTO_REFRESH_MS)
+  // Only re-checks which Shift is current — a clock concern, not a data
+  // one, so no realtime signal can replace it. The data itself refreshes
+  // on the signal below instead.
+  refreshTimer = setInterval(refreshShiftFilter, AUTO_REFRESH_MS)
 })
+
+// Pushed from the server instead of polled — see useRealtime.
+useRealtime('trolley-activities', load)
 onBeforeUnmount(() => {
   if (refreshTimer) {
     clearInterval(refreshTimer)

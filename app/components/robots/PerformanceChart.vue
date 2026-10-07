@@ -83,6 +83,10 @@ onBeforeUnmount(() => {
 })
 watch([shiftId, viewMode, selectedDate, selectedMonth, () => dashboardFilters.areaNumber, () => dashboardFilters.isAreaResolved], load)
 
+// The running/idle/charging minutes grow as telemetry lands, so follow that
+// signal instead of only redrawing when a filter changes.
+useRealtime('robots', load)
+
 const categories = computed(() => rows.value.map(row => row.robotName))
 const series = computed(() => [
   { name: 'Running', data: rows.value.map(row => row.runningMinutes) },

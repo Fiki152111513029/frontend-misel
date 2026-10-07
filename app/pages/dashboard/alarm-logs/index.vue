@@ -19,19 +19,12 @@ async function load(query?: { page?: number, limit?: number }) {
   loading.value = false
 }
 
-let refreshTimer: ReturnType<typeof setInterval> | null = null
-
 onMounted(() => {
   load()
-  refreshTimer = setInterval(() => load(), 5000)
 })
 
-onBeforeUnmount(() => {
-  if (refreshTimer) {
-    clearInterval(refreshTimer)
-    refreshTimer = null
-  }
-})
+// Pushed from the server instead of polled — see useRealtime.
+useRealtime('alarms', load)
 
 function goToPage(page: number) {
   load({ page })

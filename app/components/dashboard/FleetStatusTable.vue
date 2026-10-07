@@ -2,8 +2,6 @@
 import { fetchFleetStatus } from '~/services/robot.service'
 import type { FleetStatusRow } from '~/types/robot'
 
-const POLL_INTERVAL_MS = 5000
-
 const rows = ref<FleetStatusRow[]>([])
 const loading = ref(true)
 
@@ -29,22 +27,15 @@ async function load() {
   }
 }
 
-let pollTimer: ReturnType<typeof setInterval> | null = null
-
 // Switching maps must re-scope immediately, not on the next poll tick.
 watch(() => [dashboardFilters.areaNumber, dashboardFilters.isAreaResolved], load)
 
 onMounted(async () => {
   await load()
-  pollTimer = setInterval(load, POLL_INTERVAL_MS)
 })
 
-onBeforeUnmount(() => {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
-})
+// Pushed from the server instead of polled — see useRealtime.
+useRealtime(['robots', 'tasks'], load)
 
 // Buckets the free-text `state` reported by the AMR telemetry API (Idle,
 // Initializing, In task, Fault, Offline, Charging, Upgrading — casing and

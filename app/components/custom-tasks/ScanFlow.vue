@@ -14,6 +14,10 @@ const { lookupCustomTask, releaseCustomTask, cancelReleasedTask } = useCustomTas
 const { hasPermission } = useAuth()
 const queue = useCustomTaskQueueStore()
 
+// The Current Queue cards follow the RCS task-status webhook rather than a
+// timer of their own — see useRealtime.
+useRealtime(['tasks', 'custom-tasks'], () => queue.refreshAll())
+
 type Step = 'scan' | 'ready'
 
 const step = ref<Step>('scan')

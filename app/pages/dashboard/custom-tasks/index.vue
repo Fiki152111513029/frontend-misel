@@ -15,26 +15,12 @@ const search = ref('')
 const statusFilter = ref<CustomTaskRun['status'] | ''>('')
 const dateFilter = ref('')
 
-// A task that is still running has its status written back by the RCS
-// task-status webhook, so refresh on a timer rather than making the
-// operator reload to see it finish. The ticks go through refreshRuns(),
-// which swaps the rows in place without raising the loading flag — same as
-// the Dashboard panels. fetchRuns() (with the spinner) is kept for the
-// first load and for deliberate filter/sort/page changes.
-const POLL_INTERVAL_MS = 5000
-let pollTimer: ReturnType<typeof setInterval> | null = null
-
 onMounted(async () => {
   await fetchRuns()
-  pollTimer = setInterval(refreshRuns, POLL_INTERVAL_MS)
 })
 
-onBeforeUnmount(() => {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
-})
+// Pushed from the server instead of polled — see useRealtime.
+useRealtime(['custom-tasks', 'tasks'], refreshRuns)
 
 function applyFilters() {
   setFilters({

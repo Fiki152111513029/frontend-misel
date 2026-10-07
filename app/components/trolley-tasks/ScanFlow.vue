@@ -40,6 +40,10 @@ const {
 } = useTrolleyActivities()
 const queue = useTrolleyTaskQueueStore(props.roleLabel)
 
+// The Current Queue cards follow the RCS task-status webhook rather than a
+// timer of their own — see useRealtime.
+useRealtime(['tasks', 'trolley-activities'], () => queue.refreshAll())
+
 type Mode = 'choice' | 'take' | 'drop'
 type Step = 'trolley' | 'selectType' | 'location' | 'ready'
 

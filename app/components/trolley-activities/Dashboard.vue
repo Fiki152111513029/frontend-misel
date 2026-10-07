@@ -19,19 +19,12 @@ async function load() {
   loading.value = false
 }
 
-const AUTO_REFRESH_MS = 60_000
-let refreshTimer: ReturnType<typeof setInterval> | null = null
-
 onMounted(() => {
   load()
-  refreshTimer = setInterval(load, AUTO_REFRESH_MS)
 })
-onBeforeUnmount(() => {
-  if (refreshTimer) {
-    clearInterval(refreshTimer)
-    refreshTimer = null
-  }
-})
+
+// Pushed from the server instead of polled — see useRealtime.
+useRealtime('trolley-activities', load)
 watch(days, load)
 
 function formatSeconds(seconds: number | null) {
