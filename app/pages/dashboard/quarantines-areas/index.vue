@@ -4,7 +4,7 @@ import type { QuarantineAreaSortKey } from '~/components/quarantine-areas/Table.
 import type { CreateQuarantineAreaInput, QuarantineArea } from '~/types/quarantine-area'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Quarantine Areas — Ichii' })
+useHead({ title: 'Quarantine Areas — JAI
 
 const SERVER_SORT_KEYS = ['name', 'createdAt'] as const
 

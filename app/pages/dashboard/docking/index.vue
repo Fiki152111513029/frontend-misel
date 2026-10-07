@@ -13,7 +13,7 @@ import type { DockingSortKey, DockingSortOrder } from '~/components/docking/Tabl
 import type { Docking, DockingStatus } from '~/composables/useDockings'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Docking — Ichii' })
+useHead({ title: 'Docking — JAI
 
 const { dockings, loading, viewDocking } = useDockings()
 

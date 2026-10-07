@@ -2,7 +2,7 @@
 import {
   ChevronLeft, ChevronRight, ChevronDown,
 } from 'lucide-vue-next'
-import logoSrc from '~/assets/images/Logo-iFactis-Move-X.png'
+import logoSrc from '~/assets/images/yazaki-2.png'
 import robotPromoSrc from '~/assets/images/irayplay.png'
 import { NAV_MENUS, isMenuGroup, isSectionLabel } from '~/utils/navMenu'
 import type { MenuEntry, MenuGroup } from '~/utils/navMenu'
@@ -284,7 +284,7 @@ function toggleGroup(title: string) {
 
         <img
           :src="robotPromoSrc"
-          alt="Ichii Robot"
+          alt="JAI Robot"
           class="pointer-events-none absolute -top-14 left-1/2 z-10 w-[160px] -translate-x-1/2 object-contain drop-shadow-[0_12px_20px_rgba(0,0,0,0.35)]"
         />
 
@@ -300,7 +300,7 @@ function toggleGroup(title: string) {
           <div class="relative mt-3 h-1 w-8 rounded-full bg-[#F2994A]" />
 
           <p class="font-medium relative mt-3 text-xs text-white/60">
-            By Ichii
+            By JAI
           </p>
         </div>
       </div>

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { Warehouse, Bot, BarChart3, ShieldCheck, ArrowRight } from 'lucide-vue-next'
-import logoSrc from '~/assets/images/Logo-iFactis-Move-X.png'
+import logoSrc from '~/assets/images/yazaki.png'
 import bgHeroSrc from '~/assets/images/bg-hero.png'
 
 definePageMeta({
   layout: false,
 })
 
-useHead({ title: 'Ichii — Digital Solution for Better Future' })
+useHead({ title: 'JAI — Digital Solution for Better Future' })
 
 const features = [
   {
@@ -75,7 +75,7 @@ function goToLogin() {
         class="animate-slide-up text-5xl font-semibold tracking-tight text-[#254384] sm:text-6xl"
         style="animation-delay: 0.05s"
       >
-        By Ichii
+        By JAI
       </h1>
 
       <!-- Tagline -->
@@ -110,7 +110,7 @@ function goToLogin() {
         </UiBaseButton>
 
         <a
-          href="mailto:admin@Ichii.co.id"
+          href="mailto:admin@JAI.co.id"
           class="text-sm font-medium text-slate-500 hover:text-[#01ADEF] transition-colors"
         >
           Need access? Contact administrator
@@ -151,7 +151,7 @@ function goToLogin() {
 
     <!-- Footer -->
     <footer class="relative z-10 w-full bg-[#0B2A6B] py-7 text-center text-xs text-white/70">
-      &copy; {{ new Date().getFullYear() }} Ichii. All rights reserved.
+      &copy; {{ new Date().getFullYear() }} JAI. All rights reserved.
     </footer>
   </div>
 </template>

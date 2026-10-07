@@ -4,7 +4,7 @@ import type { EximLocationSortKey } from '~/components/exim-locations/Table.vue'
 import type { CreateEximLocationInput, EximLocation } from '~/types/exim-location'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'EXIM Locations — Ichii' })
+useHead({ title: 'EXIM Locations — JAI
 
 const SERVER_SORT_KEYS = ['name', 'createdAt'] as const
 

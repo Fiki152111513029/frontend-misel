@@ -7,7 +7,7 @@ import type {
 } from '~/types/empty-pallet-location'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Empty Pallet Location — Ichii' })
+useHead({ title: 'Empty Pallet Location — JAI
 
 const SERVER_SORT_KEYS = ['name', 'createdAt'] as const
 

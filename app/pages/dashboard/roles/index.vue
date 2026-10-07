@@ -4,7 +4,7 @@ import type { RoleSortKey, RoleSortOrder } from '~/components/roles/Table.vue'
 import type { CreateRoleInput, Role } from '~/types/role'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Roles — Ichii' })
+useHead({ title: 'Roles — JAI
 
 const { hasPermission } = useAuth()
 const { items, loading, fetchRoles, createRole, updateRole, deleteRole, assignPermissions } =

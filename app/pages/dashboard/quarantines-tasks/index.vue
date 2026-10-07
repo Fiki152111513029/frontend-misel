@@ -3,7 +3,7 @@ import type { QuarantineTaskSortKey } from '~/components/quarantine-tasks/Table.
 import type { Task, TaskStatus } from '~/types/task'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Quarantines Tasks — Ichii' })
+useHead({ title: 'Quarantines Tasks — JAI})
 
 const SERVER_SORT_KEYS = ['createdAt'] as const
 const STATUS_OPTIONS: TaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED']

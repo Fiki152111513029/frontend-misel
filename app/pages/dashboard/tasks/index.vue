@@ -4,7 +4,7 @@ import type { TaskAction, TaskStatus } from '~/types/task'
 import { taskActionLabel } from '~/utils/taskStatus'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Tasks — Ichii' })
+useHead({ title: 'Tasks — JAI
 
 const SERVER_SORT_KEYS = ['createdAt'] as const
 const STATUS_OPTIONS: TaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED']

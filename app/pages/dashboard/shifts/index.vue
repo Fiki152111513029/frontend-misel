@@ -7,7 +7,7 @@ import type {
 } from '~/types/shift'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Shifts — Ichii' })
+useHead({ title: 'Shifts — JAI})
 
 const SERVER_SORT_KEYS = ['name', 'createdAt'] as const
 

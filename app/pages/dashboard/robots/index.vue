@@ -7,7 +7,7 @@ import type { CreateRobotInput, Robot } from '~/types/robot'
 const SERVER_SORT_KEYS = ['name', 'createdAt'] as const
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Robots — Ichii' })
+useHead({ title: 'Robots — JAI
 
 const { hasPermission } = useAuth()
 const {

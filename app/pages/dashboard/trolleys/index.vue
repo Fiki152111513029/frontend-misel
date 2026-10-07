@@ -7,7 +7,7 @@ import type {
 } from '~/types/trolley'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Trolleys — Ichii' })
+useHead({ title: 'Trolleys — JAI' })
 
 const SERVER_SORT_KEYS = ['name', 'createdAt'] as const
 

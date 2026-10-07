@@ -2,7 +2,7 @@
 import { ArrowLeft } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Robot Activity — Ichii' })
+useHead({ title: 'Robot Activity — JAI
 
 const route = useRoute()
 const robotId = route.params.id as string

@@ -7,7 +7,7 @@ import type {
 } from '~/types/production-location'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Production Locations — Ichii' })
+useHead({ title: 'Production Locations — JAI
 
 const SERVER_SORT_KEYS = ['name', 'createdAt'] as const
 

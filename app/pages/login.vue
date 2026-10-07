@@ -7,7 +7,7 @@ definePageMeta({
   middleware: 'guest',
 })
 
-useHead({ title: 'Sign In — Ichii' })
+useHead({ title: 'Sign In — JAI' })
 
 const { login } = useAuth()
 const { collapse } = useSidebar()

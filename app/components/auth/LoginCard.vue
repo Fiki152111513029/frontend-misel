@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import logoSrc from '~/assets/images/Logo-iFactis-Move-X.png'
+import logoSrc from '~/assets/images/yazaki.png'
 
 interface Props {
   serverError?: string | null
@@ -87,7 +87,7 @@ const emit = defineEmits<{
       <p class="font-medium mt-4 text-center text-sm text-slate-500">
         Need access?
         <a
-          href="mailto:admin@Ichii.co.id"
+          href="mailto:admin@JAI.co.id"
           class="font-medium text-[#01ADEF] hover:text-[#0095D4] transition-colors"
         >
           Contact administrator
@@ -97,7 +97,7 @@ const emit = defineEmits<{
 
     <!-- Footer -->
     <p class="font-medium mt-5 text-center text-xs text-slate-400">
-      &copy; {{ new Date().getFullYear() }}  Ichii. All rights reserved.
+      &copy; {{ new Date().getFullYear() }}  JAI. All rights reserved.
     </p>
   </div>
 </template>
