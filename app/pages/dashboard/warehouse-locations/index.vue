@@ -7,7 +7,7 @@ import type {
 } from '~/types/warehouse-location'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Warehouse Locations — JAI' })
+useHead({ title: 'Warehouse Locations — YAZAKI' })
 
 const SERVER_SORT_KEYS = ['name', 'createdAt'] as const
 

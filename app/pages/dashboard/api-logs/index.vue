@@ -2,7 +2,7 @@
 import type { ApiLogSortBy, ApiLogSortOrder } from '~/components/api-logs/Table.vue'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'ICS API Logs — YAZAKIAKIAKI' })
+useHead({ title: 'ICS API Logs — YAZAKI' })
 
 const { apiLogs, loading } = useApiLogs()
 

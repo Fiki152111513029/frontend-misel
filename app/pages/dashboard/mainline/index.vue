@@ -21,7 +21,7 @@ import type { RcsOrderRequest, Task, TaskAction } from '~/types/task'
 import type { LatestWebhookStatus } from '~/types/webhook-log'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Mainline — YAZAKIAKIAKIAKIAKIAKI
+useHead({ title: 'Mainline — YAZAKI'})
 
 const { user, hasPermission } = useAuth()
 const { items: productionLines, fetchProductionLines } = useProductionLines()

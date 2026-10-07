@@ -5,7 +5,7 @@ import type { RobotSystemStatus } from '~/types/robot'
 import type { WarehouseCartTaskStatus } from '~/types/warehouse-cart-task'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Warehouse Control — JAI
+useHead({ title: 'Warehouse Control — YAZAKI' })
 
 const { hasPermission } = useAuth()
 const { items: lineLocations, fetchWarehouseLineLocations } = useWarehouseLineLocations()

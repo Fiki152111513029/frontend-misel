@@ -3,7 +3,7 @@ import type { WarehouseCartTaskSortKey } from '~/components/warehouse-tasks/Tabl
 import type { WarehouseCartTaskStatus } from '~/types/warehouse-cart-task'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Warehouse Tasks — JAI' })
+useHead({ title: 'Warehouse Tasks — YAZAKI' })
 
 const SERVER_SORT_KEYS = ['createdAt'] as const
 const STATUS_OPTIONS: WarehouseCartTaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED']
