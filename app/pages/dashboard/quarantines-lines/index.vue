@@ -4,7 +4,7 @@ import type { QuarantineLineSortKey } from '~/components/quarantine-lines/Table.
 import type { CreateQuarantineLineInput, QuarantineLine } from '~/types/quarantine-line'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Quarantine Lines — JAI
+useHead({ title: 'Quarantine Lines — YAZAKIAKIAKIAKIAKIAKIAKIAKIAKIAKI
 
 const SERVER_SORT_KEYS = ['name', 'createdAt'] as const
 

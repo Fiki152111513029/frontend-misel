@@ -54,7 +54,7 @@ const features = [
 
       <!-- Company Name -->
       <h1 class="text-5xl font-bold tracking-tight">
-        JAI
+        YAZAKI
       </h1>
 
       <!-- Tagline -->

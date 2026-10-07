@@ -6,7 +6,7 @@ import type { CreateProductionLineInput, ProductionLine } from '~/types/producti
 const SERVER_SORT_KEYS = ['name', 'createdAt'] as const
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Production Lines — JAI
+useHead({ title: 'Production Lines — YAZAKIAKIAKIAKIAKIAKIAKIAKIAKIAKIAKI
 
 const { hasPermission } = useAuth()
 const {

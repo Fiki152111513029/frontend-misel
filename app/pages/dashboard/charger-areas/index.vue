@@ -7,7 +7,7 @@ import type {
 } from '~/types/charger-area'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Charger Areas — JAI})
+useHead({ title: 'Charger Areas — YAZAKI})
 
 const SERVER_SORT_KEYS = ['name', 'createdAt'] as const
 

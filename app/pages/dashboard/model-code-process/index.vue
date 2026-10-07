@@ -4,7 +4,7 @@ import type { ModelCodeProcessSortKey } from '~/components/model-code-processes/
 import type { CreateModelCodeProcessInput, ModelCodeProcess } from '~/types/model-code-process'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Model Code Process — JAI})
+useHead({ title: 'Model Code Process — YAZAKIAKIAKIAKIAKIAKIAKIAKI})
 
 const SERVER_SORT_KEYS = ['name', 'createdAt'] as const
 

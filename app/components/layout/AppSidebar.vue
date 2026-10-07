@@ -284,7 +284,7 @@ function toggleGroup(title: string) {
 
         <img
           :src="robotPromoSrc"
-          alt="JAI Robot"
+          alt="YAZAKI Robot"
           class="pointer-events-none absolute -top-14 left-1/2 z-10 w-[160px] -translate-x-1/2 object-contain drop-shadow-[0_12px_20px_rgba(0,0,0,0.35)]"
         />
 
@@ -300,7 +300,7 @@ function toggleGroup(title: string) {
           <div class="relative mt-3 h-1 w-8 rounded-full bg-[#F2994A]" />
 
           <p class="font-medium relative mt-3 text-xs text-white/60">
-            By JAI
+            By YAZAKI
           </p>
         </div>
       </div>

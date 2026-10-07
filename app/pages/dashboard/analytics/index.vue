@@ -1,6 +1,6 @@
 ﻿<script setup lang="ts">
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Analytics — JAI' })
+useHead({ title: 'Analytics — YAZAKIAKIAKIAKI' })
 </script>
 
 <template>

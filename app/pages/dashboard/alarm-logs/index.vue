@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'ICS Alarm Logs — JAI' })
+useHead({ title: 'ICS Alarm Logs — YAZAKIAKIAKIAKI' })
 
 const { fetchAlarms } = useRobotAlarms()
 const items = ref<Awaited<ReturnType<typeof fetchAlarms>>['items']>([])

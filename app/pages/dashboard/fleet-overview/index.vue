@@ -2,7 +2,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Fleet Overview — JAI
+useHead({ title: 'Fleet Overview — YAZAKIAKIAKIAKIAKIAKI
 
 // Two views over the same robot list, toggled by the chevron:
 //   map    — the Factory Map and the Performance panel beside the cards

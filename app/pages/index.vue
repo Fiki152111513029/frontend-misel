@@ -7,7 +7,7 @@ definePageMeta({
   layout: false,
 })
 
-useHead({ title: 'JAI — Digital Solution for Better Future' })
+useHead({ title: 'YAZAKI — Digital Solution for Better Future' })
 
 const features = [
   {
@@ -75,7 +75,7 @@ function goToLogin() {
         class="animate-slide-up text-5xl font-semibold tracking-tight text-[#254384] sm:text-6xl"
         style="animation-delay: 0.05s"
       >
-        By JAI
+        By YAZAKI
       </h1>
 
       <!-- Tagline -->
@@ -110,7 +110,7 @@ function goToLogin() {
         </UiBaseButton>
 
         <a
-          href="mailto:admin@JAI.co.id"
+          href="mailto:admin@YAZAKI.co.id"
           class="text-sm font-medium text-slate-500 hover:text-[#01ADEF] transition-colors"
         >
           Need access? Contact administrator
@@ -151,7 +151,7 @@ function goToLogin() {
 
     <!-- Footer -->
     <footer class="relative z-10 w-full bg-[#0B2A6B] py-7 text-center text-xs text-white/70">
-      &copy; {{ new Date().getFullYear() }} JAI. All rights reserved.
+      &copy; {{ new Date().getFullYear() }} YAZAKI. All rights reserved.
     </footer>
   </div>
 </template>
