@@ -230,13 +230,16 @@ function clearSelection() {
 // space (devicePostionRec from the AMR telemetry API), so the marker moves
 // as the robot moves without any path-following logic of our own. Fetched
 // via the plain service function (not the shared Robots-page store/composable)
-// so this widget's polling doesn't disturb that page's pagination state.
+// so this widget doesn't disturb that page's pagination state.
 const liveRobots = ref<Robot[]>([])
-const ROBOT_POLL_MS = 800
-let robotPollTimer: ReturnType<typeof setInterval> | null = null
-// Guards against overlapping fetches — if a telemetry request runs longer
-// than the poll tick (RCS telemetry has been observed to time out), skip
-// the next tick instead of piling up concurrent requests.
+// How far apart readings arrive: the backend telemetry poller's interval
+// (POLL_INTERVAL_MS in robot-status-poller.service.ts), since that poll is
+// what pushes the 'robots' signal this component refreshes on. Only used to
+// size the tween below — keep the two roughly in step.
+const ROBOT_UPDATE_MS = 2_000
+// Guards against overlapping fetches — if a request runs longer than the
+// gap between signals (RCS telemetry has been observed to time out), skip
+// rather than piling up concurrent requests.
 let isLoadingLiveRobots = false
 
 // CSS transitions retargeted on every poll were still visibly choppy —
@@ -304,10 +307,10 @@ function retargetRobotAnimation(id: string, x: number, y: number, orientationRaw
     fromY,
     fromOrientation,
     startTime: now,
-    // Longer than ROBOT_POLL_MS so a new reading almost always arrives
+    // Longer than ROBOT_UPDATE_MS so a new reading almost always arrives
     // mid-tween — the tween just gets retargeted (see above) rather than
-    // ever finishing and sitting idle waiting for the next poll.
-    duration: ROBOT_POLL_MS * 1.5,
+    // ever finishing and sitting idle waiting for the next one.
+    duration: ROBOT_UPDATE_MS * 1.5,
   })
 }
 
@@ -610,25 +613,23 @@ onMounted(async () => {
     dashboardFilters.markAreaResolvedWithoutMap()
   }
   await loadStockStatus()
-  robotPollTimer = setInterval(loadLiveRobots, ROBOT_POLL_MS)
   locationCodesPollTimer = setInterval(loadLocationCodes, LOCATION_CODES_POLL_MS)
   animationFrameHandle = requestAnimationFrame(tickRobotAnimations)
 })
 
-// Everything except the robot positions above is pushed rather than polled.
-// Positions stay on their own fast timer because each GET /robots fetches
-// fresh telemetry from RCS, and that is what lets the markers glide instead
-// of jumping — the server's own telemetry poll only runs every 15s, far too
-// coarse to animate from.
+// Positions are pushed too. The markers still glide, because the tween in
+// tickRobotAnimations runs on requestAnimationFrame and is independent of
+// how often the data arrives — it just animates toward the newest reading.
+// This component used to re-fetch every 800ms, and since GET /robots called
+// RCS live on every request, one open dashboard meant ~75 calls a minute
+// against the fleet server. The backend now caches what its poller sees, so
+// this arrives sooner than the old timer managed and costs RCS nothing.
+useRealtime('robots', loadLiveRobots)
 useRealtime('stock', loadStockStatus)
 useRealtime('alarms', loadActiveAlarms)
 useRealtime('trolley-activities', loadActiveTrolleyActivitiesByRobot)
 
 onBeforeUnmount(() => {
-  if (robotPollTimer) {
-    clearInterval(robotPollTimer)
-    robotPollTimer = null
-  }
   if (animationFrameHandle !== null) {
     cancelAnimationFrame(animationFrameHandle)
     animationFrameHandle = null
