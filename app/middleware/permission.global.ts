@@ -1,4 +1,5 @@
 import { findRequiredPermission } from '~/utils/navMenu'
+import { getRoleHomePath } from '~/utils/roleHome'
 
 // Enforces the same permission NAV_MENUS already declares for the sidebar
 // (see utils/navMenu.ts) at the route level, so a role without a menu's
@@ -16,15 +17,23 @@ export default defineNuxtRouteMiddleware((to) => {
   if (!user.value) return
   if (hasPermission(requiredPermission)) return
 
-  // /dashboard itself now requires dashboard.read too, so it's no longer a
-  // safe universal fallback — a role with none of the permissions below it
-  // (e.g. a freshly-created Supervisor with nothing granted yet) would
-  // otherwise bounce back and forth between the blocked route and /dashboard
-  // forever. If /dashboard is also out of reach, there's nowhere left to
-  // send this user — log them out instead of looping.
-  if (to.path === '/dashboard' || !hasPermission('dashboard.read')) {
-    logout()
-    return navigateTo('/login')
+  // Send them to their own landing page rather than assuming /dashboard.
+  // /dashboard requires dashboard.read like any other route, so it is not a
+  // safe universal fallback: a role that can reach some pages but not that
+  // one (Fleet Overview only, say, or a Supervisor granted just Trolley
+  // Activities) would otherwise be bounced somewhere it is equally barred
+  // from, or thrown out entirely.
+  const home = getRoleHomePath(user.value.role, user.value.landingPath)
+  if (home !== to.path) {
+    const homePermission = findRequiredPermission(home)
+    // An unlisted path carries no permission of its own, so it is reachable.
+    if (!homePermission || hasPermission(homePermission)) {
+      return navigateTo(home)
+    }
   }
-  return navigateTo('/dashboard')
+
+  // The landing page is the blocked route itself, or is barred too — there
+  // is nowhere left to send this user, so log them out instead of looping.
+  logout()
+  return navigateTo('/login')
 })
