@@ -13,9 +13,16 @@ const RANGE_OPTIONS = [
   { label: '30 days', value: 30 },
 ]
 
+// The composable swallows the error and hands back null, so null is the
+// only signal we get that something went wrong. Tracked separately from
+// stats so the template can say so instead of rendering nothing at all.
+const failed = ref(false)
+
 async function load() {
   loading.value = true
-  stats.value = await fetchTrolleyActivityDashboard(days.value)
+  const result = await fetchTrolleyActivityDashboard(days.value)
+  failed.value = result === null
+  if (result) stats.value = result
   loading.value = false
 }
 
@@ -84,6 +91,22 @@ const statusDonutSeries = computed(() => {
 
     <div v-if="loading && !stats" class="flex h-32 items-center justify-center text-sm text-slate-400">
       Loading dashboard...
+    </div>
+
+    <!-- Without this the block rendered nothing on failure: no charts, no
+         message, nothing to tell the user the figures simply did not load. -->
+    <div
+      v-else-if="failed && !stats"
+      class="flex h-32 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#E2E8F0] text-sm text-slate-500"
+    >
+      <p>Overview could not be loaded.</p>
+      <button
+        type="button"
+        class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-[#0F1F52] transition-colors hover:bg-slate-200"
+        @click="load"
+      >
+        Try again
+      </button>
     </div>
 
     <template v-else-if="stats">

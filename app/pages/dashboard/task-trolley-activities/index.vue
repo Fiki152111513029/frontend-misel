@@ -4,9 +4,13 @@ useHead({ title: 'Trolley Activities — YAZAKI'})
 
 // The activity list below is open to everyone with trolley-activity.read
 // (Operator/Warehouse included, to see their own history) — only the
-// Overview stats/charts block is Super Admin/Supervisor-only.
-const { user } = useAuth()
-const canSeeOverview = computed(() => user.value?.role === 'Super Admin' || user.value?.role === 'Supervisor')
+// The Overview block carries figures across every operator, so it is gated
+// separately from the table below it. Driven by a permission rather than a
+// role name: hardcoding names meant a newly created role could never be
+// given these charts without a code change, and revoking the permission in
+// Role Management had no effect at all.
+const { hasPermission } = useAuth()
+const canSeeOverview = computed(() => hasPermission('trolley-activity.summary'))
 
 const {
   items,
