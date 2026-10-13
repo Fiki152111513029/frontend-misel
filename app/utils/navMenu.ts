@@ -137,6 +137,25 @@ export function landingPageOptions(): LandingPageOption[] {
   return options
 }
 
+/**
+ * The first page in sidebar order this viewer is actually allowed to open.
+ *
+ * Used as the last-resort landing page: a role's configured landing page can
+ * point somewhere it has since lost (or never had) the permission for, and
+ * /dashboard is no safer a guess since it needs dashboard.read like anything
+ * else. Rather than assume a page, find one. Returns null only when the role
+ * can open nothing at all, which is a real state worth reporting rather than
+ * redirecting around.
+ */
+export function findFirstAllowedPath(
+  hasPermission: (code: string) => boolean,
+): string | null {
+  for (const option of landingPageOptions()) {
+    if (!option.permission || hasPermission(option.permission)) return option.path
+  }
+  return null
+}
+
 // Exact match only — a path not registered here (dynamic detail routes,
 // pages not yet wired into the nav, etc.) is left unrestricted rather than
 // guessed at via prefix matching.

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import bgHeroSrc from '~/assets/images/bg-hero.png'
-import { getRoleHomePath } from '~/utils/roleHome'
+import { resolveHomePath } from '~/utils/roleHome'
 
 definePageMeta({
   layout: 'auth',
@@ -9,7 +9,7 @@ definePageMeta({
 
 useHead({ title: 'Sign In — YAZAKI' })
 
-const { login } = useAuth()
+const { login, hasPermission } = useAuth()
 const { collapse } = useSidebar()
 const router = useRouter()
 
@@ -24,7 +24,18 @@ async function handleLogin(credentials: { identifier: string; password: string; 
     if (result.user?.role === 'Operator') {
       collapse()
     }
-    await router.push(getRoleHomePath(result.user?.role, result.user?.landingPath))
+    // Where they can actually go, not just where the role was told to go.
+    // Pushing a blocked path here would hand them straight to
+    // permission.global.ts, which would bounce them back to this page and
+    // make a correct login look like a failed one.
+    const home = resolveHomePath(result.user?.role, result.user?.landingPath, hasPermission)
+    if (!home) {
+      serverError.value
+        = 'Your account has no pages assigned yet. Ask an administrator to grant your role access.'
+      isSubmitting.value = false
+      return
+    }
+    await router.push(home)
   } else {
     serverError.value = result.message ?? 'Login failed. Please try again.'
   }
