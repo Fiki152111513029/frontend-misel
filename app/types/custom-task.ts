@@ -20,7 +20,15 @@ export interface ReleasedCustomTask extends CustomTaskPreview {
    * either way, there is just nothing to cancel through.
    */
   runId: string | null
-  releasedAt: string
+  /** Null when the task was held rather than sent — see `queued`. */
+  releasedAt: string | null
+  /**
+   * The pickup rack was empty, so nothing went to RCS. The task is parked
+   * and the server dispatches it on its own once that rack is filled.
+   */
+  queued: boolean
+  /** Which rack it is waiting on. Null unless `queued`. */
+  waitingForCode: string | null
 }
 
 // One Custom Task actually dispatched to RCS — the All Tasks > Custom Tasks
@@ -38,6 +46,13 @@ export interface CustomTaskRun {
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
   /** Set when an operator cancelled it; `status` is FAILED alongside this. */
   cancelledAt: string | null
+  /**
+   * Set while the run is parked waiting for its pickup rack to be filled.
+   * `status` stays PENDING, so this is what tells a queued task apart from
+   * one RCS has simply not started yet.
+   */
+  waitingForBinAt: string | null
+  waitingForCode: string | null
   robot: { id: string, name: string } | null
   operator: { id: string, fullName: string }
   createdAt: string

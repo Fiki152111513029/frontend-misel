@@ -9,6 +9,12 @@ export interface CustomTaskQueueItem {
   code: string
   name: string
   taskPath: string
+  /**
+   * The rack this task is parked on, when it was held rather than sent.
+   * There is no RCS order behind a held task, so it has no webhook status
+   * to poll — this is what the card shows instead.
+   */
+  waitingForCode: string | null
   webhookStatus: LatestWebhookStatus | null
 }
 
@@ -73,12 +79,19 @@ export const useCustomTaskQueueStore = defineStore('custom-task-queue', () => {
     code: string
     name: string
     taskPath: string
+    waitingForCode?: string | null
   }) {
     if (items.value.some(item => item.orderId === input.orderId)) return
 
-    const item: CustomTaskQueueItem = { ...input, webhookStatus: null }
+    const item: CustomTaskQueueItem = {
+      ...input,
+      waitingForCode: input.waitingForCode ?? null,
+      webhookStatus: null,
+    }
     items.value.push(item)
-    await refreshItem(item)
+    // A held task has no RCS order yet, so there is nothing to ask the
+    // webhook log about — it would just 404 on every refresh.
+    if (!item.waitingForCode) await refreshItem(item)
   }
 
   // Called on logout so a shared device does not leak the previous

@@ -65,11 +65,18 @@ const STATUS_LABEL: Record<CustomTaskRun['status'], string> = {
 
 // A cancelled run is stored as FAILED (TaskStatus has no CANCELLED member),
 // so cancelledAt is what tells the two apart on screen.
+// A parked run is PENDING like any other not-yet-started task, but the
+// reason is different and actionable: it is waiting on a rack, not on RCS.
 function statusLabel(run: CustomTaskRun) {
-  return run.cancelledAt ? 'Cancelled' : STATUS_LABEL[run.status]
+  if (run.cancelledAt) return 'Cancelled'
+  if (run.waitingForBinAt) return 'Waiting for rack'
+  return STATUS_LABEL[run.status]
 }
 
 function statusClass(run: CustomTaskRun) {
+  if (!run.cancelledAt && run.waitingForBinAt) {
+    return 'bg-amber-50 text-amber-700'
+  }
   return run.cancelledAt
     ? 'bg-slate-100 text-slate-500'
     : taskStatusStyle(run.status)
