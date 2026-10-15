@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Ban, Camera, Route as RouteIcon } from 'lucide-vue-next'
+import { Ban, Camera, Clock, Route as RouteIcon } from 'lucide-vue-next'
 import { taskStatusLabel } from '~/utils/taskStatus'
 import type { CustomTaskPreview } from '~/types/custom-task'
 
@@ -89,7 +89,16 @@ async function handleSubmit() {
   submitting.value = false
   if (!released) return
 
-  toast.success(`Custom task ${released.code} submitted`)
+  // Held rather than sent: the rack was empty, so the server parked it and
+  // will dispatch it itself once the rack is filled. Deliberately not an
+  // error — the operator does not need to come back and retry.
+  if (released.queued) {
+    toast.info(
+      `Rak belum ready — ${released.code} ditampung dulu, otomatis jalan begitu rak ${released.waitingForCode} terisi`,
+    )
+  } else {
+    toast.success(`Custom task ${released.code} submitted`)
+  }
 
   queue.addTask({
     orderId: released.orderId,
@@ -97,6 +106,7 @@ async function handleSubmit() {
     code: released.code,
     name: released.name,
     taskPath: released.taskPath,
+    waitingForCode: released.waitingForCode,
   })
 
   // Free the scanner right away — like the Trolley Task pages, several
@@ -195,13 +205,27 @@ async function handleSubmit() {
     <div
       v-for="item in queue.items"
       :key="item.orderId"
-      class="flex items-center gap-4 rounded-2xl border border-[#01ADEF]/20 bg-gradient-to-r from-[#01ADEF]/10 to-transparent px-5 py-4"
+      class="flex items-center gap-4 rounded-2xl border px-5 py-4"
+      :class="item.waitingForCode
+        ? 'border-amber-300/60 bg-gradient-to-r from-amber-100/70 to-transparent'
+        : 'border-[#01ADEF]/20 bg-gradient-to-r from-[#01ADEF]/10 to-transparent'"
     >
-      <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-sm">
-        <RouteIcon class="h-5 w-5" />
+      <div
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm"
+        :class="item.waitingForCode
+          ? 'bg-gradient-to-br from-amber-400 to-amber-600'
+          : 'bg-gradient-to-br from-blue-400 to-blue-600'"
+      >
+        <Clock v-if="item.waitingForCode" class="h-5 w-5" />
+        <RouteIcon v-else class="h-5 w-5" />
       </div>
       <div class="flex-1 space-y-1 text-sm">
-        <p class="font-semibold uppercase tracking-wide text-[#01ADEF]">Current Queue</p>
+        <p
+          class="font-semibold uppercase tracking-wide"
+          :class="item.waitingForCode ? 'text-amber-600' : 'text-[#01ADEF]'"
+        >
+          {{ item.waitingForCode ? 'Menunggu Rak' : 'Current Queue' }}
+        </p>
         <p class="font-medium text-slate-500">
           Task :
           <span class="font-medium text-[#0F1F52]">{{ item.name }} ({{ item.code }})</span>
@@ -214,19 +238,32 @@ async function handleSubmit() {
           Task Path :
           <span class="font-mono text-xs font-medium text-[#0F1F52]">{{ item.taskPath }}</span>
         </p>
-        <p class="font-medium text-slate-500">
-          Status :
-          <span class="font-semibold text-[#01ADEF]">
-            {{ item.webhookStatus?.status ? taskStatusLabel(item.webhookStatus.status) : '-' }}
-          </span>
-        </p>
-        <p class="font-medium text-slate-500">
-          subTaskSeq :
-          <span class="font-medium text-[#0F1F52]">
-            {{ item.webhookStatus?.subTaskSeq ?? '-' }}
-            <template v-if="item.webhookStatus?.statusComment"> — {{ item.webhookStatus.statusComment }}</template>
-          </span>
-        </p>
+        <template v-if="item.waitingForCode">
+          <p class="font-medium text-slate-500">
+            Status :
+            <span class="font-semibold text-amber-600">
+              Rak {{ item.waitingForCode }} belum ready
+            </span>
+          </p>
+          <p class="font-medium text-amber-700">
+            Task otomatis jalan begitu rak terisi — tidak perlu kirim ulang.
+          </p>
+        </template>
+        <template v-else>
+          <p class="font-medium text-slate-500">
+            Status :
+            <span class="font-semibold text-[#01ADEF]">
+              {{ item.webhookStatus?.status ? taskStatusLabel(item.webhookStatus.status) : '-' }}
+            </span>
+          </p>
+          <p class="font-medium text-slate-500">
+            subTaskSeq :
+            <span class="font-medium text-[#0F1F52]">
+              {{ item.webhookStatus?.subTaskSeq ?? '-' }}
+              <template v-if="item.webhookStatus?.statusComment"> — {{ item.webhookStatus.statusComment }}</template>
+            </span>
+          </p>
+        </template>
 
         <!-- Cancelling here saves walking over to All Tasks > Task Custom
              to undo a task that was only just sent by mistake. Hidden when
