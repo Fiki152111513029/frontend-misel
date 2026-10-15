@@ -1,6 +1,9 @@
 export interface Toast {
   id: number
-  type: 'success' | 'error'
+  // 'info' is for an outcome that is neither a win nor a failure — a task
+  // accepted but parked, say. Showing those in green overstates them and
+  // in red alarms the operator into retrying something already handled.
+  type: 'success' | 'error' | 'info'
   message: string
 }
 
@@ -23,6 +26,7 @@ export function useToast() {
     toasts,
     success: (message: string) => push('success', message),
     error: (message: string) => push('error', message),
+    info: (message: string) => push('info', message),
     dismiss,
   }
 }
