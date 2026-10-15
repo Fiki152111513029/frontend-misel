@@ -1,5 +1,5 @@
-﻿<script setup lang="ts">
-import { CheckCircle2, X, XCircle } from 'lucide-vue-next'
+<script setup lang="ts">
+import { CheckCircle2, Clock, X, XCircle } from 'lucide-vue-next'
 
 const { toasts, dismiss } = useToast()
 </script>
@@ -19,13 +19,19 @@ const { toasts, dismiss } = useToast()
         :key="toast.id"
         role="alert"
         class="pointer-events-auto flex items-start gap-2.5 rounded-xl border bg-white px-4 py-3 shadow-lg"
-        :class="toast.type === 'success'
- ? 'border-emerald-200 '
- : 'border-red-200 '"
+        :class="{
+          'border-emerald-200': toast.type === 'success',
+          'border-amber-200': toast.type === 'info',
+          'border-red-200': toast.type === 'error',
+        }"
       >
         <CheckCircle2
           v-if="toast.type === 'success'"
           class="mt-0.5 h-4.5 w-4.5 h-[18px] w-[18px] flex-shrink-0 text-emerald-500"
+        />
+        <Clock
+          v-else-if="toast.type === 'info'"
+          class="mt-0.5 h-[18px] w-[18px] flex-shrink-0 text-amber-500"
         />
         <XCircle v-else class="mt-0.5 h-[18px] w-[18px] flex-shrink-0 text-red-500" />
 
