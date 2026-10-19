@@ -30,6 +30,9 @@ export function isSectionLabel(menu: MenuEntry): menu is MenuSectionLabel {
 export const NAV_MENUS: MenuEntry[] = [ 
   { title: 'Dashboard', icon: BarChart3, path: '/dashboard', permission: 'dashboard.read' },
   { title: 'Fleet Overview', icon: LayoutDashboard, path: '/dashboard/fleet-overview', permission: 'fleet-overview.read' },
+  // The Factory Map on its own, full screen — gated on the same permission
+  // as the map data it shows rather than a new one of its own.
+  { title: 'Live Map', icon: MapIcon, path: '/dashboard/live-map', permission: 'factory-map.read' },
   { label: 'All Menu' },
   {
     title: 'All Tasks',

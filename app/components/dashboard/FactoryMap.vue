@@ -1,4 +1,10 @@
 <script setup lang="ts">
+// `fill` lets the map stretch to whatever height its parent gives it,
+// instead of the fixed dashboard-widget height below. The Live Map page
+// uses it to fill the viewport; every existing embed leaves it off and is
+// unaffected.
+const props = withDefaults(defineProps<{ fill?: boolean }>(), { fill: false })
+
 import { Maximize, RotateCw, ZoomIn, ZoomOut } from 'lucide-vue-next'
 import { fetchLocationCodes, fetchStockStatus } from '~/services/factory-map.service'
 import { fetchRobots as fetchRobotsSvc } from '~/services/robot.service'
@@ -642,7 +648,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <UiBaseCard padding="none" class="flex flex-col">
+  <UiBaseCard padding="none" class="flex flex-col" :class="props.fill ? 'h-full' : ''">
     <div class="flex items-center justify-between border-b border-[#E2E8F0] px-6 py-5">
       <div class="flex items-center gap-2.5">
         <svg class="h-5 w-5 text-[#01ADEF]" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
@@ -664,7 +670,10 @@ onBeforeUnmount(() => {
       </select>
     </div>
 
-    <div class="relative h-[460px] w-full overflow-hidden bg-slate-50 2xl:h-[600px]">
+    <div
+      class="relative w-full overflow-hidden bg-slate-50"
+      :class="props.fill ? 'min-h-0 flex-1' : 'h-[460px] 2xl:h-[600px]'"
+    >
       <div v-if="loading" class="flex h-full items-center justify-center text-sm font-medium text-slate-400">
         Loading map…
       </div>
