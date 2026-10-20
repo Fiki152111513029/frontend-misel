@@ -21,7 +21,7 @@ import { OrbitControls } from
  */
 export function createFactoryMap3D(
   container,
-  { baseUrl = '/factory-3d', topologyUrl } = {}
+  { baseUrl = '/factory-3d', topologyUrl, onError } = {}
 ) {
   // 1. Ambil container HTML
 
@@ -470,9 +470,12 @@ export function createFactoryMap3D(
     if (pendingBins) setBinStatus(pendingBins)
   }
 
-  loadTopology().catch((err) =>
+  // Tanpa ini kegagalan hanya mendarat di console dan pengguna cuma melihat
+  // kotak kosong — tidak ada bedanya dengan fitur yang rusak diam-diam.
+  loadTopology().catch((err) => {
     console.error('Gagal memuat topologi peta 3D', err)
-  )
+    onError?.(String(err?.message ?? err), topologyUrl || `${baseUrl}/workshop.json`)
+  })
 
   // Robot AGV (dibuat dari bentuk dasar, mengikuti foto referensi)
   function createAGV() {

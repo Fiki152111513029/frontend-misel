@@ -37,7 +37,12 @@ const selectedMap = computed(
 )
 
 const containerRef = ref<HTMLElement | null>(null)
+const loadError = ref<{ message: string, url: string } | null>(null)
 let api: MapApi | null = null
+// Two builds can overlap: onMounted starts one and the selectedMap watcher
+// starts another in the same tick. Without a token the slower one finishes
+// last and wins, which may not be the map that is currently selected.
+let buildToken = 0
 let unmounted = false
 
 const VIEWS = [
@@ -129,14 +134,21 @@ watch(
 // rebuild would have to unpick the paths, racks, arms and patrol the
 // engine built from the previous map — far more to get wrong.
 async function buildScene() {
+  const token = ++buildToken
   const { createFactoryMap3D } = await import('~/utils/factoryMap3d.js')
-  if (unmounted || !containerRef.value) return
+  // A newer build started while this one was loading the module — let that
+  // one own the canvas instead of fighting it for the container.
+  if (unmounted || token !== buildToken || !containerRef.value) return
 
+  loadError.value = null
   api?.dispose()
   api = null
 
   api = createFactoryMap3D(containerRef.value, {
     topologyUrl: selectedMap.value?.topologyUrl,
+    onError: (message: string, url: string) => {
+      if (token === buildToken) loadError.value = { message, url }
+    },
   })
 
   // Safe to call before the topology has finished loading: the engine holds
@@ -223,6 +235,29 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- The canvas fills this box; the module watches its size. -->
-    <div ref="containerRef" class="relative min-h-[420px] w-full flex-1 overflow-hidden bg-[#eaf0f6]" />
+    <div ref="containerRef" class="relative min-h-[420px] w-full flex-1 overflow-hidden bg-[#eaf0f6]">
+      <div
+        v-if="loadError"
+        class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-[#eaf0f6] px-6 text-center"
+      >
+        <p class="text-sm font-semibold text-[#0F1F52]">Topologi peta gagal dimuat</p>
+        <p class="text-xs text-red-600">{{ loadError.message }}</p>
+        <p class="max-w-full break-all font-mono text-[11px] text-slate-500">{{ loadError.url }}</p>
+        <button
+          type="button"
+          class="mt-1 rounded-lg bg-[#01ADEF] px-3 py-1.5 text-xs font-semibold text-white"
+          @click="buildScene"
+        >
+          Coba lagi
+        </button>
+      </div>
+
+      <p
+        v-else-if="factoryMaps.length === 0"
+        class="absolute inset-0 z-10 flex items-center justify-center text-sm font-semibold text-slate-400"
+      >
+        Belum ada Factory Map
+      </p>
+    </div>
   </UiBaseCard>
 </template>
