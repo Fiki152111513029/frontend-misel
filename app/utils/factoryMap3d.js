@@ -21,7 +21,7 @@ import { OrbitControls } from
  */
 export function createFactoryMap3D(
   container,
-  { baseUrl = '/factory-3d', topologyUrl, onError } = {}
+  { baseUrl = '/factory-3d', topologyUrl, onError, onReady } = {}
 ) {
   // 1. Ambil container HTML
 
@@ -465,6 +465,14 @@ export function createFactoryMap3D(
 
     // Dari sini lapisan realtime punya semua yang dibutuhkan.
     toWorldLive = toWorld
+    onReady?.({
+      nodes: (topo.nodeArr || []).length,
+      paths: (topo.allPath || []).length,
+      racks: slots.length,
+      // Lebar dunia selalu dinormalkan ke 36 unit; kalau ini NaN berarti
+      // koordinat topologinya tidak terbaca dan tidak ada yang tergambar.
+      scale,
+    })
     for (const sl of slots) rackSlotByName.set(sl.name, sl)
     if (pendingRobots) setRobots(pendingRobots)
     if (pendingBins) setBinStatus(pendingBins)

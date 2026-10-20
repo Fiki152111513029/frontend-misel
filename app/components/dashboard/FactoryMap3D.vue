@@ -38,6 +38,10 @@ const selectedMap = computed(
 
 const containerRef = ref<HTMLElement | null>(null)
 const loadError = ref<{ message: string, url: string } | null>(null)
+// What the engine actually built. Null means the topology never arrived —
+// which looks identical on screen to geometry that loaded but is out of
+// the camera's view, so it has to be stated rather than guessed at.
+const built = ref<{ nodes: number, paths: number, racks: number, scale: number } | null>(null)
 let api: MapApi | null = null
 // Two builds can overlap: onMounted starts one and the selectedMap watcher
 // starts another in the same tick. Without a token the slower one finishes
@@ -141,6 +145,7 @@ async function buildScene() {
   if (unmounted || token !== buildToken || !containerRef.value) return
 
   loadError.value = null
+  built.value = null
   api?.dispose()
   api = null
 
@@ -148,6 +153,9 @@ async function buildScene() {
     topologyUrl: selectedMap.value?.topologyUrl,
     onError: (message: string, url: string) => {
       if (token === buildToken) loadError.value = { message, url }
+    },
+    onReady: (info: { nodes: number, paths: number, racks: number, scale: number }) => {
+      if (token === buildToken) built.value = info
     },
   })
 
@@ -200,6 +208,13 @@ onBeforeUnmount(() => {
         <p class="mt-0.5 text-xs font-semibold" :class="robotCount > 0 ? 'text-emerald-600' : 'text-slate-400'">
           <span class="mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle" :class="robotCount > 0 ? 'bg-emerald-500' : 'bg-slate-300'" />
           {{ robotCount > 0 ? `${robotCount} AMR live` : 'Menunggu data AMR' }}
+          <span v-if="built" class="ml-2 font-normal text-slate-500">
+            · topologi: {{ built.nodes }} node, {{ built.paths }} jalur, {{ built.racks }} rak
+            (skala {{ built.scale.toFixed(6) }})
+          </span>
+          <span v-else-if="!loadError" class="ml-2 font-normal text-amber-600">
+            · topologi belum termuat
+          </span>
         </p>
       </div>
 
