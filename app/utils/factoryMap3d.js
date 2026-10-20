@@ -11,6 +11,37 @@ import { DRACOLoader } from
 import { OrbitControls } from
   'three/addons/controls/OrbitControls.js'
 
+// Cache GLB di tingkat modul, bukan per instance mesin. Model yang sama
+// dipakai lagi setiap kali peta dibuka atau map diganti; tanpa cache,
+// ketiganya diunduh dan diurai ulang tiap kali — itu penyumbang terbesar
+// jeda sebelum peta tampil. Yang disimpan hasil urai mentahnya; tiap
+// pemakai meng-clone lalu menskalakan sendiri, supaya dua map dengan skala
+// berbeda tidak saling mengubah.
+const gltfCache = new Map()
+
+/**
+ * clone() ikut membawa geometry dan material yang SAMA dengan aslinya, jadi
+ * membuangnya saat dispose() akan merusak salinan di cache — ganti map
+ * berikutnya lalu tampil tanpa model. Tandai supaya dispose melewatinya.
+ */
+function markShared(root) {
+  root.traverse((o) => {
+    o.userData.sharedWithCache = true
+  })
+}
+
+function loadGltfCached(loader, url) {
+  let entry = gltfCache.get(url)
+  if (!entry) {
+    entry = loader.loadAsync(url)
+    gltfCache.set(url, entry)
+    // Kegagalan jangan ikut tersimpan, supaya percobaan berikutnya tidak
+    // langsung memakai promise yang sudah ditolak.
+    entry.catch(() => gltfCache.delete(url))
+  }
+  return entry
+}
+
 // Konstanta ukuran model (mm) ada di bawah; ubah sesuai kebutuhan.
 /**
  * @param topologyUrl Topologi yang digambar. Defaultnya berkas statis di
@@ -141,6 +172,15 @@ export function createFactoryMap3D(
   let pendingRobots = null
   let pendingBins = null
 
+  // Jarak antar pembacaan telemetri (poller backend berjalan 2 detik).
+  // Tween dibuat sedikit LEBIH LAMA dari itu supaya pembacaan berikutnya
+  // selalu tiba saat animasi masih berjalan: tween tinggal dibelokkan ke
+  // target baru, bukan selesai lalu diam menunggu. Lerp eksponensial yang
+  // dipakai sebelumnya justru sampai dalam ~0,3 detik lalu membeku ~1,7
+  // detik — itulah yang terlihat patah-patah.
+  const ROBOT_UPDATE_MS = 2000
+  const TWEEN_MS = ROBOT_UPDATE_MS * 1.5
+
   // GLB ini terkompresi Draco -> butuh decoder (public/draco)
   const dracoLoader = new DRACOLoader().setDecoderPath(`${baseUrl}/draco/`)
   const gltfLoader = new GLTFLoader().setDRACOLoader(dracoLoader)
@@ -157,8 +197,9 @@ export function createFactoryMap3D(
   // Muat GLB, skala otomatis agar sisi terpanjang (x/z) = targetSize,
   // dipusatkan di x/z dan bagian bawah menapak lantai (y = 0)
   async function loadModel(url, targetSize) {
-    const gltf = await gltfLoader.loadAsync(url)
-    const inner = gltf.scene
+    const gltf = await loadGltfCached(gltfLoader, url)
+    const inner = gltf.scene.clone(true)
+    markShared(inner)
     const box = new THREE.Box3().setFromObject(inner)
     const size = box.getSize(new THREE.Vector3())
     const center = box.getCenter(new THREE.Vector3())
@@ -182,8 +223,9 @@ export function createFactoryMap3D(
   const ARM_SPLIT = 0.78 // 0 = dasar, 1 = puncak model (fraksi tinggi)
 
   async function loadArm(url, targetSize) {
-    const gltf = await gltfLoader.loadAsync(url)
-    const root = gltf.scene
+    const gltf = await loadGltfCached(gltfLoader, url)
+    const root = gltf.scene.clone(true)
+    markShared(root)
     root.updateMatrixWorld(true)
 
     let mesh = null
@@ -634,7 +676,6 @@ export function createFactoryMap3D(
   resizeObserver.observe(container)
 
   // 12. Render scene
-  const clock = new THREE.Clock()
 
   let frameId = 0
   // ---- API realtime ------------------------------------------------------
@@ -683,19 +724,37 @@ export function createFactoryMap3D(
         group.scale.setScalar(0.2)
         group.add(makeLabel(robot.name ?? ''))
         liveGroup.add(group)
-        entry = { group, target: new THREE.Vector3(), targetYaw: 0, placed: false }
+        entry = {
+          group,
+          from: new THREE.Vector3(),
+          target: new THREE.Vector3(),
+          fromYaw: 0,
+          targetYaw: 0,
+          startedAt: 0,
+          placed: false,
+        }
         liveRobots.set(robot.id, entry)
       }
 
-      entry.target.copy(toWorldLive(robot.x, robot.y, 0))
+      const target = toWorldLive(robot.x, robot.y, 0)
       // Orientasi RCS dalam derajat, berlawanan arah jarum jam dari +x;
       // sumbu z dunia 3D terbalik, jadi tandanya ikut dibalik.
-      entry.targetYaw = -((robot.orientation ?? 0) * Math.PI) / 180
+      const targetYaw = -((robot.orientation ?? 0) * Math.PI) / 180
+
       if (!entry.placed) {
-        entry.group.position.copy(entry.target)
-        entry.group.rotation.y = entry.targetYaw
+        entry.group.position.copy(target)
+        entry.group.rotation.y = targetYaw
         entry.placed = true
       }
+
+      // Tween baru selalu dimulai dari posisi yang SEDANG tergambar, bukan
+      // dari target lama — kalau tidak, membelokkan tween di tengah jalan
+      // akan membuat robot melompat mundur ke titik awal tween sebelumnya.
+      entry.from.copy(entry.group.position)
+      entry.fromYaw = entry.group.rotation.y
+      entry.target.copy(target)
+      entry.targetYaw = targetYaw
+      entry.startedAt = performance.now()
 
       // Robot beralarm diberi tanda merah di atas kepalanya.
       if (robot.hasActiveAlarm && !entry.alarm) {
@@ -759,18 +818,20 @@ export function createFactoryMap3D(
     if (disposed) return
     frameId = requestAnimationFrame(animate)
 
-    const delta = Math.min(clock.getDelta(), 0.1)
 
-    // Meluncur ke posisi terakhir yang dilaporkan, bukan meloncat ke sana.
-    // Faktor ini bergantung pada delta supaya kecepatannya tidak berubah
-    // mengikuti frame rate layar.
-    const k = 1 - Math.pow(0.001, delta)
+    // Meluncur ke pembacaan terakhir sepanjang TWEEN_MS. Pelembutan
+    // smoothstep menghilangkan sentakan di awal dan akhir tiap segmen,
+    // sehingga sambungan antar pembacaan tidak terasa.
+    const nowMs = performance.now()
     for (const entry of liveRobots.values()) {
-      entry.group.position.lerp(entry.target, k)
-      let diff = entry.targetYaw - entry.group.rotation.y
+      const raw = (nowMs - entry.startedAt) / TWEEN_MS
+      const t = raw >= 1 ? 1 : raw <= 0 ? 0 : raw * raw * (3 - 2 * raw)
+      entry.group.position.lerpVectors(entry.from, entry.target, t)
+
+      let diff = entry.targetYaw - entry.fromYaw
       while (diff > Math.PI) diff -= Math.PI * 2
       while (diff < -Math.PI) diff += Math.PI * 2
-      entry.group.rotation.y += diff * k
+      entry.group.rotation.y = entry.fromYaw + diff * t
     }
 
     const now = performance.now() / 1000
@@ -790,6 +851,8 @@ export function createFactoryMap3D(
     renderer.dispose()
     renderer.domElement.remove()
     scene.traverse((o) => {
+      // Geometry milik model yang di-cache dipakai bersama instance lain.
+      if (o.userData?.sharedWithCache) return
       if (o.geometry) o.geometry.dispose()
     })
   }
