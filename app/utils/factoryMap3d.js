@@ -27,7 +27,10 @@ export function createFactoryMap3D(
 
   // 2. Buat scene
   const scene = new THREE.Scene()
-  scene.background = new THREE.Color('#eaf0f6')
+  // Deliberately not the same colour as the container div: if the two
+  // match, a renderer drawing an empty scene looks exactly like a renderer
+  // that never started, and there is no way to tell them apart on screen.
+  scene.background = new THREE.Color('#dde6f0')
 
   // 3. Buat kamera
   const camera = new THREE.PerspectiveCamera(
@@ -260,9 +263,28 @@ export function createFactoryMap3D(
   const armUpdates = []
 
   async function loadTopology() {
-    const res = await fetch(topologyUrl || `${baseUrl}/workshop.json`)
-    if (!res.ok) throw new Error(`topologi ${res.status}`)
-    const topo = await res.json()
+    const url = topologyUrl || `${baseUrl}/workshop.json`
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`HTTP ${res.status} saat mengambil topologi`)
+
+    // A 200 does not mean JSON. An SPA fallback (`try_files ... /index.html`)
+    // happily answers 200 with the app's own HTML, and res.json() would then
+    // fail with a parser error that says nothing about the real cause.
+    const text = await res.text()
+    let topo
+    try {
+      topo = JSON.parse(text)
+    } catch {
+      const head = text.trim().slice(0, 40)
+      throw new Error(
+        `Respons 200 tapi bukan JSON (mulai dengan "${head}"). `
+        + 'Biasanya server mengembalikan halaman HTML, bukan berkas topologi.'
+      )
+    }
+
+    if (!Array.isArray(topo.allPath) || topo.allPath.length === 0) {
+      throw new Error('Topologi terbaca tapi tidak punya allPath — tidak ada jalur untuk digambar')
+    }
 
     // Skala otomatis: seluruh jalur dimuat di lebar ~36 unit lantai
     const pts = topo.allPath.flat()
@@ -560,6 +582,22 @@ export function createFactoryMap3D(
   // Tidak ada AGV simulasi di sini. Robot yang tampil semuanya berasal
   // dari telemetri RCS lewat setRobots() di bawah, sama seperti peta 2D
   // di Dashboard — satu sumber kebenaran, bukan dua.
+
+  // 9. Kontrol kamera
+  //
+  // Blok ini sempat ikut terhapus saat simulasi AGV dibuang, padahal
+  // letaknya bersebelahan — akibatnya controls.update() di animate()
+  // melempar ReferenceError tiap frame dan peta tidak pernah tergambar
+  // sama sekali. Pemetaan tombolnya mengikuti petunjuk di kartu:
+  // klik kiri memutar, scroll zoom, klik kanan / Shift+klik kiri menggeser
+  // (itu perilaku bawaan OrbitControls).
+  const controls = new OrbitControls(camera, renderer.domElement)
+  controls.minAzimuthAngle = -Infinity
+  controls.maxAzimuthAngle = Infinity
+  controls.screenSpacePanning = true
+  controls.panSpeed = 1.2
+  controls.keyPanSpeed = 20
+  controls.listenToKeyEvents(window) // tombol panah = geser map
 
   // 10. Reset kamera & preset sudut pandang
   function setView(x, y, z) {
