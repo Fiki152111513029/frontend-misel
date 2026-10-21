@@ -113,7 +113,8 @@ const controlClass
 </script>
 
 <template>
-  <div class="animate-fade-in">
+  <IcsLogsPasswordGate title="ICS AGV Logs">
+    <div class="animate-fade-in">
     <div class="mb-6">
       <h1 class="text-2xl font-extrabold text-[#0F1F52]">ICS AGV Logs</h1>
       <p class="font-medium mt-1 text-sm text-slate-500">
@@ -217,10 +218,11 @@ const controlClass
     />
 
     <!-- Same viewer the Webhook Logs page uses, so both read identically. -->
-    <UiJsonPayloadModal
-      v-model="payloadOpen"
-      :title="payloadTitle"
-      :payload="payloadData"
-    />
-  </div>
+      <UiJsonPayloadModal
+        v-model="payloadOpen"
+        :title="payloadTitle"
+        :payload="payloadData"
+      />
+    </div>
+  </IcsLogsPasswordGate>
 </template>

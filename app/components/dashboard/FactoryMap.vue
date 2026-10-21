@@ -328,9 +328,32 @@ function tweenDuration(now: number) {
 }
 
 function retargetRobotAnimation(id: string, x: number, y: number, orientationRaw: number) {
-  const orientation = unwrapOrientation(id, orientationRaw)
   const now = performance.now()
   const existing = robotAnimStates.get(id)
+
+  // Heading comes from the direction of travel, not from telemetry. RCS
+  // never sends `oritation` on its AGV reports, so reading it always gave
+  // 0 and the marker never turned. Facing the way it is actually moving
+  // needs no extra data and is what the robot is really doing — the same
+  // approach the original 3D scene used.
+  let orientation = unwrapOrientation(id, orientationRaw)
+  if (existing) {
+    const dx = x - existing.x
+    const dy = y - existing.y
+    // Below this the robot is standing still, and the tiny coordinate
+    // noise would otherwise spin the marker on the spot.
+    if (Math.hypot(dx, dy) > 1) {
+      const travelled = (Math.atan2(dy, dx) * 180) / Math.PI
+      const previousMod = ((existing.orientation % 360) + 360) % 360
+      let delta = travelled - previousMod
+      if (delta > 180) delta -= 360
+      else if (delta < -180) delta += 360
+      orientation = existing.orientation + delta
+    } else {
+      orientation = existing.orientation
+    }
+  }
+
   let fromX = x
   let fromY = y
   let fromOrientation = orientation

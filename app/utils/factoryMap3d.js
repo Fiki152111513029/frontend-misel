@@ -200,6 +200,19 @@ export function createFactoryMap3D(
   let observedUpdateMs = UPDATE_FALLBACK_MS
   let lastUpdateAt = 0
 
+  // Teknik dari simulasi aslinya (industrial-3d/src/main.js): arah hadap
+  // diturunkan dari ARAH GERAK, bukan dari telemetri. RCS tidak pernah
+  // mengirim `oritation` pada laporan AGV, jadi membaca orientasi dari data
+  // selalu menghasilkan 0 dan robot tidak pernah berputar. Menghadap ke
+  // arah jalannya sendiri justru lebih benar dan tidak butuh data tambahan.
+  const TURN_RATE = 8 // makin besar makin cepat membelok
+  // Di bawah ini dianggap diam — tanpa ambang, derau koordinat kecil
+  // membuat robot berputar-putar di tempat.
+  const MOVE_EPSILON = 0.004
+  // Rak terangkat/turun dalam durasi ini, bukan muncul-hilang seketika.
+  const LIFT_SECONDS = 0.6
+  const RACK_LIFT_Y = 3.0
+
   function tweenDuration(now) {
     if (lastUpdateAt > 0) {
       const gap = now - lastUpdateAt
@@ -769,23 +782,25 @@ export function createFactoryMap3D(
           group,
           from: new THREE.Vector3(),
           target: new THREE.Vector3(),
-          fromYaw: 0,
-          targetYaw: 0,
           startedAt: 0,
           duration: UPDATE_FALLBACK_MS,
           placed: false,
+          heading: 0,
+          carrying: false,
+          rack: null,
+          lift: 0,
         }
         liveRobots.set(robot.id, entry)
       }
 
       const target = toWorldLive(robot.x, robot.y, 0)
-      // Orientasi RCS dalam derajat, berlawanan arah jarum jam dari +x;
-      // sumbu z dunia 3D terbalik, jadi tandanya ikut dibalik.
-      const targetYaw = -((robot.orientation ?? 0) * Math.PI) / 180
 
       if (!entry.placed) {
         entry.group.position.copy(target)
-        entry.group.rotation.y = targetYaw
+        // Hanya sebagai arah awal sebelum robot sempat bergerak. Setelah
+        // itu arah hadap dihitung dari pergerakannya di animate().
+        entry.heading = -((robot.orientation ?? 0) * Math.PI) / 180
+        entry.group.rotation.y = entry.heading
         entry.placed = true
       }
 
@@ -793,9 +808,7 @@ export function createFactoryMap3D(
       // dari target lama — kalau tidak, membelokkan tween di tengah jalan
       // akan membuat robot melompat mundur ke titik awal tween sebelumnya.
       entry.from.copy(entry.group.position)
-      entry.fromYaw = entry.group.rotation.y
       entry.target.copy(target)
-      entry.targetYaw = targetYaw
       entry.startedAt = performance.now()
       entry.duration = segmentMs
 
@@ -803,18 +816,17 @@ export function createFactoryMap3D(
       // telemetri perangkat; nilai kosong / "0" / "none" berarti kosong.
       // Dulu ini cuma simulasi yang dipicu tombol — sekarang mengikuti
       // muatan robot yang sebenarnya.
-      const carrying = hasPayload(robot.payload)
-      if (carrying && !entry.rack && rackPrototype) {
+      // Mengangkat rak dianimasikan, tidak muncul-hilang seketika — sama
+      // seperti AGV_LIFT di simulasi aslinya. Mesh-nya baru dibuang setelah
+      // benar-benar turun, supaya gerakan menurunkannya ikut terlihat.
+      entry.carrying = hasPayload(robot.payload)
+      if (entry.carrying && !entry.rack && rackPrototype) {
         const rack = rackPrototype.clone(true)
         markShared(rack)
-        // Tinggi angkat relatif terhadap badan AMR; group robot diskalakan
-        // 0.2 sehingga nilai ini dalam satuan lokal robot.
-        rack.position.y = 3.0
+        rack.position.y = 0
         entry.group.add(rack)
         entry.rack = rack
-      } else if (!carrying && entry.rack) {
-        entry.group.remove(entry.rack)
-        entry.rack = null
+        entry.lift = 0
       }
 
       // Robot beralarm diberi tanda merah di atas kepalanya.
@@ -874,6 +886,7 @@ export function createFactoryMap3D(
   }
 
   let disposed = false
+  let lastFrameMs = 0
 
   function animate() {
     if (disposed) return
@@ -884,15 +897,39 @@ export function createFactoryMap3D(
     // smoothstep menghilangkan sentakan di awal dan akhir tiap segmen,
     // sehingga sambungan antar pembacaan tidak terasa.
     const nowMs = performance.now()
+    const dt = lastFrameMs ? Math.min((nowMs - lastFrameMs) / 1000, 0.1) : 0.016
+    lastFrameMs = nowMs
+
     for (const entry of liveRobots.values()) {
       const raw = (nowMs - entry.startedAt) / entry.duration
       const t = raw >= 1 ? 1 : raw <= 0 ? 0 : raw * raw * (3 - 2 * raw)
       entry.group.position.lerpVectors(entry.from, entry.target, t)
 
-      let diff = entry.targetYaw - entry.fromYaw
-      while (diff > Math.PI) diff -= Math.PI * 2
-      while (diff < -Math.PI) diff += Math.PI * 2
-      entry.group.rotation.y = entry.fromYaw + diff * t
+      // Menghadap ke arah jalannya sendiri, dibelokkan halus. Segmen yang
+      // terlalu pendek diabaikan supaya derau koordinat tidak membuat robot
+      // berputar di tempat — arah terakhir dipertahankan.
+      const dx = entry.target.x - entry.from.x
+      const dz = entry.target.z - entry.from.z
+      if (Math.hypot(dx, dz) > MOVE_EPSILON) {
+        const want = Math.atan2(-dz, dx)
+        let diff = want - entry.heading
+        // Lewat jalan terpendek, jadi dari 179 ke -179 berbelok 2 derajat
+        // dan bukan memutar hampir satu lingkaran penuh.
+        diff = Math.atan2(Math.sin(diff), Math.cos(diff))
+        entry.heading += diff * Math.min(1, dt * TURN_RATE)
+        entry.group.rotation.y = entry.heading
+      }
+
+      // Rak naik dan turun sendiri, lalu dilepas setelah benar-benar turun.
+      if (entry.rack) {
+        const dir = entry.carrying ? 1 : -1
+        entry.lift = Math.max(0, Math.min(1, entry.lift + (dir * dt) / LIFT_SECONDS))
+        entry.rack.position.y = RACK_LIFT_Y * entry.lift
+        if (!entry.carrying && entry.lift === 0) {
+          entry.group.remove(entry.rack)
+          entry.rack = null
+        }
+      }
     }
 
     const now = performance.now() / 1000
