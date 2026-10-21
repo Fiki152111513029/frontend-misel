@@ -24,6 +24,17 @@ const gltfCache = new Map()
  * membuangnya saat dispose() akan merusak salinan di cache — ganti map
  * berikutnya lalu tampil tanpa model. Tandai supaya dispose melewatinya.
  */
+/**
+ * Apakah telemetri menyatakan robot sedang membawa sesuatu. RCS mengisi
+ * payLoad dengan bentuk yang tidak seragam, jadi yang diperiksa adalah
+ * nilai-nilai yang berarti "tidak membawa", bukan sebaliknya.
+ */
+function hasPayload(payload) {
+  if (payload == null) return false
+  const v = String(payload).trim().toLowerCase()
+  return v !== '' && v !== '0' && v !== 'none' && v !== 'null' && v !== 'false'
+}
+
 function markShared(root) {
   root.traverse((o) => {
     o.userData.sharedWithCache = true
@@ -167,6 +178,9 @@ export function createFactoryMap3D(
   scene.add(liveGroup)
   let toWorldLive = null
   const rackSlotByName = new Map()
+  // Prototipe rak dari topologi, dipakai ulang untuk rak yang sedang
+  // diangkat AMR. Baru terisi setelah model GLB selesai dimuat.
+  let rackPrototype = null
   const liveRobots = new Map()
   const binMarkers = new Map()
   let pendingRobots = null
@@ -178,8 +192,13 @@ export function createFactoryMap3D(
   // target baru, bukan selesai lalu diam menunggu. Lerp eksponensial yang
   // dipakai sebelumnya justru sampai dalam ~0,3 detik lalu membeku ~1,7
   // detik — itulah yang terlihat patah-patah.
-  const ROBOT_UPDATE_MS = 2000
-  const TWEEN_MS = ROBOT_UPDATE_MS * 1.5
+  const ROBOT_UPDATE_MS = 800
+  // Only slightly longer than the gap between readings. At 1.5x the tween
+  // never finishes before the next one starts, so playback runs at roughly
+  // two-thirds speed and the robot on screen is permanently behind the one
+  // on the floor — which is exactly how it looked. A small margin is still
+  // needed so the motion never stalls between readings.
+  const TWEEN_MS = ROBOT_UPDATE_MS * 1.15
 
   // GLB ini terkompresi Draco -> butuh decoder (public/draco)
   const dracoLoader = new DRACOLoader().setDecoderPath(`${baseUrl}/draco/`)
@@ -529,6 +548,10 @@ export function createFactoryMap3D(
 
     // Dari sini lapisan realtime punya semua yang dibutuhkan.
     toWorldLive = toWorld
+    rackPrototype = rackModel
+    // Robot yang sudah terdaftar mungkin sedang membawa rak tapi belum bisa
+    // digambar karena modelnya belum ada — pasang sekarang.
+    if (pendingRobots) setRobots(pendingRobots)
     onReady?.({
       nodes: (topo.nodeArr || []).length,
       paths: (topo.allPath || []).length,
@@ -755,6 +778,24 @@ export function createFactoryMap3D(
       entry.target.copy(target)
       entry.targetYaw = targetYaw
       entry.startedAt = performance.now()
+
+      // Rak yang sedang diangkat. RCS melaporkannya lewat payLoad pada
+      // telemetri perangkat; nilai kosong / "0" / "none" berarti kosong.
+      // Dulu ini cuma simulasi yang dipicu tombol — sekarang mengikuti
+      // muatan robot yang sebenarnya.
+      const carrying = hasPayload(robot.payload)
+      if (carrying && !entry.rack && rackPrototype) {
+        const rack = rackPrototype.clone(true)
+        markShared(rack)
+        // Tinggi angkat relatif terhadap badan AMR; group robot diskalakan
+        // 0.2 sehingga nilai ini dalam satuan lokal robot.
+        rack.position.y = 3.0
+        entry.group.add(rack)
+        entry.rack = rack
+      } else if (!carrying && entry.rack) {
+        entry.group.remove(entry.rack)
+        entry.rack = null
+      }
 
       // Robot beralarm diberi tanda merah di atas kepalanya.
       if (robot.hasActiveAlarm && !entry.alarm) {

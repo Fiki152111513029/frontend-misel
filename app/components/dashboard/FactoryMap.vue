@@ -242,7 +242,7 @@ const liveRobots = ref<Robot[]>([])
 // (POLL_INTERVAL_MS in robot-status-poller.service.ts), since that poll is
 // what pushes the 'robots' signal this component refreshes on. Only used to
 // size the tween below — keep the two roughly in step.
-const ROBOT_UPDATE_MS = 2_000
+const ROBOT_UPDATE_MS = 800
 // Guards against overlapping fetches — if a request runs longer than the
 // gap between signals (RCS telemetry has been observed to time out), skip
 // rather than piling up concurrent requests.
@@ -313,10 +313,11 @@ function retargetRobotAnimation(id: string, x: number, y: number, orientationRaw
     fromY,
     fromOrientation,
     startTime: now,
-    // Longer than ROBOT_UPDATE_MS so a new reading almost always arrives
-    // mid-tween — the tween just gets retargeted (see above) rather than
-    // ever finishing and sitting idle waiting for the next one.
-    duration: ROBOT_UPDATE_MS * 1.5,
+    // Only slightly longer than the gap between readings, so the tween is
+    // still running when the next one arrives and gets retargeted rather
+    // than stalling. A larger multiplier would play the motion back slower
+    // than the robot actually moves and leave the marker lagging behind it.
+    duration: ROBOT_UPDATE_MS * 1.15,
   })
 }
 
@@ -631,6 +632,25 @@ onMounted(async () => {
 // against the fleet server. The backend now caches what its poller sees, so
 // this arrives sooner than the old timer managed and costs RCS nothing.
 useRealtime('robots', loadLiveRobots)
+// Positions come down their own channel with the data attached, so the
+// markers move without this page making a request per tick. loadLiveRobots
+// below still runs on the slower 'robots' signal, for the fields the push
+// leaves out and to pick up robots added or removed from the fleet.
+useRobotPositions((positions) => {
+  const byId = new Map(positions.map(p => [p.id, p]))
+  for (const robot of liveRobots.value) {
+    const next = byId.get(robot.id)
+    if (!next) continue
+    robot.positionX = next.x
+    robot.positionY = next.y
+    robot.orientation = next.orientation
+    robot.state = next.state
+    robot.battery = next.battery
+    robot.payload = next.payload
+    retargetRobotAnimation(robot.id, next.x, next.y, next.orientation)
+  }
+})
+
 useRealtime('stock', loadStockStatus)
 useRealtime('alarms', loadActiveAlarms)
 useRealtime('trolley-activities', loadActiveTrolleyActivitiesByRobot)

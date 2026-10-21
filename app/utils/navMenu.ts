@@ -60,6 +60,7 @@ export const NAV_MENUS: MenuEntry[] = [
       { title: 'API Logs', path: '/dashboard/api-logs', permission: 'logs.read' },
       { title: 'Webhook Logs', path: '/dashboard/webhook-logs', permission: 'logs.read' },
       { title: 'Alarm Logs', path: '/dashboard/alarm-logs', permission: 'robot-alarm.read' },
+      { title: 'AGV Logs', path: '/dashboard/agv-logs', permission: 'agv-log.read' },
     ],
   },
   { label: 'Master Area' },
