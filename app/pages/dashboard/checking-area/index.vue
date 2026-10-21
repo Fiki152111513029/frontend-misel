@@ -18,6 +18,14 @@ const selected = computed(() => items.value.find(row => row.id === selectedId.va
 // Searching happens inside the dropdown itself (UiSearchSelect), so the
 // page only has to hand it the full list — the location code rides along
 // as the hint so it is searchable too, not just the name.
+// Three different states read the same from an empty box, so say which:
+// still loading, nothing to choose from, or simply nothing chosen yet.
+const selectPlaceholder = computed(() => {
+  if (loading.value) return 'Loading…'
+  if (items.value.length === 0) return 'No warehouse locations'
+  return 'Select a storage to check'
+})
+
 const storageOptions = computed(() =>
   items.value.map(row => ({
     value: row.id,
@@ -27,8 +35,11 @@ const storageOptions = computed(() =>
 )
 
 onMounted(async () => {
+  // Nothing is picked on purpose. Pre-selecting the first storage put a
+  // real location and its bin status on screen that the operator never
+  // asked for — one stray click on Set Empty / Set Full and the wrong rack
+  // is corrected in RCS. They choose first, then act.
   await fetchRows(null)
-  selectedId.value = items.value[0]?.id ?? null
 })
 
 // Pushed from the server instead of polled — see useRealtime.
@@ -102,7 +113,7 @@ const statusClass = computed(() => {
       v-model="selectedId"
       :options="storageOptions"
       :disabled="items.length === 0"
-      :placeholder="loading ? 'Loading…' : 'No warehouse locations'"
+      :placeholder="selectPlaceholder"
       search-placeholder="Search storage by name or code"
       empty-text="No storage matches that search"
     />
