@@ -80,6 +80,24 @@ function openPayload(log: AgvLog, which: 'request' | 'response') {
   payloadOpen.value = true
 }
 
+// RCS has been seen sending field names with trailing spaces
+// ("deviceName "), which read as undefined under the plain name. Every
+// lookup into a payload goes through this.
+function field(payload: Record<string, unknown>, name: string): string | null {
+  for (const [key, value] of Object.entries(payload)) {
+    if (key.trim() !== name) continue
+    if (typeof value === 'number') return String(value)
+    if (typeof value === 'string' && value.trim() !== '') return value.trim()
+  }
+  return null
+}
+
+/** The human-readable name, when the report carries one separate from the code. */
+function deviceName(log: AgvLog): string | null {
+  const name = field(log.requestPayload, 'deviceName')
+  return name && name !== log.deviceCode ? name : null
+}
+
 function formatTime(iso: string) {
   return new Date(iso).toLocaleString('en-GB', { hour12: false })
 }
@@ -149,9 +167,16 @@ const controlClass
                 {{ formatTime(log.createdAt) }}
               </td>
               <td class="whitespace-nowrap px-5 py-3">
-                <span v-if="log.deviceCode" class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#01ADEF]">
-                  {{ log.deviceCode }}
-                </span>
+                <template v-if="log.deviceCode">
+                  <span class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#01ADEF]">
+                    {{ log.deviceCode }}
+                  </span>
+                  <!-- Only when the report names the device separately from
+                       its code; otherwise the chip above already says it. -->
+                  <span v-if="deviceName(log)" class="ml-2 text-xs text-slate-500">
+                    {{ deviceName(log) }}
+                  </span>
+                </template>
                 <span v-else class="text-xs text-slate-400">—</span>
               </td>
               <td class="px-5 py-3 font-mono text-xs text-slate-500">

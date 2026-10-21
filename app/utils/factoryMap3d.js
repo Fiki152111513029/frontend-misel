@@ -186,19 +186,33 @@ export function createFactoryMap3D(
   let pendingRobots = null
   let pendingBins = null
 
-  // Jarak antar pembacaan telemetri (poller backend berjalan 2 detik).
-  // Tween dibuat sedikit LEBIH LAMA dari itu supaya pembacaan berikutnya
-  // selalu tiba saat animasi masih berjalan: tween tinggal dibelokkan ke
-  // target baru, bukan selesai lalu diam menunggu. Lerp eksponensial yang
-  // dipakai sebelumnya justru sampai dalam ~0,3 detik lalu membeku ~1,7
-  // detik — itulah yang terlihat patah-patah.
-  const ROBOT_UPDATE_MS = 800
-  // Only slightly longer than the gap between readings. At 1.5x the tween
-  // never finishes before the next one starts, so playback runs at roughly
-  // two-thirds speed and the robot on screen is permanently behind the one
-  // on the floor — which is exactly how it looked. A small margin is still
-  // needed so the motion never stalls between readings.
-  const TWEEN_MS = ROBOT_UPDATE_MS * 1.15
+  // Jarak antar pembacaan diukur, bukan dipatok. Dulu nilainya tetap, dan
+  // itu yang membuat robot bergerak seperti slow motion: begitu laporan
+  // RCS tiba lebih cepat daripada durasi tween, tiap pembaruan mengulang
+  // animasi yang belum mendekati tujuannya, sehingga marker hanya menempuh
+  // sebagian kecil tiap segmen dan makin lama makin tertinggal.
+  const UPDATE_FALLBACK_MS = 800
+  const MIN_TWEEN_MS = 150
+  const MAX_TWEEN_MS = 3000
+  // Dihaluskan supaya satu paket terlambat tidak memanjangkan tween
+  // berikutnya dan membuat robot merayap.
+  const INTERVAL_SMOOTHING = 0.3
+  let observedUpdateMs = UPDATE_FALLBACK_MS
+  let lastUpdateAt = 0
+
+  function tweenDuration(now) {
+    if (lastUpdateAt > 0) {
+      const gap = now - lastUpdateAt
+      // Jeda tak masuk akal (tab di latar belakang, socket menyambung
+      // ulang) diabaikan daripada merusak rata-ratanya.
+      if (gap > 0 && gap < MAX_TWEEN_MS * 2) {
+        observedUpdateMs =
+          observedUpdateMs * (1 - INTERVAL_SMOOTHING) + gap * INTERVAL_SMOOTHING
+      }
+    }
+    lastUpdateAt = now
+    return Math.min(MAX_TWEEN_MS, Math.max(MIN_TWEEN_MS, observedUpdateMs * 1.1))
+  }
 
   // GLB ini terkompresi Draco -> butuh decoder (public/draco)
   const dracoLoader = new DRACOLoader().setDecoderPath(`${baseUrl}/draco/`)
@@ -736,6 +750,10 @@ export function createFactoryMap3D(
     pendingRobots = list
     if (!toWorldLive) return
 
+    // Satu pengukuran per batch, bukan per robot: semua robot dalam satu
+    // push tiba bersamaan, jadi jaraknya sama.
+    const segmentMs = tweenDuration(performance.now())
+
     const seen = new Set()
     for (const robot of list) {
       if (robot.x == null || robot.y == null) continue
@@ -754,6 +772,7 @@ export function createFactoryMap3D(
           fromYaw: 0,
           targetYaw: 0,
           startedAt: 0,
+          duration: UPDATE_FALLBACK_MS,
           placed: false,
         }
         liveRobots.set(robot.id, entry)
@@ -778,6 +797,7 @@ export function createFactoryMap3D(
       entry.target.copy(target)
       entry.targetYaw = targetYaw
       entry.startedAt = performance.now()
+      entry.duration = segmentMs
 
       // Rak yang sedang diangkat. RCS melaporkannya lewat payLoad pada
       // telemetri perangkat; nilai kosong / "0" / "none" berarti kosong.
@@ -860,12 +880,12 @@ export function createFactoryMap3D(
     frameId = requestAnimationFrame(animate)
 
 
-    // Meluncur ke pembacaan terakhir sepanjang TWEEN_MS. Pelembutan
+    // Meluncur ke pembacaan terakhir sepanjang durasi segmennya. Pelembutan
     // smoothstep menghilangkan sentakan di awal dan akhir tiap segmen,
     // sehingga sambungan antar pembacaan tidak terasa.
     const nowMs = performance.now()
     for (const entry of liveRobots.values()) {
-      const raw = (nowMs - entry.startedAt) / TWEEN_MS
+      const raw = (nowMs - entry.startedAt) / entry.duration
       const t = raw >= 1 ? 1 : raw <= 0 ? 0 : raw * raw * (3 - 2 * raw)
       entry.group.position.lerpVectors(entry.from, entry.target, t)
 
