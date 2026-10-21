@@ -242,7 +242,20 @@ const liveRobots = ref<Robot[]>([])
 // (POLL_INTERVAL_MS in robot-status-poller.service.ts), since that poll is
 // what pushes the 'robots' signal this component refreshes on. Only used to
 // size the tween below — keep the two roughly in step.
-const ROBOT_UPDATE_MS = 800
+// Starting guess only. The real gap between readings is measured below,
+// because it is not ours to decide any more: readings used to come from a
+// poller on a known timer, but now they are pushed whenever RCS reports,
+// which can be several times a second or once every few seconds.
+const ROBOT_UPDATE_FALLBACK_MS = 800
+// A tween shorter than this stutters; longer than this and a robot that
+// genuinely stopped reporting would keep gliding long after.
+const MIN_TWEEN_MS = 150
+const MAX_TWEEN_MS = 3000
+// Smoothed rather than taken raw, so one late packet does not stretch the
+// next tween and make the marker crawl.
+const INTERVAL_SMOOTHING = 0.3
+let observedUpdateMs = ROBOT_UPDATE_FALLBACK_MS
+let lastUpdateAt = 0
 // Guards against overlapping fetches — if a request runs longer than the
 // gap between signals (RCS telemetry has been observed to time out), skip
 // rather than piling up concurrent requests.
@@ -292,6 +305,28 @@ function unwrapOrientation(id: string, rawThousandths: number): number {
 // toward a robot's newly-fetched position/heading — retargeting starts
 // from wherever the robot is *currently interpolated to be*, not from its
 // last real reading, so a fresh update never causes a visible jump back.
+/**
+ * Tween just long enough to reach the next reading.
+ *
+ * Fixing this at a constant was the bug behind "the robot moves in slow
+ * motion": readings arriving faster than the tween meant every update
+ * restarted an animation that never got near its target, so the marker
+ * advanced a fraction of each segment and fell steadily further behind.
+ */
+function tweenDuration(now: number) {
+  if (lastUpdateAt > 0) {
+    const gap = now - lastUpdateAt
+    // Ignore absurd gaps (tab in the background, socket reconnect) rather
+    // than letting them poison the average.
+    if (gap > 0 && gap < MAX_TWEEN_MS * 2) {
+      observedUpdateMs
+        = observedUpdateMs * (1 - INTERVAL_SMOOTHING) + gap * INTERVAL_SMOOTHING
+    }
+  }
+  lastUpdateAt = now
+  return Math.min(MAX_TWEEN_MS, Math.max(MIN_TWEEN_MS, observedUpdateMs * 1.1))
+}
+
 function retargetRobotAnimation(id: string, x: number, y: number, orientationRaw: number) {
   const orientation = unwrapOrientation(id, orientationRaw)
   const now = performance.now()
@@ -313,11 +348,7 @@ function retargetRobotAnimation(id: string, x: number, y: number, orientationRaw
     fromY,
     fromOrientation,
     startTime: now,
-    // Only slightly longer than the gap between readings, so the tween is
-    // still running when the next one arrives and gets retargeted rather
-    // than stalling. A larger multiplier would play the motion back slower
-    // than the robot actually moves and leave the marker lagging behind it.
-    duration: ROBOT_UPDATE_MS * 1.15,
+    duration: tweenDuration(now),
   })
 }
 
