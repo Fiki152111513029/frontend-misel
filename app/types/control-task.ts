@@ -4,6 +4,11 @@ export interface ControlTaskModelCodeProcess {
   fromSystem: string
 }
 
+/** An operator this task was registered to. */
+export interface ControlTaskAssignee {
+  user: { id: string, username: string, fullName: string }
+}
+
 export interface ControlTask {
   id: string
   code: string
@@ -15,6 +20,8 @@ export interface ControlTask {
   /** `route` joined with "," — the shape the RCS task order expects. */
   taskPath: string
   isActive: boolean
+  /** Who may dispatch it from Custom Task. Empty = picker shows it to nobody. */
+  assignees: ControlTaskAssignee[]
   createdAt: string
   updatedAt: string
   deletedAt: string | null
@@ -26,6 +33,8 @@ export interface CreateControlTaskInput {
   modelCodeProcessId: string
   route: string[]
   isActive?: boolean
+  /** Operators allowed to dispatch it. Replaces the whole list on update. */
+  userIds?: string[]
 }
 
 export type UpdateControlTaskInput = Partial<CreateControlTaskInput>

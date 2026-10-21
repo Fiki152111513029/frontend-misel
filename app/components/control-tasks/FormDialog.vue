@@ -23,12 +23,18 @@ const activeModelCodeProcesses = computed(() =>
   modelCodeProcesses.value.filter(process => process.isActive),
 )
 const { production, warehouse, fetchRouteOptions } = useRouteOptions()
+// Who may dispatch this task from Custom Task. Only active users are
+// offered: assigning a disabled account would put a task in a picker
+// nobody can reach.
+const { items: users, fetchUsers } = useUsers()
+const activeUsers = computed(() => users.value.filter(user => user.isActive))
 
 const code = ref('')
 const name = ref('')
 const modelCodeProcessId = ref('')
 const route = ref<string[]>([])
 const isActive = ref(true)
+const userIds = ref<string[]>([])
 const errors = reactive<{
   code?: string
   name?: string
@@ -42,6 +48,7 @@ function resetFields() {
   modelCodeProcessId.value = props.controlTask?.modelCodeProcessId ?? ''
   route.value = [...(props.controlTask?.route ?? [])]
   isActive.value = props.controlTask?.isActive ?? true
+  userIds.value = (props.controlTask?.assignees ?? []).map(a => a.user.id)
   errors.code = undefined
   errors.name = undefined
   errors.modelCodeProcessId = undefined
@@ -55,6 +62,7 @@ watch(
       resetFields()
       fetchModelCodeProcesses({ limit: 100 })
       fetchRouteOptions()
+      fetchUsers()
     }
   },
   { immediate: true },
@@ -99,7 +107,15 @@ function handleSubmit() {
     modelCodeProcessId: modelCodeProcessId.value,
     route: route.value,
     isActive: isActive.value,
+    userIds: userIds.value,
   })
+}
+
+
+function toggleUser(id: string) {
+  userIds.value = userIds.value.includes(id)
+    ? userIds.value.filter(existing => existing !== id)
+    : [...userIds.value, id]
 }
 
 const selectClass
@@ -147,6 +163,36 @@ const selectClass
         :warehouse="warehouse"
         :error="errors.route"
       />
+
+      <div>
+        <label class="mb-1.5 block text-sm font-semibold text-[#0F1F52]">
+          Registered Operators
+        </label>
+        <p class="mb-2 text-xs text-slate-500">
+          Only these users will see this task in Custom Task. Leave empty and
+          it stays reachable by scanning its QR label, but appears in nobody's
+          list.
+        </p>
+        <div class="max-h-44 overflow-y-auto rounded-xl border border-[#E2E8F0] p-2">
+          <p v-if="activeUsers.length === 0" class="px-2 py-3 text-xs text-slate-400">
+            No active users
+          </p>
+          <label
+            v-for="user in activeUsers"
+            :key="user.id"
+            class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50"
+          >
+            <input
+              type="checkbox"
+              class="h-4 w-4 rounded border-[#E2E8F0] text-[#01ADEF] focus:ring-[#01ADEF]"
+              :checked="userIds.includes(user.id)"
+              @change="toggleUser(user.id)"
+            >
+            <span class="text-sm text-[#0F1F52]">{{ user.fullName }}</span>
+            <span class="text-xs text-slate-400">{{ user.username }}</span>
+          </label>
+        </div>
+      </div>
 
       <UiBaseCheckbox v-model="isActive" label="Active" />
     </div>

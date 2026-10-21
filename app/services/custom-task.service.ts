@@ -3,10 +3,21 @@ import type {
   CustomTaskRun,
   CustomTaskRunListResult,
   CustomTaskRunQuery,
+  MyControlTask,
   ReleasedCustomTask,
 } from '~/types/custom-task'
 
 // Read-only: resolves the scanned QR value without sending anything to RCS.
+/**
+ * Control Tasks registered to the signed-in operator. The server scopes
+ * this to the caller's own account — there is no user parameter, because
+ * seeing someone else's list is exactly what the assignment prevents.
+ */
+export async function fetchMyControlTasks(): Promise<MyControlTask[]> {
+  const { $http } = useNuxtApp()
+  return (await $http.get('/custom-tasks/mine')) as MyControlTask[]
+}
+
 export async function lookupCustomTask(code: string): Promise<CustomTaskPreview> {
   const { $http } = useNuxtApp()
   return (await $http.get(
