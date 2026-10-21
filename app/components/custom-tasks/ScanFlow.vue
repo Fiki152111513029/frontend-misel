@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Ban, Camera, Clock, Route as RouteIcon } from 'lucide-vue-next'
+import { Ban, Camera, Clock, List, QrCode, Route as RouteIcon } from 'lucide-vue-next'
+import { fetchMyControlTasks } from '~/services/custom-task.service'
 import { taskStatusLabel } from '~/utils/taskStatus'
-import type { CustomTaskPreview } from '~/types/custom-task'
+import type { CustomTaskPreview, MyControlTask } from '~/types/custom-task'
 
 // The same shape as the Trolley Task scan flow, minus the Take/Drop choice:
 // a Custom Task has nothing to pick, so it opens straight on the scanner.
@@ -18,9 +19,14 @@ const queue = useCustomTaskQueueStore()
 // timer of their own — see useRealtime.
 useRealtime(['tasks', 'custom-tasks'], () => queue.refreshAll())
 
-type Step = 'scan' | 'ready'
+// Two ways in, one way out. Both 'scan' and 'pick' resolve a Control Task
+// code and land on the same 'ready' screen, so the confirm-and-send step
+// cannot drift between them.
+type Step = 'menu' | 'scan' | 'pick' | 'ready'
 
-const step = ref<Step>('scan')
+const step = ref<Step>('menu')
+const myTasks = ref<MyControlTask[]>([])
+const loadingTasks = ref(false)
 const scanValue = ref('')
 const SCAN_INPUT_ID = 'custom-task-scan-input'
 const submitting = ref(false)
@@ -28,11 +34,13 @@ const showScanner = ref(false)
 
 const preview = ref<CustomTaskPreview | null>(null)
 
-const subtitle = computed(() =>
-  step.value === 'scan'
-    ? 'Scan a Control Task to run it'
-    : 'Check the details, then send the task',
-)
+const SUBTITLES: Record<Step, string> = {
+  menu: 'Choose how to start the task',
+  scan: 'Scan a Control Task to run it',
+  pick: 'Pick one of the tasks registered to you',
+  ready: 'Check the details, then send the task',
+}
+const subtitle = computed(() => SUBTITLES[step.value])
 
 function focusScanInput() {
   nextTick(() => {
@@ -41,12 +49,38 @@ function focusScanInput() {
 }
 
 function resetFlow() {
-  step.value = 'scan'
+  step.value = 'menu'
   preview.value = null
   scanValue.value = ''
 }
 
-onMounted(focusScanInput)
+function startScan() {
+  step.value = 'scan'
+  focusScanInput()
+}
+
+async function startPick() {
+  step.value = 'pick'
+  loadingTasks.value = true
+  try {
+    myTasks.value = await fetchMyControlTasks()
+  } catch {
+    myTasks.value = []
+  }
+  loadingTasks.value = false
+}
+
+/**
+ * Picking resolves through the same lookup the scanner uses, rather than
+ * trusting the list it came from — the preview the operator confirms is
+ * then guaranteed to be what the server would actually send.
+ */
+async function pickTask(task: MyControlTask) {
+  const result = await lookupCustomTask(task.code)
+  if (!result) return
+  preview.value = result
+  step.value = 'ready'
+}
 
 async function handleScanSubmit() {
   const value = scanValue.value.trim()
@@ -135,9 +169,78 @@ async function handleSubmit() {
       </button>
     </div>
 
+    <!-- Entry choice. Both routes end on the same confirm screen. -->
+    <UiBaseCard v-if="step === 'menu'" class="space-y-3">
+      <button
+        type="button"
+        class="flex w-full items-center gap-4 rounded-2xl border border-[#E2E8F0] px-5 py-4 text-left transition-colors hover:border-[#01ADEF] hover:bg-[#01ADEF]/5"
+        @click="startScan"
+      >
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#01ADEF]/10 text-[#01ADEF]">
+          <QrCode class="h-5 w-5" />
+        </span>
+        <span>
+          <span class="block font-semibold text-[#0F1F52]">Scan QR</span>
+          <span class="block text-xs text-slate-500">Scan the Control Task label</span>
+        </span>
+      </button>
+
+      <button
+        type="button"
+        class="flex w-full items-center gap-4 rounded-2xl border border-[#E2E8F0] px-5 py-4 text-left transition-colors hover:border-[#01ADEF] hover:bg-[#01ADEF]/5"
+        @click="startPick"
+      >
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#01ADEF]/10 text-[#01ADEF]">
+          <List class="h-5 w-5" />
+        </span>
+        <span>
+          <span class="block font-semibold text-[#0F1F52]">Pilih Task</span>
+          <span class="block text-xs text-slate-500">Choose from the tasks registered to you</span>
+        </span>
+      </button>
+    </UiBaseCard>
+
+    <!-- Picker — only the tasks this operator was registered to. -->
+    <UiBaseCard v-else-if="step === 'pick'" class="space-y-3">
+      <p v-if="loadingTasks" class="py-6 text-center text-sm text-slate-400">
+        Loading…
+      </p>
+      <p
+        v-else-if="myTasks.length === 0"
+        class="rounded-xl border border-dashed border-[#E2E8F0] py-8 text-center text-sm text-slate-400"
+      >
+        No Control Task is registered to your account yet.<br>
+        Ask an administrator to assign one, or scan its QR label instead.
+      </p>
+      <button
+        v-for="task in myTasks"
+        v-else
+        :key="task.id"
+        type="button"
+        class="flex w-full items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] px-4 py-3 text-left transition-colors hover:border-[#01ADEF] hover:bg-[#01ADEF]/5"
+        @click="pickTask(task)"
+      >
+        <span class="min-w-0">
+          <span class="block truncate font-semibold text-[#0F1F52]">{{ task.name }}</span>
+          <span class="block truncate font-mono text-xs text-slate-500">{{ task.route.join(' → ') }}</span>
+        </span>
+        <span class="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+          {{ task.code }}
+        </span>
+      </button>
+
+      <button
+        type="button"
+        class="w-full rounded-xl bg-slate-100 py-2.5 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-200"
+        @click="resetFlow"
+      >
+        Back
+      </button>
+    </UiBaseCard>
+
     <!-- Scan step — a real form element so Enter submits natively, which is
          what the Enter terminator on a handheld scanner sends. -->
-    <UiBaseCard v-if="step === 'scan'">
+    <UiBaseCard v-else-if="step === 'scan'">
       <form class="space-y-3" @submit.prevent="handleScanSubmit">
         <span class="inline-flex items-center rounded-lg bg-slate-200 px-3 py-1.5 text-sm font-semibold text-[#0F1F52]">
           Custom Task
