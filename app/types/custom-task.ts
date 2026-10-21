@@ -11,6 +11,15 @@ export interface CustomTaskPreview {
   priority: number
 }
 
+/** One entry in the Custom Task picker — a task registered to this operator. */
+export interface MyControlTask {
+  id: string
+  code: string
+  name: string
+  route: string[]
+  modelProcessCode: string
+}
+
 export interface ReleasedCustomTask extends CustomTaskPreview {
   /** The code followed by %Y%m%d%H%M%S — what RCS and the webhooks call it. */
   orderId: string
