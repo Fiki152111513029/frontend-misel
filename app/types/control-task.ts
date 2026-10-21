@@ -1,207 +1,74 @@
-<script setup lang="ts">
-import type { ControlTask, CreateControlTaskInput } from '~/types/control-task'
-
-interface Props {
-  modelValue: boolean
-  controlTask?: ControlTask | null
-  submitting?: boolean
+export interface ControlTaskModelCodeProcess {
+  id: string
+  name: string
+  fromSystem: string
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  controlTask: null,
-  submitting: false,
-})
-
-const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
-  submit: [input: CreateControlTaskInput]
-  cancel: []
-}>()
-
-const { items: modelCodeProcesses, fetchModelCodeProcesses } = useModelCodeProcesses()
-const activeModelCodeProcesses = computed(() =>
-  modelCodeProcesses.value.filter(process => process.isActive),
-)
-const { production, warehouse, fetchRouteOptions } = useRouteOptions()
-// Who may dispatch this task from Custom Task. Only active users are
-// offered: assigning a disabled account would put a task in a picker
-// nobody can reach.
-const { items: users, fetchUsers } = useUsers()
-const activeUsers = computed(() => users.value.filter(user => user.isActive))
-
-const code = ref('')
-const name = ref('')
-const modelCodeProcessId = ref('')
-const route = ref<string[]>([])
-const isActive = ref(true)
-const userIds = ref<string[]>([])
-const errors = reactive<{
-  code?: string
-  name?: string
-  modelCodeProcessId?: string
-  route?: string
-}>({})
-
-function resetFields() {
-  code.value = props.controlTask?.code ?? ''
-  name.value = props.controlTask?.name ?? ''
-  modelCodeProcessId.value = props.controlTask?.modelCodeProcessId ?? ''
-  route.value = [...(props.controlTask?.route ?? [])]
-  isActive.value = props.controlTask?.isActive ?? true
-  userIds.value = (props.controlTask?.assignees ?? []).map(a => a.user.id)
-  errors.code = undefined
-  errors.name = undefined
-  errors.modelCodeProcessId = undefined
-  errors.route = undefined
+/** An operator this task was registered to. */
+export interface ControlTaskAssignee {
+  user: { id: string, username: string, fullName: string }
 }
 
-watch(
-  () => props.modelValue,
-  (isOpen) => {
-    if (isOpen) {
-      resetFields()
-      fetchModelCodeProcesses({ limit: 100 })
-      fetchRouteOptions()
-      fetchUsers()
-    }
-  },
-  { immediate: true },
-)
-
-const isEditMode = computed(() => !!props.controlTask)
-
-function validate(): boolean {
-  errors.code = undefined
-  errors.name = undefined
-  errors.modelCodeProcessId = undefined
-  errors.route = undefined
-
-  if (!code.value.trim()) {
-    errors.code = 'Code is required'
-  } else if (code.value.trim().length > 20) {
-    errors.code = 'Code must be at most 20 characters'
-  }
-
-  if (!name.value.trim()) {
-    errors.name = 'Name is required'
-  } else if (name.value.trim().length > 100) {
-    errors.name = 'Name must be at most 100 characters'
-  }
-
-  if (!modelCodeProcessId.value) {
-    errors.modelCodeProcessId = 'Model Code Process is required'
-  }
-
-  if (route.value.length === 0) {
-    errors.route = 'Add at least one location to the route'
-  }
-
-  return !errors.code && !errors.name && !errors.modelCodeProcessId && !errors.route
+export interface ControlTask {
+  id: string
+  code: string
+  name: string
+  modelCodeProcessId: string
+  modelCodeProcess: ControlTaskModelCodeProcess | null
+  /** The legs in the order the operator chose — repeats are allowed. */
+  route: string[]
+  /** `route` joined with "," — the shape the RCS task order expects. */
+  taskPath: string
+  isActive: boolean
+  /** Who may dispatch it from Custom Task. Empty = picker shows it to nobody. */
+  assignees: ControlTaskAssignee[]
+  createdAt: string
+  updatedAt: string
+  deletedAt: string | null
 }
 
-function handleSubmit() {
-  if (!validate()) return
-  emit('submit', {
-    code: code.value.trim(),
-    name: name.value.trim(),
-    modelCodeProcessId: modelCodeProcessId.value,
-    route: route.value,
-    isActive: isActive.value,
-    userIds: userIds.value,
-  })
+export interface CreateControlTaskInput {
+  code: string
+  name: string
+  modelCodeProcessId: string
+  route: string[]
+  isActive?: boolean
+  /** Operators allowed to dispatch it. Replaces the whole list on update. */
+  userIds?: string[]
 }
 
+export type UpdateControlTaskInput = Partial<CreateControlTaskInput>
 
-function toggleUser(id: string) {
-  userIds.value = userIds.value.includes(id)
-    ? userIds.value.filter(existing => existing !== id)
-    : [...userIds.value, id]
+export type ControlTaskSortBy = 'code' | 'name' | 'createdAt'
+export type ControlTaskSortOrder = 'asc' | 'desc'
+
+export interface ControlTaskQuery {
+  page?: number
+  limit?: number
+  search?: string
+  sortBy?: ControlTaskSortBy
+  sortOrder?: ControlTaskSortOrder
 }
 
-const selectClass
-  = 'w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#0F1F52] outline-none focus:border-[#01ADEF] focus:ring-2 focus:ring-[#01ADEF]/15'
-</script>
+export interface ControlTaskListMeta {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
 
-<template>
-  <UiBaseModal
-    :model-value="modelValue"
-    :title="isEditMode ? 'Edit Control Task' : 'Add Control Task'"
-    size="lg"
-    @update:model-value="emit('update:modelValue', $event)"
-  >
-    <div class="space-y-4">
-      <div class="grid gap-4 sm:grid-cols-2">
-        <UiBaseInput
-          v-model="code"
-          label="Code"
-          required
-          :error="errors.code"
-          placeholder="A"
-        />
-        <UiBaseInput v-model="name" label="Name" required :error="errors.name" />
-      </div>
+export interface ControlTaskListResult {
+  items: ControlTask[]
+  meta: ControlTaskListMeta
+}
 
-      <div class="space-y-1.5">
-        <label class="block text-sm font-medium text-slate-700">
-          Model Code Process
-          <span class="ml-0.5 text-[#01ADEF]">*</span>
-        </label>
-        <select v-model="modelCodeProcessId" :class="selectClass">
-          <option value="" disabled>Select a Model Code Process</option>
-          <option v-for="process in activeModelCodeProcesses" :key="process.id" :value="process.id">
-            {{ process.name }}
-          </option>
-        </select>
-        <p v-if="errors.modelCodeProcessId" class="mt-1 text-xs text-red-500">
-          {{ errors.modelCodeProcessId }}
-        </p>
-      </div>
+export interface RouteOption {
+  name: string
+  iRaypleLocationCode: string
+  source: 'PRODUCTION' | 'WAREHOUSE'
+}
 
-      <ControlTasksRouteBuilder
-        v-model="route"
-        :production="production"
-        :warehouse="warehouse"
-        :error="errors.route"
-      />
-
-      <div>
-        <label class="mb-1.5 block text-sm font-semibold text-[#0F1F52]">
-          Registered Operators
-        </label>
-        <p class="mb-2 text-xs text-slate-500">
-          Only these users will see this task in Custom Task. Leave empty and
-          it stays reachable by scanning its QR label, but appears in nobody's
-          list.
-        </p>
-        <div class="max-h-44 overflow-y-auto rounded-xl border border-[#E2E8F0] p-2">
-          <p v-if="activeUsers.length === 0" class="px-2 py-3 text-xs text-slate-400">
-            No active users
-          </p>
-          <label
-            v-for="user in activeUsers"
-            :key="user.id"
-            class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50"
-          >
-            <input
-              type="checkbox"
-              class="h-4 w-4 rounded border-[#E2E8F0] text-[#01ADEF] focus:ring-[#01ADEF]"
-              :checked="userIds.includes(user.id)"
-              @change="toggleUser(user.id)"
-            >
-            <span class="text-sm text-[#0F1F52]">{{ user.fullName }}</span>
-            <span class="text-xs text-slate-400">{{ user.username }}</span>
-          </label>
-        </div>
-      </div>
-
-      <UiBaseCheckbox v-model="isActive" label="Active" />
-    </div>
-
-    <template #footer>
-      <UiBaseButton variant="secondary" @click="emit('cancel')">Cancel</UiBaseButton>
-      <UiBaseButton variant="gradient" :loading="submitting" @click="handleSubmit">
-        Save
-      </UiBaseButton>
-    </template>
-  </UiBaseModal>
-</template>
+export interface RouteOptions {
+  production: RouteOption[]
+  warehouse: RouteOption[]
+}
