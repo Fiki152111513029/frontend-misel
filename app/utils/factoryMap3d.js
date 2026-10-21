@@ -177,14 +177,11 @@ export function createFactoryMap3D(
   const liveGroup = new THREE.Group()
   scene.add(liveGroup)
   let toWorldLive = null
-  const rackSlotByName = new Map()
   // Prototipe rak dari topologi, dipakai ulang untuk rak yang sedang
   // diangkat AMR. Baru terisi setelah model GLB selesai dimuat.
   let rackPrototype = null
   const liveRobots = new Map()
-  const binMarkers = new Map()
   let pendingRobots = null
-  let pendingBins = null
 
   // Jarak antar pembacaan diukur, bukan dipatok. Dulu nilainya tetap, dan
   // itu yang membuat robot bergerak seperti slow motion: begitu laporan
@@ -211,7 +208,10 @@ export function createFactoryMap3D(
   const MOVE_EPSILON = 0.004
   // Rak terangkat/turun dalam durasi ini, bukan muncul-hilang seketika.
   const LIFT_SECONDS = 0.6
-  const RACK_LIFT_Y = 3.0
+  // Tinggi rak saat diangkat, dalam satuan DUNIA — nilai yang sama dengan
+  // AGV_LIFT di industrial-3d. Rak hanya terangkat sedikit dari lantai,
+  // bukan melayang di atas robot.
+  const AGV_LIFT = 0.13
 
   function tweenDuration(now) {
     if (lastUpdateAt > 0) {
@@ -587,9 +587,7 @@ export function createFactoryMap3D(
       // koordinat topologinya tidak terbaca dan tidak ada yang tergambar.
       scale,
     })
-    for (const sl of slots) rackSlotByName.set(sl.name, sl)
     if (pendingRobots) setRobots(pendingRobots)
-    if (pendingBins) setBinStatus(pendingBins)
   }
 
   // Tanpa ini kegagalan hanya mendarat di console dan pengguna cuma melihat
@@ -823,8 +821,11 @@ export function createFactoryMap3D(
       if (entry.carrying && !entry.rack && rackPrototype) {
         const rack = rackPrototype.clone(true)
         markShared(rack)
-        rack.position.y = 0
-        entry.group.add(rack)
+        // Ditambahkan ke liveGroup, bukan ke grup robot. Grup robot
+        // berskala 0.2, sehingga rak yang jadi anaknya ikut mengecil lima
+        // kali dan posisinya terbaca dalam satuan lokal — itu yang membuat
+        // rak tampak melayang di atas robot.
+        liveGroup.add(rack)
         entry.rack = rack
         entry.lift = 0
       }
@@ -851,37 +852,6 @@ export function createFactoryMap3D(
       if (seen.has(id)) continue
       liveGroup.remove(entry.group)
       liveRobots.delete(id)
-    }
-  }
-
-  /**
-   * Status bin per kode lokasi: '2' penuh, '0' kosong.
-   *
-   * Ditandai dengan cakram warna di atas rak, bukan dengan mewarnai model
-   * raknya — material GLB dipakai bersama semua salinan rak, jadi mengubah
-   * satu akan mengubah semuanya.
-   */
-  function setBinStatus(byCode) {
-    pendingBins = byCode
-    if (!toWorldLive) return
-
-    for (const [code, status] of byCode) {
-      const slot = rackSlotByName.get(code)
-      if (!slot) continue
-
-      let marker = binMarkers.get(code)
-      if (!marker) {
-        marker = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.22, 0.22, 0.06, 20),
-          new THREE.MeshBasicMaterial({ color: '#22C55E' })
-        )
-        marker.position.copy(slot.world)
-        marker.position.y = 2.4
-        liveGroup.add(marker)
-        binMarkers.set(code, marker)
-      }
-      // Hijau penuh, abu-abu kosong — sama dengan arti nodeStatus di RCS.
-      marker.material.color.set(String(status) === '2' ? '#22C55E' : '#94A3B8')
     }
   }
 
@@ -921,12 +891,18 @@ export function createFactoryMap3D(
       }
 
       // Rak naik dan turun sendiri, lalu dilepas setelah benar-benar turun.
+      // Mengikuti AMR di koordinat dunia, persis seperti industrial-3d.
       if (entry.rack) {
         const dir = entry.carrying ? 1 : -1
         entry.lift = Math.max(0, Math.min(1, entry.lift + (dir * dt) / LIFT_SECONDS))
-        entry.rack.position.y = RACK_LIFT_Y * entry.lift
+        entry.rack.position.set(
+          entry.group.position.x,
+          AGV_LIFT * entry.lift,
+          entry.group.position.z,
+        )
+        entry.rack.rotation.y = entry.heading
         if (!entry.carrying && entry.lift === 0) {
-          entry.group.remove(entry.rack)
+          liveGroup.remove(entry.rack)
           entry.rack = null
         }
       }
@@ -958,7 +934,6 @@ export function createFactoryMap3D(
   return {
     setView: (name) => setView(...views[name]),
     setRobots,
-    setBinStatus,
     dispose
   }
 

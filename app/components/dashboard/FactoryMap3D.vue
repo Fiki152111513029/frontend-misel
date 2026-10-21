@@ -7,7 +7,6 @@
 // The three.js module is imported dynamically in onMounted so nothing
 // WebGL-related is touched during SSR.
 import { fetchRobots } from '~/services/robot.service'
-import { fetchStockStatus } from '~/services/factory-map.service'
 import { fetchActiveAlarmDeviceNames } from '~/services/robot-alarm.service'
 
 type LiveRobot = {
@@ -24,7 +23,6 @@ type LiveRobot = {
 type MapApi = {
   setView: (name: string) => void
   setRobots: (robots: LiveRobot[]) => void
-  setBinStatus: (byCode: Map<string, string | number>) => void
   dispose: () => void
 }
 
@@ -121,17 +119,6 @@ async function loadAlarms() {
   }
 }
 
-async function loadBins() {
-  const areaNumber = dashboardFilters.areaNumber
-  if (areaNumber == null) return
-  try {
-    const result = await fetchStockStatus(areaNumber)
-    api?.setBinStatus(new Map(result.map(entry => [entry.code, entry.status])))
-  } catch {
-    // Non-fatal — rack markers keep their last colour.
-  }
-}
-
 // Positions arrive on their own channel with the data attached, so this
 // draws straight from the push — no HTTP request per tick, however fast
 // the robots move. The REST read below still runs, but only for the
@@ -158,7 +145,6 @@ useRobotPositions((positions) => {
 
 useRealtime('robots', loadRobots)
 useRealtime('alarms', loadAlarms)
-useRealtime('stock', loadBins)
 
 // The map card publishes the area, so the first load can land before one is
 // picked — re-read whenever it settles or changes.
@@ -166,7 +152,6 @@ watch(
   () => [dashboardFilters.areaNumber, dashboardFilters.isAreaResolved],
   () => {
     loadRobots()
-    loadBins()
   },
 )
 
@@ -199,7 +184,6 @@ async function buildScene() {
   // Safe to call before the topology has finished loading: the engine holds
   // the data and applies it as soon as it has a coordinate transform.
   await loadAlarms()
-  await loadBins()
 }
 
 function selectMap(id: string) {
