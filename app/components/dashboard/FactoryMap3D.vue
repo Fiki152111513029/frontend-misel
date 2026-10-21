@@ -17,6 +17,8 @@ type LiveRobot = {
   y: number
   orientation: number
   hasActiveAlarm: boolean
+  /** RCS payLoad — what decides whether the AMR is drawn carrying a rack. */
+  payload: string | null
 }
 
 type MapApi = {
@@ -66,6 +68,10 @@ const VIEWS = [
 const dashboardFilters = useDashboardFiltersStore()
 const alarmDeviceNames = ref<Set<string>>(new Set())
 const robotCount = ref(0)
+// Positions carry ids, not names or device serials. These two lookups are
+// filled by the REST read and let the push stay as small as possible.
+const robotNames = ref<Map<string, string>>(new Map())
+const alarmSerials = ref<Set<string>>(new Set())
 
 async function loadRobots() {
   try {
@@ -90,7 +96,14 @@ async function loadRobots() {
         y: robot.positionY as number,
         orientation: robot.orientation ?? 0,
         hasActiveAlarm: alarmDeviceNames.value.has(robot.amrDeviceSerialNo),
+        payload: robot.payload ?? null,
       }))
+    robotNames.value = new Map(result.items.map(r => [r.id, r.name]))
+    alarmSerials.value = new Set(
+      result.items
+        .filter(r => alarmDeviceNames.value.has(r.amrDeviceSerialNo))
+        .map(r => r.id),
+    )
     robotCount.value = robots.length
     api?.setRobots(robots)
   } catch {
@@ -118,6 +131,30 @@ async function loadBins() {
     // Non-fatal — rack markers keep their last colour.
   }
 }
+
+// Positions arrive on their own channel with the data attached, so this
+// draws straight from the push — no HTTP request per tick, however fast
+// the robots move. The REST read below still runs, but only for the
+// fields positions do not carry (name, device serial) and only when the
+// much slower 'robots' signal says the fleet itself changed.
+useRobotPositions((positions) => {
+  const areaNumber = dashboardFilters.isAreaResolved
+    ? dashboardFilters.areaNumber
+    : null
+  const robots = positions
+    .filter(p => areaNumber == null || p.areaId === areaNumber)
+    .map(p => ({
+      id: p.id,
+      name: robotNames.value.get(p.id) ?? '',
+      x: p.x,
+      y: p.y,
+      orientation: p.orientation,
+      hasActiveAlarm: alarmSerials.value.has(p.id),
+      payload: p.payload,
+    }))
+  robotCount.value = robots.length
+  api?.setRobots(robots)
+})
 
 useRealtime('robots', loadRobots)
 useRealtime('alarms', loadAlarms)

@@ -19,6 +19,28 @@ export type RealtimeTopic =
 const REALTIME_EVENT = 'changed'
 
 /**
+ * The one channel that carries data rather than a signal.
+ *
+ * Robot positions have to arrive every second for the map to track the
+ * floor. As a signal that meant every open browser issuing a full
+ * GET /robots on every tick, so the cost of a responsive map grew with the
+ * number of screens. Pushed this way it is one small message per tick,
+ * shared by everyone watching, and the browsers make no request at all.
+ */
+const ROBOT_POSITIONS_EVENT = 'robots:positions'
+
+export interface RobotPositionUpdate {
+  id: string
+  areaId: number | null
+  x: number
+  y: number
+  orientation: number
+  state: string | null
+  battery: number | null
+  payload: string | null
+}
+
+/**
  * How often a subscriber refreshes anyway. This is NOT the old polling
  * cadence — it is a safety net for when the socket cannot connect at all
  * (a proxy without WebSocket upgrade headers, a corporate firewall), so
@@ -32,6 +54,8 @@ interface RealtimeState {
   connected: boolean
   /** Subscribers per topic, so one socket serves every page and component. */
   handlers: Map<RealtimeTopic, Set<() => void>>
+  /** Subscribers to the robot-position stream. */
+  positionHandlers: Set<(robots: RobotPositionUpdate[]) => void>
 }
 
 function state() {
@@ -39,6 +63,7 @@ function state() {
     socket: null,
     connected: false,
     handlers: new Map(),
+    positionHandlers: new Set(),
   }))
 }
 
@@ -68,7 +93,13 @@ function ensureSocket() {
   const socket = io(`${url}/realtime`, {
     path,
     auth: { token },
-    transports: ['websocket', 'polling'],
+    // Polling first, then let Socket.IO upgrade to WebSocket on its own.
+    // Trying WebSocket first means that behind a proxy without the upgrade
+    // headers the very first attempt fails loudly in the console before the
+    // fallback kicks in — and if the fallback is slow or blocked, the app
+    // sits disconnected. Starting on polling always connects, then quietly
+    // moves to WebSocket wherever the proxy allows it.
+    transports: ['polling', 'websocket'],
     reconnectionDelayMax: 10_000,
   })
 
@@ -85,6 +116,12 @@ function ensureSocket() {
   socket.on(REALTIME_EVENT, (message: { topic: RealtimeTopic }) => {
     for (const handler of realtime.value.handlers.get(message.topic) ?? []) {
       handler()
+    }
+  })
+
+  socket.on(ROBOT_POSITIONS_EVENT, (message: { robots: RobotPositionUpdate[] }) => {
+    for (const handler of realtime.value.positionHandlers) {
+      handler(message.robots ?? [])
     }
   })
 
@@ -142,6 +179,30 @@ export function useRealtime(
   onBeforeUnmount(() => {
     if (fallbackTimer) clearInterval(fallbackTimer)
     fallbackTimer = null
+  })
+
+  return { connected: computed(() => realtime.value.connected) }
+}
+
+/**
+ * Subscribes to the robot-position stream.
+ *
+ * Unlike useRealtime, the handler receives the positions directly — there
+ * is no follow-up request. Pair it with one REST read on mount for the
+ * fields positions do not carry (name, device serial, area links).
+ */
+export function useRobotPositions(
+  onPositions: (robots: RobotPositionUpdate[]) => void,
+) {
+  const realtime = state()
+
+  onMounted(() => {
+    ensureSocket()
+    realtime.value.positionHandlers.add(onPositions)
+  })
+
+  onBeforeUnmount(() => {
+    realtime.value.positionHandlers.delete(onPositions)
   })
 
   return { connected: computed(() => realtime.value.connected) }
