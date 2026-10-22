@@ -31,6 +31,8 @@ const activeUsers = computed(() => users.value.filter(user => user.isActive))
 
 const code = ref('')
 const name = ref('')
+const groupName = ref('')
+const colorCode = ref('')
 const modelCodeProcessId = ref('')
 const route = ref<string[]>([])
 const isActive = ref(true)
@@ -40,12 +42,21 @@ const errors = reactive<{
   name?: string
   modelCodeProcessId?: string
   route?: string
+  colorCode?: string
 }>({})
+
+// The colour picker can only produce valid hex, but the text box beside it
+// accepts anything — and the value lands in a style attribute, so the
+// server rejects a bad one. Catch it here so the operator is told why
+// before they lose the rest of the form.
+const HEX_PATTERN = /^#[0-9A-Fa-f]{6}$/
 
 function resetFields() {
   code.value = props.controlTask?.code ?? ''
   name.value = props.controlTask?.name ?? ''
   modelCodeProcessId.value = props.controlTask?.modelCodeProcessId ?? ''
+  groupName.value = props.controlTask?.groupName ?? ''
+  colorCode.value = props.controlTask?.colorCode ?? ''
   route.value = [...(props.controlTask?.route ?? [])]
   isActive.value = props.controlTask?.isActive ?? true
   userIds.value = (props.controlTask?.assignees ?? []).map(a => a.user.id)
@@ -75,6 +86,7 @@ function validate(): boolean {
   errors.name = undefined
   errors.modelCodeProcessId = undefined
   errors.route = undefined
+  errors.colorCode = undefined
 
   if (!code.value.trim()) {
     errors.code = 'Code is required'
@@ -96,7 +108,18 @@ function validate(): boolean {
     errors.route = 'Add at least one location to the route'
   }
 
-  return !errors.code && !errors.name && !errors.modelCodeProcessId && !errors.route
+  // Empty is allowed — that is how a task opts out and keeps the default.
+  if (colorCode.value.trim() && !HEX_PATTERN.test(colorCode.value.trim())) {
+    errors.colorCode = 'Colour must be a hex value like #01ADEF'
+  }
+
+  return (
+    !errors.code
+    && !errors.name
+    && !errors.modelCodeProcessId
+    && !errors.route
+    && !errors.colorCode
+  )
 }
 
 function handleSubmit() {
@@ -104,6 +127,10 @@ function handleSubmit() {
   emit('submit', {
     code: code.value.trim(),
     name: name.value.trim(),
+    // Empty means ungrouped, which the picker shows under "Other" — stored
+    // as null rather than "" so the two cannot drift apart.
+    groupName: groupName.value.trim() || null,
+    colorCode: colorCode.value.trim() || null,
     modelCodeProcessId: modelCodeProcessId.value,
     route: route.value,
     isActive: isActive.value,
@@ -139,6 +166,47 @@ const selectClass
           placeholder="A"
         />
         <UiBaseInput v-model="name" label="Name" required :error="errors.name" />
+      </div>
+
+      <div>
+        <UiBaseInput
+          v-model="groupName"
+          label="Group"
+          placeholder="WRL23L"
+        />
+        <p class="mt-1 text-xs text-slate-500">
+          Tasks sharing a group are listed together under that heading in
+          Custom Task. Leave empty to put this one under "Other".
+        </p>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-slate-700">Button Colour</label>
+        <div class="flex items-center gap-3">
+          <input
+            :value="colorCode || '#01ADEF'"
+            type="color"
+            aria-label="Pick button colour"
+            class="h-11 w-11 flex-shrink-0 cursor-pointer rounded-xl border border-[#E2E8F0] bg-white p-1"
+            @input="colorCode = ($event.target as HTMLInputElement).value"
+          >
+          <UiBaseInput v-model="colorCode" placeholder="#01ADEF" class="flex-1" />
+          <button
+            v-if="colorCode"
+            type="button"
+            class="shrink-0 rounded-xl bg-slate-100 px-3 py-2.5 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-200"
+            @click="colorCode = ''"
+          >
+            Reset
+          </button>
+        </div>
+        <p v-if="errors.colorCode" role="alert" class="text-xs font-medium text-red-500">
+          {{ errors.colorCode }}
+        </p>
+        <p v-else class="text-xs text-slate-500">
+          Colours the task's button in Custom Task. Leave empty to use the
+          default blue.
+        </p>
       </div>
 
       <div class="space-y-1.5">

@@ -16,6 +16,10 @@ export interface MyControlTask {
   id: string
   code: string
   name: string
+  /** Heading it is listed under. Null means the "Other" section. */
+  groupName: string | null
+  /** Button colour as #RRGGBB. Null falls back to the page's default blue. */
+  colorCode: string | null
   route: string[]
   modelProcessCode: string
 }
