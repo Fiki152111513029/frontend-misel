@@ -27,6 +27,42 @@ type Step = 'menu' | 'scan' | 'pick' | 'ready'
 const step = ref<Step>('menu')
 const myTasks = ref<MyControlTask[]>([])
 const loadingTasks = ref(false)
+
+/**
+ * The picker, split into the headings an admin set on each Control Task.
+ *
+ * Grouped here rather than flattened with a label on every row: the whole
+ * point is that WRL23L and WRL23R are different stations, and a mixed list
+ * invites dispatching the right task at the wrong one.
+ *
+ * The server already orders by group then name, so walking the list once
+ * and starting a section whenever the group changes keeps that order —
+ * including nulls last, which is what puts "Other" at the bottom.
+ */
+const DEFAULT_TASK_COLOR = '#01ADEF'
+
+/**
+ * Only a #RRGGBB value is let through.
+ *
+ * It is interpolated into a style attribute, and the field is free text on
+ * the admin side — the server validates it too, but a row stored before
+ * that validation existed must not be able to inject anything here.
+ */
+function taskColor(task: MyControlTask): string {
+  const value = task.colorCode?.trim() ?? ''
+  return /^#[0-9A-Fa-f]{6}$/.test(value) ? value : DEFAULT_TASK_COLOR
+}
+
+const groupedTasks = computed(() => {
+  const groups: { name: string, tasks: MyControlTask[] }[] = []
+  for (const task of myTasks.value) {
+    const name = task.groupName?.trim() || 'Other'
+    const last = groups[groups.length - 1]
+    if (last && last.name === name) last.tasks.push(task)
+    else groups.push({ name, tasks: [task] })
+  }
+  return groups
+})
 const scanValue = ref('')
 const SCAN_INPUT_ID = 'custom-task-scan-input'
 const submitting = ref(false)
@@ -212,22 +248,42 @@ async function handleSubmit() {
         No Control Task is registered to your account yet.<br>
         Ask an administrator to assign one, or scan its QR label instead.
       </p>
-      <button
-        v-for="task in myTasks"
-        v-else
-        :key="task.id"
-        type="button"
-        class="flex w-full items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] px-4 py-3 text-left transition-colors hover:border-[#01ADEF] hover:bg-[#01ADEF]/5"
-        @click="pickTask(task)"
-      >
-        <span class="min-w-0">
-          <span class="block truncate font-semibold text-[#0F1F52]">{{ task.name }}</span>
-          <span class="block truncate font-mono text-xs text-slate-500">{{ task.route.join(' → ') }}</span>
-        </span>
-        <span class="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-          {{ task.code }}
-        </span>
-      </button>
+      <div v-for="group in groupedTasks" v-else :key="group.name" class="space-y-2">
+        <p class="sticky top-0 bg-white pt-1 text-xs font-bold uppercase tracking-wide text-[#01ADEF]">
+          {{ group.name }}
+        </p>
+        <!-- The code chip sits above the name rather than beside it: on a
+             phone a row layout leaves the name only a sliver of width, and
+             the name is the one thing the operator picks by. Nothing is
+             truncated — a long name wraps onto as many lines as it needs. -->
+        <!-- The task's own colour is carried by a left bar and the code
+             chip, not by flooding the whole button: the name has to stay
+             readable whatever colour an admin picks, and white-on-yellow
+             or black-on-navy would not be. -->
+        <button
+          v-for="task in group.tasks"
+          :key="task.id"
+          type="button"
+          class="flex w-full flex-col gap-1.5 overflow-hidden rounded-xl border border-[#E2E8F0] border-l-[6px] px-4 py-3 text-left transition-colors hover:bg-slate-50"
+          :style="{ borderLeftColor: taskColor(task) }"
+          @click="pickTask(task)"
+        >
+          <span class="flex items-start gap-2">
+            <span
+              class="mt-0.5 shrink-0 rounded-full px-2.5 py-1 text-xs font-bold text-white"
+              :style="{ backgroundColor: taskColor(task) }"
+            >
+              {{ task.code }}
+            </span>
+            <span class="min-w-0 flex-1 break-words font-semibold leading-snug text-[#0F1F52]">
+              {{ task.name }}
+            </span>
+          </span>
+          <span class="break-all font-mono text-xs leading-snug text-slate-500">
+            {{ task.route.join(' → ') }}
+          </span>
+        </button>
+      </div>
 
       <button
         type="button"
