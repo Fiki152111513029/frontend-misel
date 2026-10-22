@@ -484,7 +484,7 @@ function robotImageSrc(robot: RobotMarker): string {
   const value = robot.state?.toLowerCase() ?? ''
   if (value.includes('offline')) return robotOfflineSrc
 
-  const isCarrying = Number(robot.payload ?? '0') > 0
+  const isCarrying = isCarryingPayload(robot.payload)
   if (isCarrying) {
     const carrying = activeTrolleyByRobot.value.get(robot.id)
     if (carrying === 'FULL') return robotPickupFullSrc

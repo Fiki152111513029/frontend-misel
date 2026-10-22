@@ -10,6 +10,8 @@ import { DRACOLoader } from
   'three/addons/loaders/DRACOLoader.js'
 import { OrbitControls } from
   'three/addons/controls/OrbitControls.js'
+// Satu aturan untuk kedua peta — lihat komentarnya di sana.
+import { isCarryingPayload } from './robotPayload'
 
 // Cache GLB di tingkat modul, bukan per instance mesin. Model yang sama
 // dipakai lagi setiap kali peta dibuka atau map diganti; tanpa cache,
@@ -24,17 +26,6 @@ const gltfCache = new Map()
  * membuangnya saat dispose() akan merusak salinan di cache — ganti map
  * berikutnya lalu tampil tanpa model. Tandai supaya dispose melewatinya.
  */
-/**
- * Apakah telemetri menyatakan robot sedang membawa sesuatu. RCS mengisi
- * payLoad dengan bentuk yang tidak seragam, jadi yang diperiksa adalah
- * nilai-nilai yang berarti "tidak membawa", bukan sebaliknya.
- */
-function hasPayload(payload) {
-  if (payload == null) return false
-  const v = String(payload).trim().toLowerCase()
-  return v !== '' && v !== '0' && v !== 'none' && v !== 'null' && v !== 'false'
-}
-
 function markShared(root) {
   root.traverse((o) => {
     o.userData.sharedWithCache = true
@@ -817,7 +808,7 @@ export function createFactoryMap3D(
       // Mengangkat rak dianimasikan, tidak muncul-hilang seketika — sama
       // seperti AGV_LIFT di simulasi aslinya. Mesh-nya baru dibuang setelah
       // benar-benar turun, supaya gerakan menurunkannya ikut terlihat.
-      entry.carrying = hasPayload(robot.payload)
+      entry.carrying = isCarryingPayload(robot.payload)
       if (entry.carrying && !entry.rack && rackPrototype) {
         const rack = rackPrototype.clone(true)
         markShared(rack)
