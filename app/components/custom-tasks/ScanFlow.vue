@@ -163,8 +163,12 @@ async function handleSubmit() {
   // will dispatch it itself once the rack is filled. Deliberately not an
   // error — the operator does not need to come back and retry.
   if (released.queued) {
+    // Two different reasons to be held, and telling the operator the wrong
+    // one sends them to check the wrong rack.
     toast.info(
-      `Rak belum ready — ${released.code} ditampung dulu, otomatis jalan begitu rak ${released.waitingForCode} terisi`,
+      released.waitingFor === 'drop'
+        ? `Rak tujuan masih terisi — ${released.code} ditampung dulu, otomatis jalan begitu rak ${released.waitingForCode} kosong`
+        : `Rak belum ready — ${released.code} ditampung dulu, otomatis jalan begitu rak ${released.waitingForCode} terisi`,
     )
   } else {
     toast.success(`Custom task ${released.code} submitted`)
@@ -177,6 +181,7 @@ async function handleSubmit() {
     name: released.name,
     taskPath: released.taskPath,
     waitingForCode: released.waitingForCode,
+    waitingFor: released.waitingFor,
   })
 
   // Free the scanner right away — like the Trolley Task pages, several
@@ -401,11 +406,15 @@ async function handleSubmit() {
           <p class="font-medium text-slate-500">
             Status :
             <span class="font-semibold text-amber-600">
-              Rak {{ item.waitingForCode }} belum ready
+              {{ item.waitingFor === 'drop'
+                ? `Rak tujuan ${item.waitingForCode} masih terisi`
+                : `Rak ${item.waitingForCode} belum ready` }}
             </span>
           </p>
           <p class="font-medium text-amber-700">
-            Task otomatis jalan begitu rak terisi — tidak perlu kirim ulang.
+            {{ item.waitingFor === 'drop'
+              ? 'Task otomatis jalan begitu rak tujuan dikosongkan — tidak perlu kirim ulang.'
+              : 'Task otomatis jalan begitu rak terisi — tidak perlu kirim ulang.' }}
           </p>
         </template>
         <template v-else>
