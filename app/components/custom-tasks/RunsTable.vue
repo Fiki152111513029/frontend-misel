@@ -69,7 +69,9 @@ const STATUS_LABEL: Record<CustomTaskRun['status'], string> = {
 // reason is different and actionable: it is waiting on a rack, not on RCS.
 function statusLabel(run: CustomTaskRun) {
   if (run.cancelledAt) return 'Cancelled'
-  if (run.waitingForBinAt) return 'Waiting for rack'
+  if (run.waitingForBinAt) {
+    return run.waitingForStatus === '0' ? 'Waiting for drop' : 'Waiting for rack'
+  }
   return STATUS_LABEL[run.status]
 }
 

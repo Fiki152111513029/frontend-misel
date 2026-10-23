@@ -15,6 +15,8 @@ export interface CustomTaskQueueItem {
    * to poll — this is what the card shows instead.
    */
   waitingForCode: string | null
+  /** Which end is blocking, so the card can say what to go and fix. */
+  waitingFor: 'pickup' | 'drop' | null
   webhookStatus: LatestWebhookStatus | null
 }
 
@@ -80,12 +82,14 @@ export const useCustomTaskQueueStore = defineStore('custom-task-queue', () => {
     name: string
     taskPath: string
     waitingForCode?: string | null
+    waitingFor?: 'pickup' | 'drop' | null
   }) {
     if (items.value.some(item => item.orderId === input.orderId)) return
 
     const item: CustomTaskQueueItem = {
       ...input,
       waitingForCode: input.waitingForCode ?? null,
+      waitingFor: input.waitingFor ?? null,
       webhookStatus: null,
     }
     items.value.push(item)

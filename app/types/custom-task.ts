@@ -42,6 +42,11 @@ export interface ReleasedCustomTask extends CustomTaskPreview {
   queued: boolean
   /** Which rack it is waiting on. Null unless `queued`. */
   waitingForCode: string | null
+  /**
+   * Which end is blocking: 'pickup' waits for that rack to be filled,
+   * 'drop' waits for the slot to be cleared. Null unless `queued`.
+   */
+  waitingFor: 'pickup' | 'drop' | null
 }
 
 // One Custom Task actually dispatched to RCS — the All Tasks > Custom Tasks
@@ -66,6 +71,8 @@ export interface CustomTaskRun {
    */
   waitingForBinAt: string | null
   waitingForCode: string | null
+  /** '2' = waiting for a rack to fill, '0' = waiting for a slot to clear. */
+  waitingForStatus: string | null
   robot: { id: string, name: string } | null
   operator: { id: string, fullName: string }
   createdAt: string
