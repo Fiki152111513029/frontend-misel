@@ -1,6 +1,12 @@
 <script setup lang="ts">
-import { PackageCheck, PackageOpen, RefreshCw } from 'lucide-vue-next'
+import { PackageCheck, PackageOpen, RefreshCw, Truck } from 'lucide-vue-next'
 import type { BinStatus } from '~/types/checking-area'
+import type { WarehouseNotice } from '~/composables/useRealtime'
+import {
+  isWarehouseNoticeUrgent,
+  warehouseNoticeSound,
+  warehouseNoticeText,
+} from '~/utils/warehouseNotice'
 
 definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'Checking Area — YAZAKI' })
@@ -41,6 +47,52 @@ onMounted(async () => {
   // is corrected in RCS. They choose first, then act.
   await fetchRows(null)
 })
+
+// ---- Warehouse notices --------------------------------------------------
+// Custom Tasks that need something of this area: a rack prepared, or a slot
+// cleared. Shown here because this is the page the warehouse staff work
+// from, and the only one where they can act on it.
+const notices = ref<WarehouseNotice[]>([])
+const MAX_NOTICES = 20
+// The server re-sends a "running" notice on every status update for the
+// same task; only the first of each kind is worth showing.
+const seenNotices = new Set<string>()
+
+function playNoticeSound(notice: WarehouseNotice) {
+  const src = warehouseNoticeSound(notice)
+  if (!src) return
+  try {
+    // Browsers block audio until the page has been interacted with, and
+    // that rejection is expected rather than a fault — the notice is still
+    // on screen either way.
+    void new Audio(src).play().catch(() => {})
+  } catch {
+    // No Audio support at all; the visual notice stands on its own.
+  }
+}
+
+useWarehouseNotices((notice) => {
+  const key = `${notice.orderId}:${notice.kind}`
+  if (seenNotices.has(key)) return
+  seenNotices.add(key)
+
+  notices.value = [notice, ...notices.value].slice(0, MAX_NOTICES)
+  playNoticeSound(notice)
+
+  // A held task is waiting on a bin here, so the list behind this page is
+  // about to matter — re-read it rather than wait for the stock signal.
+  if (isWarehouseNoticeUrgent(notice)) fetchRows(null, { silent: true })
+})
+
+function dismissNotice(orderId: string, kind: string) {
+  notices.value = notices.value.filter(
+    n => !(n.orderId === orderId && n.kind === kind),
+  )
+}
+
+function noticeTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('en-GB', { hour12: false })
+}
 
 // Pushed from the server instead of polled — see useRealtime.
 useRealtime(['stock', 'tasks'], () => fetchRows(null, { silent: true }))
@@ -107,6 +159,48 @@ const statusClass = computed(() => {
       >
         <RefreshCw class="h-4 w-4" :class="loading ? 'animate-spin' : ''" />
       </button>
+    </div>
+
+    <!-- Warehouse notices. Above the picker on purpose: they are the
+         reason someone opens this page in a hurry, and the held ones are
+         asking for something to be done right now. -->
+    <div v-if="notices.length > 0" class="space-y-2">
+      <div
+        v-for="notice in notices"
+        :key="`${notice.orderId}:${notice.kind}`"
+        class="flex items-start gap-3 rounded-2xl border px-4 py-3"
+        :class="isWarehouseNoticeUrgent(notice)
+          ? 'border-amber-300 bg-amber-50'
+          : 'border-[#E2E8F0] bg-white'"
+      >
+        <span
+          class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
+          :class="isWarehouseNoticeUrgent(notice)
+            ? 'bg-amber-100 text-amber-600'
+            : 'bg-[#01ADEF]/10 text-[#01ADEF]'"
+        >
+          <component :is="isWarehouseNoticeUrgent(notice) ? PackageOpen : Truck" class="h-4 w-4" />
+        </span>
+
+        <div class="min-w-0 flex-1">
+          <p
+            class="break-words text-sm font-medium leading-snug"
+            :class="isWarehouseNoticeUrgent(notice) ? 'text-amber-900' : 'text-[#0F1F52]'"
+          >
+            {{ warehouseNoticeText(notice) }}
+          </p>
+          <p class="mt-0.5 text-xs text-slate-500">{{ noticeTime(notice.at) }}</p>
+        </div>
+
+        <button
+          type="button"
+          class="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-slate-400 transition-colors hover:text-slate-600"
+          aria-label="Dismiss"
+          @click="dismissNotice(notice.orderId, notice.kind)"
+        >
+          ✕
+        </button>
+      </div>
     </div>
 
     <UiSearchSelect
