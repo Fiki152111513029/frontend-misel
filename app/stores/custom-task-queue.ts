@@ -1,3 +1,4 @@
+import { fetchCustomTaskRuns } from '~/services/custom-task.service'
 import { fetchLatestWebhookStatus } from '~/services/webhook-log.service'
 import { isTaskCompleted, isTaskTerminal } from '~/utils/taskStatus'
 import type { LatestWebhookStatus } from '~/types/webhook-log'
@@ -58,7 +59,43 @@ export const useCustomTaskQueueStore = defineStore('custom-task-queue', () => {
    * than a timer — the component rendering the queue subscribes and calls
    * this, so nothing runs while no task is in flight.
    */
+  /**
+   * Turns parked cards back into ordinary ones once the server has
+   * dispatched them.
+   *
+   * The hold is the server's state, not the card's: the watcher releases a
+   * task on its own, and nothing in the browser witnesses that. Without
+   * reading it back, a card that is already running would keep showing
+   * "Menunggu Rak" until it finished.
+   *
+   * One list read for the whole queue rather than one per card — the cards
+   * are few and all live in the same recent page.
+   */
+  async function syncHeldItems() {
+    const held = items.value.filter(item => item.waitingForCode)
+    if (held.length === 0) return
+
+    try {
+      const { items: runs } = await fetchCustomTaskRuns({ limit: 50 })
+      const byOrderId = new Map(runs.map(run => [run.orderId, run]))
+      for (const item of held) {
+        const run = byOrderId.get(item.orderId)
+        // Missing from the page means it is old enough to have scrolled
+        // off, which it could not be while still parked — leave it be.
+        if (!run || run.waitingForBinAt) continue
+        item.waitingForCode = null
+        item.waitingFor = null
+        // The operator sent this and walked away precisely so they would
+        // not have to watch for the rack — so say when it finally went.
+        toast.success(`Rak siap — custom task ${item.code} jalan`)
+      }
+    } catch {
+      // Non-fatal — the cards keep saying what they last knew.
+    }
+  }
+
   async function refreshAll() {
+    await syncHeldItems()
     await Promise.all(
       items.value.map(async (item) => {
         await refreshItem(item)
