@@ -29,6 +29,23 @@ const REALTIME_EVENT = 'changed'
  */
 const ROBOT_POSITIONS_EVENT = 'robots:positions'
 
+/**
+ * Warehouse-facing notices about Custom Tasks. Carries its details rather
+ * than being a signal, because the notice is the information — there is
+ * nothing to go and fetch afterwards.
+ */
+const WAREHOUSE_NOTICE_EVENT = 'warehouse:notice'
+
+export interface WarehouseNotice {
+  kind: 'pickup-held' | 'drop-held' | 'pickup-running' | 'drop-running'
+  /** The line that asked — the Control Task's group, e.g. "WRL23L". */
+  requester: string | null
+  nodeCode: string
+  robotName: string | null
+  orderId: string
+  at: string
+}
+
 export interface RobotPositionUpdate {
   id: string
   areaId: number | null
@@ -56,6 +73,8 @@ interface RealtimeState {
   handlers: Map<RealtimeTopic, Set<() => void>>
   /** Subscribers to the robot-position stream. */
   positionHandlers: Set<(robots: RobotPositionUpdate[]) => void>
+  /** Subscribers to warehouse notices. */
+  noticeHandlers: Set<(notice: WarehouseNotice) => void>
 }
 
 function state() {
@@ -64,6 +83,7 @@ function state() {
     connected: false,
     handlers: new Map(),
     positionHandlers: new Set(),
+    noticeHandlers: new Set(),
   }))
 }
 
@@ -123,6 +143,10 @@ function ensureSocket() {
     for (const handler of realtime.value.positionHandlers) {
       handler(message.robots ?? [])
     }
+  })
+
+  socket.on(WAREHOUSE_NOTICE_EVENT, (notice: WarehouseNotice) => {
+    for (const handler of realtime.value.noticeHandlers) handler(notice)
   })
 
   realtime.value.socket = socket
@@ -191,6 +215,24 @@ export function useRealtime(
  * is no follow-up request. Pair it with one REST read on mount for the
  * fields positions do not carry (name, device serial, area links).
  */
+/** Subscribes to warehouse notices — see WarehouseNotice. */
+export function useWarehouseNotices(
+  onNotice: (notice: WarehouseNotice) => void,
+) {
+  const realtime = state()
+
+  onMounted(() => {
+    ensureSocket()
+    realtime.value.noticeHandlers.add(onNotice)
+  })
+
+  onBeforeUnmount(() => {
+    realtime.value.noticeHandlers.delete(onNotice)
+  })
+
+  return { connected: computed(() => realtime.value.connected) }
+}
+
 export function useRobotPositions(
   onPositions: (robots: RobotPositionUpdate[]) => void,
 ) {
