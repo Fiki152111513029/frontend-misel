@@ -2,7 +2,51 @@
 import { updateAppSettings } from '~/services/app-setting.service'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Settings — YAZAKI'})
+useHead({ title: 'Settings — YAZAKI' })
+
+// Wording the floor keeps wanting reworded. Editable here so a rename is
+// not a code change and a deploy — see app-setting.keys.ts on the server
+// for how a new setting gets added to this list.
+const { settings, load: loadSettings } = useAppSettings()
+const { hasPermission } = useAuth()
+const toast = useToast()
+
+const fullLabel = ref('')
+const emptyLabel = ref('')
+const saving = ref(false)
+
+async function reload() {
+  await loadSettings({ force: true })
+  fullLabel.value = settings.value['bin.label.full']
+  emptyLabel.value = settings.value['bin.label.empty']
+}
+
+onMounted(reload)
+
+const canEdit = computed(() => hasPermission('setting.update'))
+const dirty = computed(
+  () =>
+    fullLabel.value !== settings.value['bin.label.full']
+    || emptyLabel.value !== settings.value['bin.label.empty'],
+)
+
+async function save() {
+  if (!fullLabel.value.trim() || !emptyLabel.value.trim()) {
+    toast.error('Both labels are required')
+    return
+  }
+  saving.value = true
+  try {
+    settings.value = await updateAppSettings({
+      'bin.label.full': fullLabel.value.trim(),
+      'bin.label.empty': emptyLabel.value.trim(),
+    })
+    toast.success('Settings saved')
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : 'Failed to save settings')
+  }
+  saving.value = false
+}
 </script>
 
 <template>
