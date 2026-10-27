@@ -37,7 +37,13 @@ const ROBOT_POSITIONS_EVENT = 'robots:positions'
 const WAREHOUSE_NOTICE_EVENT = 'warehouse:notice'
 
 export interface WarehouseNotice {
-  kind: 'pickup-held' | 'drop-held' | 'pickup-running' | 'drop-running'
+  kind:
+    | 'pickup-held'
+    | 'drop-held'
+    | 'pickup-running'
+    | 'drop-running'
+    /** A finish-good rack has been set down at this warehouse node. */
+    | 'drop-done'
   /** The line that asked — the Control Task's group, e.g. "WRL23L". */
   requester: string | null
   nodeCode: string
