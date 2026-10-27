@@ -108,6 +108,7 @@ export const NAV_MENUS: MenuEntry[] = [
       { title: 'Model Code Process', path: '/dashboard/model-code-process', permission: 'model-code-process.read' },
       { title: 'Robots', path: '/dashboard/robots', permission: 'robot.read' },
       { title: 'Factory Maps', path: '/dashboard/factory-maps', permission: 'factory-map.read' },
+      { title: 'Settings', path: '/dashboard/settings', permission: 'setting.update' },
     ],
   },
   { title: 'Customers',icon: Users, path: '/dashboard/customers', permission: 'customer.read' },  

@@ -127,10 +127,18 @@ async function correct(status: BinStatus) {
   if (ok) await fetchRows(null, { silent: true })
 }
 
+// "full" and "empty" are RCS's words, and on the floor they read as the
+// opposite of what they mean: a full bin is one with an empty rack standing
+// ready. The wording is an admin setting so it can be said the way the
+// people using it say it — see App Settings.
+const { settings, load: loadSettings, binLabel } = useAppSettings()
+onMounted(() => loadSettings())
+useRealtime('settings', () => loadSettings({ force: true }))
+
 const statusLabel = computed(() => {
   if (!selected.value) return '—'
-  if (selected.value.stockStatus === 'FULL') return 'full'
-  if (selected.value.stockStatus === 'EMPTY') return 'empty'
+  if (selected.value.stockStatus === 'FULL') return binLabel('FULL')
+  if (selected.value.stockStatus === 'EMPTY') return binLabel('EMPTY')
   return 'unknown'
 })
 
@@ -239,7 +247,7 @@ const statusClass = computed(() => {
         @click="correct('EMPTY')"
       >
         <PackageOpen class="mr-2 h-4 w-4" />
-        Clear the area
+        Set: {{ settings['bin.label.empty'] }}
       </UiBaseButton>
 
       <UiBaseButton
@@ -250,7 +258,7 @@ const statusClass = computed(() => {
         @click="correct('FULL')"
       >
         <PackageCheck class="mr-2 h-4 w-4" />
-        Fill the area
+        Set: {{ settings['bin.label.full'] }}
       </UiBaseButton>
     </template>
 
