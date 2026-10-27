@@ -2,7 +2,7 @@
 import { updateAppSettings } from '~/services/app-setting.service'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Settings — YAZAKI' })
+useHead({ title: 'Settings — Ichii' })
 
 // Wording the floor keeps wanting reworded. Editable here so a rename is
 // not a code change and a deploy — see app-setting.keys.ts on the server
