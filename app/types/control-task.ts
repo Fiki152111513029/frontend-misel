@@ -17,6 +17,8 @@ export interface ControlTask {
   groupName: string | null
   /** Button colour in Custom Task as #RRGGBB. Null = the default blue. */
   colorCode: string | null
+  /** Colour of the group heading as #RRGGBB. Null = the default blue. */
+  groupColor: string | null
   modelCodeProcessId: string
   modelCodeProcess: ControlTaskModelCodeProcess | null
   /** The legs in the order the operator chose — repeats are allowed. */
@@ -36,6 +38,7 @@ export interface CreateControlTaskInput {
   name: string
   groupName?: string | null
   colorCode?: string | null
+  groupColor?: string | null
   modelCodeProcessId: string
   route: string[]
   isActive?: boolean
