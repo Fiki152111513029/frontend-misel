@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Ban, Camera, Clock, List, QrCode, Route as RouteIcon } from 'lucide-vue-next'
+import { Ban, Camera, ChevronDown, ChevronUp, Clock, List, QrCode, Route as RouteIcon } from 'lucide-vue-next'
 import { fetchMyControlTasks } from '~/services/custom-task.service'
 import { taskStatusLabel } from '~/utils/taskStatus'
 import type { CustomTaskPreview, MyControlTask } from '~/types/custom-task'
@@ -40,6 +40,7 @@ const loadingTasks = ref(false)
  * including nulls last, which is what puts "Other" at the bottom.
  */
 const DEFAULT_TASK_COLOR = '#01ADEF'
+const HEX_PATTERN = /^#[0-9A-Fa-f]{6}$/
 
 /**
  * Only a #RRGGBB value is let through.
@@ -48,21 +49,69 @@ const DEFAULT_TASK_COLOR = '#01ADEF'
  * the admin side — the server validates it too, but a row stored before
  * that validation existed must not be able to inject anything here.
  */
+function safeColor(value: string | null | undefined): string | null {
+  const hex = value?.trim() ?? ''
+  return HEX_PATTERN.test(hex) ? hex : null
+}
+
 function taskColor(task: MyControlTask): string {
-  const value = task.colorCode?.trim() ?? ''
-  return /^#[0-9A-Fa-f]{6}$/.test(value) ? value : DEFAULT_TASK_COLOR
+  return safeColor(task.colorCode) ?? DEFAULT_TASK_COLOR
+}
+
+/**
+ * Black or white text, whichever stays readable on `hex`.
+ *
+ * The heading is filled with a colour an admin picked freely, so a fixed
+ * text colour would be unreadable half the time — white on yellow, black
+ * on navy. Weighted the way the eye responds rather than by a plain
+ * average, which would call yellow and blue equally bright.
+ */
+function contrastText(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? '#0F1F52' : '#FFFFFF'
 }
 
 const groupedTasks = computed(() => {
-  const groups: { name: string, tasks: MyControlTask[] }[] = []
+  const groups: { name: string, color: string, tasks: MyControlTask[] }[] = []
   for (const task of myTasks.value) {
     const name = task.groupName?.trim() || 'Other'
     const last = groups[groups.length - 1]
-    if (last && last.name === name) last.tasks.push(task)
-    else groups.push({ name, tasks: [task] })
+    if (last && last.name === name) {
+      last.tasks.push(task)
+      // First one wins: the colour is stored on every task in the group
+      // (there is no group row to hang it off), so a later member leaving
+      // it blank must not blank out a heading already coloured.
+      last.color = last.color === DEFAULT_TASK_COLOR
+        ? safeColor(task.groupColor) ?? DEFAULT_TASK_COLOR
+        : last.color
+    } else {
+      groups.push({
+        name,
+        color: safeColor(task.groupColor) ?? DEFAULT_TASK_COLOR,
+        tasks: [task],
+      })
+    }
   }
   return groups
 })
+
+/**
+ * Which headings are folded shut, by group name.
+ *
+ * Every group starts open — an operator opening the picker should see the
+ * task they came for, not three closed lids. Folding is there for the
+ * phone, where three stations' worth of buttons is a long scroll.
+ */
+const collapsedGroups = ref<Record<string, boolean>>({})
+
+function toggleGroup(name: string) {
+  collapsedGroups.value = {
+    ...collapsedGroups.value,
+    [name]: !collapsedGroups.value[name],
+  }
+}
 const scanValue = ref('')
 const SCAN_INPUT_ID = 'custom-task-scan-input'
 const submitting = ref(false)
@@ -97,6 +146,9 @@ function startScan() {
 
 async function startPick() {
   step.value = 'pick'
+  // Reopened fresh each time, so a group folded shut on the last task does
+  // not hide the one being looked for now.
+  collapsedGroups.value = {}
   loadingTasks.value = true
   try {
     myTasks.value = await fetchMyControlTasks()
@@ -191,7 +243,13 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-md space-y-4 px-4 py-6 sm:px-0">
+  <!-- Narrow everywhere except the picker: the scan and confirm screens are
+       one column of fields and read badly stretched, but three groups side
+       by side need the room. -->
+  <div
+    class="mx-auto w-full space-y-4 px-4 py-6 sm:px-0"
+    :class="step === 'pick' ? 'max-w-5xl' : 'max-w-md'"
+  >
     <div>
       <h1 class="text-xl font-extrabold text-[#0F1F52] sm:text-2xl">Custom Task</h1>
       <p class="font-medium mt-1 text-sm text-slate-500">
@@ -253,41 +311,65 @@ async function handleSubmit() {
         No Control Task is registered to your account yet.<br>
         Ask an administrator to assign one, or scan its QR label instead.
       </p>
-      <div v-for="group in groupedTasks" v-else :key="group.name" class="space-y-2">
-        <p class="sticky top-0 bg-white pt-1 text-xs font-bold uppercase tracking-wide text-[#01ADEF]">
-          {{ group.name }}
-        </p>
-        <!-- The code chip sits above the name rather than beside it: on a
-             phone a row layout leaves the name only a sliver of width, and
-             the name is the one thing the operator picks by. Nothing is
-             truncated — a long name wraps onto as many lines as it needs. -->
-        <!-- The task's own colour is carried by a left bar and the code
-             chip, not by flooding the whole button: the name has to stay
-             readable whatever colour an admin picks, and white-on-yellow
-             or black-on-navy would not be. -->
-        <button
-          v-for="task in group.tasks"
-          :key="task.id"
-          type="button"
-          class="flex w-full flex-col gap-1.5 overflow-hidden rounded-xl border border-[#E2E8F0] border-l-[6px] px-4 py-3 text-left transition-colors hover:bg-slate-50"
-          :style="{ borderLeftColor: taskColor(task) }"
-          @click="pickTask(task)"
-        >
-          <span class="flex items-start gap-2">
-            <span
-              class="mt-0.5 shrink-0 rounded-full px-2.5 py-1 text-xs font-bold text-white"
-              :style="{ backgroundColor: taskColor(task) }"
+      <!-- One column per group, side by side where there is room. Stations
+           are worked at separately, so keeping each one whole beats a
+           single mixed list where the wrong task is one row away. -->
+      <div v-else class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <section v-for="group in groupedTasks" :key="group.name" class="space-y-2.5">
+          <!-- Filled while open, outlined while folded, so the state reads
+               from across the line without having to look for a chevron. -->
+          <button
+            type="button"
+            class="flex w-full items-center justify-between gap-2 rounded-2xl border-2 px-4 py-3.5 text-left shadow-sm transition-all active:scale-[0.99]"
+            :style="collapsedGroups[group.name]
+              ? { borderColor: group.color, color: group.color, backgroundColor: '#FFFFFF' }
+              : { borderColor: group.color, backgroundColor: group.color, color: contrastText(group.color) }"
+            :aria-expanded="!collapsedGroups[group.name]"
+            @click="toggleGroup(group.name)"
+          >
+            <span class="min-w-0 flex-1 break-words text-center text-sm font-extrabold uppercase leading-tight tracking-wide">
+              {{ group.name }}
+            </span>
+            <span class="flex shrink-0 items-center gap-1 text-xs font-bold opacity-80">
+              {{ group.tasks.length }}
+              <component :is="collapsedGroups[group.name] ? ChevronDown : ChevronUp" class="h-4 w-4" />
+            </span>
+          </button>
+
+          <!-- The code chip sits above the name rather than beside it: on a
+               phone a row layout leaves the name only a sliver of width, and
+               the name is the one thing the operator picks by. Nothing is
+               truncated — a long name wraps onto as many lines as it needs. -->
+          <!-- The task's own colour is carried by a left bar and the code
+               chip, not by flooding the whole button: the name has to stay
+               readable whatever colour an admin picks, and white-on-yellow
+               or black-on-navy would not be. -->
+          <div v-if="!collapsedGroups[group.name]" class="space-y-2">
+            <button
+              v-for="task in group.tasks"
+              :key="task.id"
+              type="button"
+              class="flex w-full flex-col gap-1.5 overflow-hidden rounded-xl border border-[#E2E8F0] border-l-[6px] bg-white px-4 py-3 text-left shadow-sm transition-colors hover:bg-slate-50"
+              :style="{ borderLeftColor: taskColor(task) }"
+              @click="pickTask(task)"
             >
-              {{ task.code }}
-            </span>
-            <span class="min-w-0 flex-1 break-words font-semibold leading-snug text-[#0F1F52]">
-              {{ task.name }}
-            </span>
-          </span>
-          <span class="break-all font-mono text-xs leading-snug text-slate-500">
-            {{ task.route.join(' → ') }}
-          </span>
-        </button>
+              <span class="flex items-start gap-2">
+                <span
+                  class="mt-0.5 shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold leading-tight"
+                  :style="{ backgroundColor: taskColor(task), color: contrastText(taskColor(task)) }"
+                >
+                  {{ task.code }}
+                </span>
+                <span class="min-w-0 flex-1 break-words font-semibold leading-snug text-[#0F1F52]">
+                  {{ task.name }}
+                </span>
+              </span>
+              <span class="break-all font-mono text-xs leading-snug text-slate-500">
+                {{ task.route.join(' → ') }}
+              </span>
+            </button>
+          </div>
+        </section>
       </div>
 
       <button

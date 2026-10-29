@@ -20,6 +20,12 @@ export interface MyControlTask {
   groupName: string | null
   /** Button colour as #RRGGBB. Null falls back to the page's default blue. */
   colorCode: string | null
+  /**
+   * Colour of the group heading as #RRGGBB. Repeated on every task in the
+   * group — the picker uses the first one it finds — because a group is
+   * only a shared `groupName` string, with no row of its own to carry it.
+   */
+  groupColor: string | null
   route: string[]
   modelProcessCode: string
 }

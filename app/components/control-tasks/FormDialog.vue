@@ -33,6 +33,7 @@ const code = ref('')
 const name = ref('')
 const groupName = ref('')
 const colorCode = ref('')
+const groupColor = ref('')
 const modelCodeProcessId = ref('')
 const route = ref<string[]>([])
 const isActive = ref(true)
@@ -43,6 +44,7 @@ const errors = reactive<{
   modelCodeProcessId?: string
   route?: string
   colorCode?: string
+  groupColor?: string
 }>({})
 
 // The colour picker can only produce valid hex, but the text box beside it
@@ -57,6 +59,7 @@ function resetFields() {
   modelCodeProcessId.value = props.controlTask?.modelCodeProcessId ?? ''
   groupName.value = props.controlTask?.groupName ?? ''
   colorCode.value = props.controlTask?.colorCode ?? ''
+  groupColor.value = props.controlTask?.groupColor ?? ''
   route.value = [...(props.controlTask?.route ?? [])]
   isActive.value = props.controlTask?.isActive ?? true
   userIds.value = (props.controlTask?.assignees ?? []).map(a => a.user.id)
@@ -87,6 +90,7 @@ function validate(): boolean {
   errors.modelCodeProcessId = undefined
   errors.route = undefined
   errors.colorCode = undefined
+  errors.groupColor = undefined
 
   if (!code.value.trim()) {
     errors.code = 'Code is required'
@@ -113,12 +117,17 @@ function validate(): boolean {
     errors.colorCode = 'Colour must be a hex value like #01ADEF'
   }
 
+  if (groupColor.value.trim() && !HEX_PATTERN.test(groupColor.value.trim())) {
+    errors.groupColor = 'Colour must be a hex value like #F97316'
+  }
+
   return (
     !errors.code
     && !errors.name
     && !errors.modelCodeProcessId
     && !errors.route
     && !errors.colorCode
+    && !errors.groupColor
   )
 }
 
@@ -131,6 +140,7 @@ function handleSubmit() {
     // as null rather than "" so the two cannot drift apart.
     groupName: groupName.value.trim() || null,
     colorCode: colorCode.value.trim() || null,
+    groupColor: groupColor.value.trim() || null,
     modelCodeProcessId: modelCodeProcessId.value,
     route: route.value,
     isActive: isActive.value,
@@ -177,6 +187,38 @@ const selectClass
         <p class="mt-1 text-xs text-slate-500">
           Tasks sharing a group are listed together under that heading in
           Custom Task. Leave empty to put this one under "Other".
+        </p>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-slate-700">Group Colour</label>
+        <div class="flex items-center gap-3">
+          <input
+            :value="groupColor || '#01ADEF'"
+            type="color"
+            aria-label="Pick group heading colour"
+            class="h-11 w-11 flex-shrink-0 cursor-pointer rounded-xl border border-[#E2E8F0] bg-white p-1"
+            @input="groupColor = ($event.target as HTMLInputElement).value"
+          >
+          <UiBaseInput v-model="groupColor" placeholder="#F97316" class="flex-1" />
+          <button
+            v-if="groupColor"
+            type="button"
+            class="shrink-0 rounded-xl bg-slate-100 px-3 py-2.5 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-200"
+            @click="groupColor = ''"
+          >
+            Reset
+          </button>
+        </div>
+        <p v-if="errors.groupColor" role="alert" class="text-xs font-medium text-red-500">
+          {{ errors.groupColor }}
+        </p>
+        <!-- Set on any one member and the whole heading takes it, because a
+             group is just a shared name with no row of its own to store it
+             on. Saying so here saves wondering why it is asked per task. -->
+        <p v-else class="text-xs text-slate-500">
+          Colours the whole group heading in Custom Task — setting it on any
+          one task in the group is enough.
         </p>
       </div>
 
