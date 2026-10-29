@@ -12,6 +12,7 @@ import type { AppSettings } from '~/types/app-setting'
 const DEFAULTS: AppSettings = {
   'bin.label.full': 'Rak Kosong Ready',
   'bin.label.empty': 'Rak Kosong Belum Ready',
+  'bin.label.finishGood': 'Finish Good Ready',
 }
 
 export function useAppSettings() {
@@ -28,8 +29,19 @@ export function useAppSettings() {
     }
   }
 
-  /** The word for a bin, given what RCS says it holds. */
-  function binLabel(status: 'FULL' | 'EMPTY' | null | undefined): string {
+  /**
+   * The word for a bin.
+   *
+   * Finished goods are checked first: RCS reports that node as EMPTY,
+   * because its "full" means an empty rack is waiting to be collected and
+   * these are not that. Reading the status alone would call a node loaded
+   * with finished goods "not ready" — the opposite of the truth.
+   */
+  function binLabel(
+    status: 'FULL' | 'EMPTY' | null | undefined,
+    hasFinishGood = false,
+  ): string {
+    if (hasFinishGood) return settings.value['bin.label.finishGood']
     if (status === 'FULL') return settings.value['bin.label.full']
     if (status === 'EMPTY') return settings.value['bin.label.empty']
     return '—'

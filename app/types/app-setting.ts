@@ -2,6 +2,7 @@
 export interface AppSettings {
   'bin.label.full': string
   'bin.label.empty': string
+  'bin.label.finishGood': string
 }
 
 export type AppSettingKey = keyof AppSettings
