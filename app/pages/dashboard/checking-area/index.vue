@@ -137,12 +137,14 @@ useRealtime('settings', () => loadSettings({ force: true }))
 
 const statusLabel = computed(() => {
   if (!selected.value) return '—'
+  if (selected.value.hasFinishGood) return binLabel(null, true)
   if (selected.value.stockStatus === 'FULL') return binLabel('FULL')
   if (selected.value.stockStatus === 'EMPTY') return binLabel('EMPTY')
   return 'unknown'
 })
 
 const statusClass = computed(() => {
+  if (selected.value?.hasFinishGood) return 'text-emerald-600'
   if (selected.value?.stockStatus === 'FULL') return 'text-amber-600'
   if (selected.value?.stockStatus === 'EMPTY') return 'text-sky-600'
   return 'text-slate-400'
@@ -240,7 +242,7 @@ const statusClass = computed(() => {
            status it already has would change nothing. A bin RCS says
            nothing about gets both, since either could be the truth. -->
       <UiBaseButton
-        v-if="selected.stockStatus !== 'EMPTY'"
+        v-if="selected.stockStatus !== 'EMPTY' || selected.hasFinishGood"
         full-width
         variant="gradient"
         :loading="submitting"

@@ -13,12 +13,14 @@ const toast = useToast()
 
 const fullLabel = ref('')
 const emptyLabel = ref('')
+const finishGoodLabel = ref('')
 const saving = ref(false)
 
 async function reload() {
   await loadSettings({ force: true })
   fullLabel.value = settings.value['bin.label.full']
   emptyLabel.value = settings.value['bin.label.empty']
+  finishGoodLabel.value = settings.value['bin.label.finishGood']
 }
 
 onMounted(reload)
@@ -27,12 +29,17 @@ const canEdit = computed(() => hasPermission('setting.update'))
 const dirty = computed(
   () =>
     fullLabel.value !== settings.value['bin.label.full']
-    || emptyLabel.value !== settings.value['bin.label.empty'],
+    || emptyLabel.value !== settings.value['bin.label.empty']
+    || finishGoodLabel.value !== settings.value['bin.label.finishGood'],
 )
 
 async function save() {
-  if (!fullLabel.value.trim() || !emptyLabel.value.trim()) {
-    toast.error('Both labels are required')
+  if (
+    !fullLabel.value.trim()
+    || !emptyLabel.value.trim()
+    || !finishGoodLabel.value.trim()
+  ) {
+    toast.error('All labels are required')
     return
   }
   saving.value = true
@@ -40,6 +47,7 @@ async function save() {
     settings.value = await updateAppSettings({
       'bin.label.full': fullLabel.value.trim(),
       'bin.label.empty': emptyLabel.value.trim(),
+      'bin.label.finishGood': finishGoodLabel.value.trim(),
     })
     toast.success('Settings saved')
   } catch (e) {
@@ -88,6 +96,20 @@ async function save() {
           :disabled="!canEdit"
         />
         <p class="mt-1 text-xs text-slate-500">nodeStatus 0</p>
+      </div>
+
+      <div>
+        <UiBaseInput
+          v-model="finishGoodLabel"
+          label="Finished goods delivered here"
+          placeholder="Finish Good Ready"
+          :disabled="!canEdit"
+        />
+        <p class="mt-1 text-xs text-slate-500">
+          RCS has no state for this — it still reports the node as empty,
+          because its "full" means an empty rack is waiting to be collected.
+          Tracked separately so the two are never confused.
+        </p>
       </div>
 
       <div v-if="canEdit" class="flex items-center gap-3">
