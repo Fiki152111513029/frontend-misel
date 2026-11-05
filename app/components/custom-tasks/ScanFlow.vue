@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { Ban, Camera, ChevronDown, ChevronUp, Clock, List, QrCode, Route as RouteIcon } from 'lucide-vue-next'
+import { Ban, ChevronDown, ChevronUp, Clock, Route as RouteIcon } from 'lucide-vue-next'
 import { fetchMyControlTasks } from '~/services/custom-task.service'
 import { taskStatusLabel } from '~/utils/taskStatus'
 import type { CustomTaskPreview, MyControlTask } from '~/types/custom-task'
 
-// The same shape as the Trolley Task scan flow, minus the Take/Drop choice:
-// a Custom Task has nothing to pick, so it opens straight on the scanner.
-// Two steps only — scan the code on a Control Task QR label, confirm the
-// task order it resolves to, submit. The lookup is read-only; submit is the
-// single call that reaches RCS (/ics/taskOrder/addTask), and nothing is
-// written to our own tables either way.
+// Two steps: pick one of the tasks registered to you, confirm what it
+// resolves to, send it.
+//
+// There is deliberately no QR path. Every Control Task an operator may run
+// is already registered to them and shown as a button, so scanning was a
+// second way to reach the same place — one that needed a working camera or
+// a handheld, and that could reach a task the button list would not offer.
+//
+// The lookup is read-only; submit is the single call that reaches RCS
+// (/ics/taskOrder/addTask).
 const toast = useToast()
 const { lookupCustomTask, releaseCustomTask, cancelReleasedTask } = useCustomTasks()
 const { hasPermission } = useAuth()
@@ -19,12 +23,9 @@ const queue = useCustomTaskQueueStore()
 // timer of their own — see useRealtime.
 useRealtime(['tasks', 'custom-tasks'], () => queue.refreshAll())
 
-// Two ways in, one way out. Both 'scan' and 'pick' resolve a Control Task
-// code and land on the same 'ready' screen, so the confirm-and-send step
-// cannot drift between them.
-type Step = 'menu' | 'scan' | 'pick' | 'ready'
+type Step = 'pick' | 'ready'
 
-const step = ref<Step>('menu')
+const step = ref<Step>('pick')
 const myTasks = ref<MyControlTask[]>([])
 const loadingTasks = ref(false)
 
@@ -112,40 +113,22 @@ function toggleGroup(name: string) {
     [name]: !collapsedGroups.value[name],
   }
 }
-const scanValue = ref('')
-const SCAN_INPUT_ID = 'custom-task-scan-input'
 const submitting = ref(false)
-const showScanner = ref(false)
 
 const preview = ref<CustomTaskPreview | null>(null)
 
 const SUBTITLES: Record<Step, string> = {
-  menu: 'Choose how to start the task',
-  scan: 'Scan a Control Task to run it',
   pick: 'Pick one of the tasks registered to you',
   ready: 'Check the details, then send the task',
 }
 const subtitle = computed(() => SUBTITLES[step.value])
 
-function focusScanInput() {
-  nextTick(() => {
-    document.getElementById(SCAN_INPUT_ID)?.focus()
-  })
-}
-
 function resetFlow() {
-  step.value = 'menu'
-  preview.value = null
-  scanValue.value = ''
-}
-
-function startScan() {
-  step.value = 'scan'
-  focusScanInput()
-}
-
-async function startPick() {
   step.value = 'pick'
+  preview.value = null
+}
+
+async function loadMyTasks() {
   // Reopened fresh each time, so a group folded shut on the last task does
   // not hide the one being looked for now.
   collapsedGroups.value = {}
@@ -158,10 +141,14 @@ async function startPick() {
   loadingTasks.value = false
 }
 
+// The picker is the landing screen now, so its list has to be there before
+// the operator looks at it rather than after a tap.
+onMounted(loadMyTasks)
+
 /**
- * Picking resolves through the same lookup the scanner uses, rather than
- * trusting the list it came from — the preview the operator confirms is
- * then guaranteed to be what the server would actually send.
+ * Picking resolves through a fresh lookup rather than trusting the list it
+ * came from — the preview the operator confirms is then guaranteed to be
+ * what the server would actually send.
  */
 async function pickTask(task: MyControlTask) {
   const result = await lookupCustomTask(task.code)
@@ -170,26 +157,8 @@ async function pickTask(task: MyControlTask) {
   step.value = 'ready'
 }
 
-async function handleScanSubmit() {
-  const value = scanValue.value.trim()
-  if (!value) return
-
-  const result = await lookupCustomTask(value)
-  if (!result) return
-
-  preview.value = result
-  step.value = 'ready'
-  scanValue.value = ''
-}
-
-async function handleCameraScanned(value: string) {
-  scanValue.value = value
-  await handleScanSubmit()
-}
-
 function changeTask() {
   resetFlow()
-  focusScanInput()
 }
 
 // Only one cancel at a time, so a double tap cannot fire two requests at
@@ -236,16 +205,16 @@ async function handleSubmit() {
     waitingFor: released.waitingFor,
   })
 
-  // Free the scanner right away — like the Trolley Task pages, several
-  // Custom Tasks can be in flight at once, each card clearing on its own.
+  // Straight back to the list — several Custom Tasks can be in flight at
+  // once, each queue card clearing on its own.
   changeTask()
 }
 </script>
 
 <template>
-  <!-- Narrow everywhere except the picker: the scan and confirm screens are
-       one column of fields and read badly stretched, but three groups side
-       by side need the room. -->
+  <!-- Narrow everywhere except the picker: the confirm screen is one
+       column of fields and reads badly stretched, but three groups side by
+       side need the room. -->
   <div
     class="mx-auto w-full space-y-4 px-4 py-6 sm:px-0"
     :class="step === 'pick' ? 'max-w-5xl' : 'max-w-md'"
@@ -257,7 +226,7 @@ async function handleSubmit() {
       </p>
     </div>
 
-    <!-- Confirmed scan, re-scannable -->
+    <!-- The task now confirmed, with a way back to the list. -->
     <div v-if="preview" class="flex flex-wrap items-center gap-2">
       <button
         type="button"
@@ -268,39 +237,8 @@ async function handleSubmit() {
       </button>
     </div>
 
-    <!-- Entry choice. Both routes end on the same confirm screen. -->
-    <UiBaseCard v-if="step === 'menu'" class="space-y-3">
-      <button
-        type="button"
-        class="flex w-full items-center gap-4 rounded-2xl border border-[#E2E8F0] px-5 py-4 text-left transition-colors hover:border-[#01ADEF] hover:bg-[#01ADEF]/5"
-        @click="startScan"
-      >
-        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#01ADEF]/10 text-[#01ADEF]">
-          <QrCode class="h-5 w-5" />
-        </span>
-        <span>
-          <span class="block font-semibold text-[#0F1F52]">Scan QR</span>
-          <span class="block text-xs text-slate-500">Scan the Control Task label</span>
-        </span>
-      </button>
-
-      <button
-        type="button"
-        class="flex w-full items-center gap-4 rounded-2xl border border-[#E2E8F0] px-5 py-4 text-left transition-colors hover:border-[#01ADEF] hover:bg-[#01ADEF]/5"
-        @click="startPick"
-      >
-        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#01ADEF]/10 text-[#01ADEF]">
-          <List class="h-5 w-5" />
-        </span>
-        <span>
-          <span class="block font-semibold text-[#0F1F52]">Pilih Task</span>
-          <span class="block text-xs text-slate-500">Choose from the tasks registered to you</span>
-        </span>
-      </button>
-    </UiBaseCard>
-
-    <!-- Picker — only the tasks this operator was registered to. -->
-    <UiBaseCard v-else-if="step === 'pick'" class="space-y-3">
+    <!-- Only the tasks this operator was registered to. -->
+    <UiBaseCard v-if="step === 'pick'" class="space-y-3">
       <p v-if="loadingTasks" class="py-6 text-center text-sm text-slate-400">
         Loading…
       </p>
@@ -309,7 +247,7 @@ async function handleSubmit() {
         class="rounded-xl border border-dashed border-[#E2E8F0] py-8 text-center text-sm text-slate-400"
       >
         No Control Task is registered to your account yet.<br>
-        Ask an administrator to assign one, or scan its QR label instead.
+        Ask an administrator to assign one to you.
       </p>
       <!-- One column per group, side by side where there is room. Stations
            are worked at separately, so keeping each one whole beats a
@@ -371,41 +309,6 @@ async function handleSubmit() {
           </div>
         </section>
       </div>
-
-      <button
-        type="button"
-        class="w-full rounded-xl bg-slate-100 py-2.5 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-200"
-        @click="resetFlow"
-      >
-        Back
-      </button>
-    </UiBaseCard>
-
-    <!-- Scan step — a real form element so Enter submits natively, which is
-         what the Enter terminator on a handheld scanner sends. -->
-    <UiBaseCard v-else-if="step === 'scan'">
-      <form class="space-y-3" @submit.prevent="handleScanSubmit">
-        <span class="inline-flex items-center rounded-lg bg-slate-200 px-3 py-1.5 text-sm font-semibold text-[#0F1F52]">
-          Custom Task
-        </span>
-        <UiBaseInput
-          :id="SCAN_INPUT_ID"
-          v-model="scanValue"
-          label="Control Task Code"
-          placeholder="Waiting for scan…"
-        />
-        <button
-          type="button"
-          class="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#01ADEF]/40 bg-white px-6 py-3 text-sm font-semibold text-[#01ADEF] transition-all hover:bg-[#01ADEF]/5 active:scale-[0.99]"
-          @click="showScanner = true"
-        >
-          <Camera class="h-4 w-4" />
-          Scan with camera
-        </button>
-        <UiBaseButton type="submit" full-width variant="gradient">
-          Confirm
-        </UiBaseButton>
-      </form>
     </UiBaseCard>
 
     <!-- Review + submit -->
@@ -439,12 +342,6 @@ async function handleSubmit() {
       </UiBaseButton>
     </UiBaseCard>
 
-    <UiQrScannerModal
-      v-model="showScanner"
-      title="Scan Control Task QR"
-      hint="Point the camera at the Control Task QR label"
-      @scanned="handleCameraScanned"
-    />
 
     <!-- Current Queue — one card per released task still in flight, cleared
          a few seconds after its status goes terminal. -->
