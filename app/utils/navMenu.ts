@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, FolderKanban, BarChart3, User, Construction, Bot, MessageCircleCode, BatteryFull, ShoppingCart, LandPlot, Settings, Bell, Map as MapIcon,
+  LayoutDashboard, Users, FolderKanban, BarChart3, User, Construction, Bot, MessageCircleCode, BatteryFull, ShoppingCart, LandPlot, Settings, Bell, Map as MapIcon, Cpu,
 } from 'lucide-vue-next'
 
 export interface MenuChild { title: string, path: string, permission: string | null }
@@ -61,6 +61,15 @@ export const NAV_MENUS: MenuEntry[] = [
       { title: 'Webhook Logs', path: '/dashboard/webhook-logs', permission: 'logs.read' },
       { title: 'Alarm Logs', path: '/dashboard/alarm-logs', permission: 'robot-alarm.read' },
       { title: 'AGV Logs', path: '/dashboard/agv-logs', permission: 'agv-log.read' },
+    ],
+  },
+  {
+    title: 'PLC',
+    icon: Cpu,
+    children: [
+      { title: 'PLC Monitor', path: '/dashboard/plc', permission: 'plc.read' },
+      { title: 'PLC Devices', path: '/dashboard/plc-devices', permission: 'plc.read' },
+      { title: 'PLC Tags', path: '/dashboard/plc-tags', permission: 'plc.read' },
     ],
   },
   { label: 'Master Area' },

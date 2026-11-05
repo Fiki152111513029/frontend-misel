@@ -1,0 +1,1 @@
+saya ingin bertanya soalnya ini terkait sistem yang saya integrasikan dengan plc dan rfid yang pertama jelaskan dulu terkait plc dan rfid lalu fungsinya apa dan juga kegunaan nya apa kalau dipasangkan di agv soalnya gini saya nanti akan mengambil data dan menampilkan data dari plc kira kira apa ya yang harus saya pelajari dan lakukan 

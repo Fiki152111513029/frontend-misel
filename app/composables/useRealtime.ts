@@ -1,4 +1,5 @@
 import { io, type Socket } from 'socket.io-client'
+import type { PlcDeviceSnapshot } from '~/types/plc'
 
 /**
  * Replaces the per-page setInterval polling with a push from the server.
@@ -15,6 +16,11 @@ export type RealtimeTopic =
   | 'custom-tasks'
   | 'trolley-activities'
   | 'stock'
+  | 'agv-logs'
+  | 'settings'
+  // A PLC device or tag was added, edited or removed. The readings
+  // themselves do not come this way — see PLC_VALUES_EVENT below.
+  | 'plc'
 
 const REALTIME_EVENT = 'changed'
 
@@ -35,6 +41,17 @@ const ROBOT_POSITIONS_EVENT = 'robots:positions'
  * nothing to go and fetch afterwards.
  */
 const WAREHOUSE_NOTICE_EVENT = 'warehouse:notice'
+
+/**
+ * Live PLC readings, carrying the values rather than a signal.
+ *
+ * Same reasoning as robot positions: readings arrive about once a second,
+ * and as a signal every open screen would issue its own HTTP read on every
+ * tick — putting the cost of watching the floor on the number of people
+ * doing it. The server sends only when a value actually changed, plus a
+ * slow heartbeat, so a quiet factory costs almost nothing.
+ */
+const PLC_VALUES_EVENT = 'plc:values'
 
 export interface WarehouseNotice {
   kind:
@@ -81,6 +98,8 @@ interface RealtimeState {
   positionHandlers: Set<(robots: RobotPositionUpdate[]) => void>
   /** Subscribers to warehouse notices. */
   noticeHandlers: Set<(notice: WarehouseNotice) => void>
+  /** Subscribers to the PLC reading stream. */
+  plcHandlers: Set<(snapshot: PlcDeviceSnapshot) => void>
 }
 
 function state() {
@@ -90,6 +109,7 @@ function state() {
     handlers: new Map(),
     positionHandlers: new Set(),
     noticeHandlers: new Set(),
+    plcHandlers: new Set(),
   }))
 }
 
@@ -153,6 +173,10 @@ function ensureSocket() {
 
   socket.on(WAREHOUSE_NOTICE_EVENT, (notice: WarehouseNotice) => {
     for (const handler of realtime.value.noticeHandlers) handler(notice)
+  })
+
+  socket.on(PLC_VALUES_EVENT, (snapshot: PlcDeviceSnapshot) => {
+    for (const handler of realtime.value.plcHandlers) handler(snapshot)
   })
 
   realtime.value.socket = socket
@@ -234,6 +258,30 @@ export function useWarehouseNotices(
 
   onBeforeUnmount(() => {
     realtime.value.noticeHandlers.delete(onNotice)
+  })
+
+  return { connected: computed(() => realtime.value.connected) }
+}
+
+/**
+ * Subscribes to live PLC readings.
+ *
+ * One snapshot per device arrives whenever any of its values moved. Pair
+ * it with a single GET /plc/live on mount for the devices that have not
+ * changed since the page opened.
+ */
+export function usePlcValues(
+  onSnapshot: (snapshot: PlcDeviceSnapshot) => void,
+) {
+  const realtime = state()
+
+  onMounted(() => {
+    ensureSocket()
+    realtime.value.plcHandlers.add(onSnapshot)
+  })
+
+  onBeforeUnmount(() => {
+    realtime.value.plcHandlers.delete(onSnapshot)
   })
 
   return { connected: computed(() => realtime.value.connected) }
