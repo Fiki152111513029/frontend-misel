@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { PackageCheck, PackageOpen, RefreshCw, Truck } from 'lucide-vue-next'
-import type { BinStatus } from '~/types/checking-area'
+import type { BinStatus, CheckingAreaRow } from '~/types/checking-area'
 import type { WarehouseNotice } from '~/composables/useRealtime'
 import {
   isWarehouseNoticeUrgent,
@@ -11,42 +11,32 @@ import {
 definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'Checking Area — YAZAKI' })
 
-// Same single-column shape as the Custom Task scan page: pick one storage,
-// read what RCS says about it, correct it with one button. No area picker —
-// a Warehouse Location carries no area of its own, so the backend asks
-// every area and merges, rather than making the operator guess.
+// Every storage node as a button, colour-coded by what it holds.
+//
+// Replaces a search dropdown. The dropdown answered "what about this one?"
+// but hid the question the warehouse actually asks — which racks need
+// attention right now — behind a search box. As buttons the whole area
+// reads at a glance, and picking one is a tap instead of a search.
 const { hasPermission } = useAuth()
 const { items, loading, fetchRows, correctBin } = useCheckingArea()
 
 const selectedId = ref<string | null>(null)
-const selected = computed(() => items.value.find(row => row.id === selectedId.value) ?? null)
-
-// Searching happens inside the dropdown itself (UiSearchSelect), so the
-// page only has to hand it the full list — the location code rides along
-// as the hint so it is searchable too, not just the name.
-// Three different states read the same from an empty box, so say which:
-// still loading, nothing to choose from, or simply nothing chosen yet.
-const selectPlaceholder = computed(() => {
-  if (loading.value) return 'Loading…'
-  if (items.value.length === 0) return 'No warehouse locations'
-  return 'Select a storage to check'
-})
-
-const storageOptions = computed(() =>
-  items.value.map(row => ({
-    value: row.id,
-    label: row.name,
-    hint: row.iRaypleLocationCode,
-  })),
+const selected = computed(
+  () => items.value.find(row => row.id === selectedId.value) ?? null,
 )
 
+// Nothing is picked on purpose. Pre-selecting put a real location and its
+// bin status on screen that the operator never asked for — one stray tap
+// on Set Empty / Set Full and the wrong rack is corrected in RCS.
 onMounted(async () => {
-  // Nothing is picked on purpose. Pre-selecting the first storage put a
-  // real location and its bin status on screen that the operator never
-  // asked for — one stray click on Set Empty / Set Full and the wrong rack
-  // is corrected in RCS. They choose first, then act.
   await fetchRows(null)
 })
+
+function selectRow(row: CheckingAreaRow) {
+  // Tapping the chosen one again clears it, so there is a way back to
+  // "nothing selected" without reloading the page.
+  selectedId.value = selectedId.value === row.id ? null : row.id
+}
 
 // ---- Warehouse notices --------------------------------------------------
 // Custom Tasks that need something of this area: a rack prepared, or a slot
@@ -135,30 +125,81 @@ const { settings, load: loadSettings, binLabel } = useAppSettings()
 onMounted(() => loadSettings())
 useRealtime('settings', () => loadSettings({ force: true }))
 
-const statusLabel = computed(() => {
-  if (!selected.value) return '—'
-  if (selected.value.hasFinishGood) return binLabel(null, true)
-  if (selected.value.stockStatus === 'FULL') return binLabel('FULL')
-  if (selected.value.stockStatus === 'EMPTY') return binLabel('EMPTY')
+/** Which of the four states a node is in — the one place that decides. */
+type BinTone = 'finishGood' | 'full' | 'empty' | 'unknown'
+
+function toneOf(row: CheckingAreaRow): BinTone {
+  if (row.hasFinishGood) return 'finishGood'
+  if (row.stockStatus === 'FULL') return 'full'
+  if (row.stockStatus === 'EMPTY') return 'empty'
   return 'unknown'
-})
+}
 
-const statusClass = computed(() => {
-  if (selected.value?.hasFinishGood) return 'text-emerald-600'
-  if (selected.value?.stockStatus === 'FULL') return 'text-amber-600'
-  if (selected.value?.stockStatus === 'EMPTY') return 'text-sky-600'
-  return 'text-slate-400'
-})
+// Colour carries the status, so the grid reads as a board rather than a
+// list of names. Kept as whole class strings because Tailwind only keeps
+// classes it can see written out.
+const TONE_BUTTON: Record<BinTone, string> = {
+  finishGood: 'border-emerald-300 bg-emerald-50 text-emerald-700',
+  full: 'border-amber-300 bg-amber-50 text-amber-700',
+  empty: 'border-sky-200 bg-sky-50 text-sky-700',
+  unknown: 'border-[#E2E8F0] bg-white text-slate-400',
+}
 
+const TONE_TEXT: Record<BinTone, string> = {
+  finishGood: 'text-emerald-600',
+  full: 'text-amber-600',
+  empty: 'text-sky-600',
+  unknown: 'text-slate-400',
+}
+
+const TONE_DOT: Record<BinTone, string> = {
+  finishGood: 'bg-emerald-500',
+  full: 'bg-amber-500',
+  empty: 'bg-sky-400',
+  unknown: 'bg-slate-300',
+}
+
+function rowLabel(row: CheckingAreaRow): string {
+  return binLabel(row.stockStatus, row.hasFinishGood)
+}
+
+const statusLabel = computed(() =>
+  selected.value ? rowLabel(selected.value) : '—',
+)
+
+const statusClass = computed(() =>
+  selected.value ? TONE_TEXT[toneOf(selected.value)] : 'text-slate-400',
+)
+
+// The legend doubles as a count, which is what someone walking in wants to
+// know first: how many racks are waiting on them.
+const legend = computed(() => {
+  const counts: Record<BinTone, number> = {
+    finishGood: 0,
+    full: 0,
+    empty: 0,
+    unknown: 0,
+  }
+  for (const row of items.value) counts[toneOf(row)] += 1
+  return [
+    { tone: 'full' as const, label: settings.value['bin.label.full'], count: counts.full },
+    { tone: 'empty' as const, label: settings.value['bin.label.empty'], count: counts.empty },
+    { tone: 'finishGood' as const, label: settings.value['bin.label.finishGood'], count: counts.finishGood },
+    { tone: 'unknown' as const, label: 'Unknown', count: counts.unknown },
+  ].filter(entry => entry.count > 0)
+})
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-md space-y-4 px-4 py-6 sm:px-0">
+  <!-- Wider than the old single column: the point of the grid is that the
+       whole area is visible at once, and on a desktop that is many more
+       buttons per row. -->
+  <div class="mx-auto w-full max-w-4xl space-y-4 px-4 py-6 sm:px-0">
     <div class="flex items-start justify-between gap-3">
       <div>
         <h1 class="text-xl font-extrabold text-[#0F1F52] sm:text-2xl">Checking Area</h1>
         <p class="font-medium mt-1 text-sm text-slate-500">
-          What RCS believes this storage holds. Correct it when the floor says otherwise.
+          Tap a storage to see what RCS believes it holds, and correct it.
         </p>
       </div>
       <button
@@ -171,9 +212,9 @@ const statusClass = computed(() => {
       </button>
     </div>
 
-    <!-- Warehouse notices. Above the picker on purpose: they are the
-         reason someone opens this page in a hurry, and the held ones are
-         asking for something to be done right now. -->
+    <!-- Warehouse notices. Above the grid on purpose: they are the reason
+         someone opens this page in a hurry, and the held ones are asking
+         for something to be done right now. -->
     <div v-if="notices.length > 0" class="space-y-2">
       <div
         v-for="notice in notices"
@@ -213,59 +254,100 @@ const statusClass = computed(() => {
       </div>
     </div>
 
-    <UiSearchSelect
-      v-model="selectedId"
-      :options="storageOptions"
-      :disabled="items.length === 0"
-      :placeholder="selectPlaceholder"
-      search-placeholder="Search storage by name or code"
-      empty-text="No storage matches that search"
-    />
-
-    <UiBaseCard v-if="selected" class="space-y-3">
-      <div class="flex items-baseline gap-2 text-sm">
-        <span class="w-16 shrink-0 font-medium text-slate-400">Name</span>
-        <span class="font-semibold text-[#0F1F52]">{{ selected.name }}</span>
-      </div>
-      <div class="flex items-baseline gap-2 text-sm">
-        <span class="w-16 shrink-0 font-medium text-slate-400">Node</span>
-        <span class="font-mono font-semibold text-[#0F1F52]">{{ selected.iRaypleLocationCode }}</span>
-      </div>
-      <div class="flex items-baseline gap-2 text-sm">
-        <span class="w-16 shrink-0 font-medium text-slate-400">Status</span>
-        <span class="font-semibold capitalize" :class="statusClass">{{ statusLabel }}</span>
-      </div>
-    </UiBaseCard>
-
-    <template v-if="selected && hasPermission('checking-area.update')">
-      <!-- Only the opposite of what RCS holds is offered — resending the
-           status it already has would change nothing. A bin RCS says
-           nothing about gets both, since either could be the truth. -->
-      <UiBaseButton
-        v-if="selected.stockStatus !== 'EMPTY' || selected.hasFinishGood"
-        full-width
-        variant="gradient"
-        :loading="submitting"
-        @click="correct('EMPTY')"
+    <!-- Legend and tally in one. Only the states actually present are
+         listed, so it does not grow into four rows that mean nothing. -->
+    <div v-if="legend.length > 0" class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+      <span
+        v-for="entry in legend"
+        :key="entry.tone"
+        class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500"
       >
-        <PackageOpen class="mr-2 h-4 w-4" />
-        Set: {{ settings['bin.label.empty'] }}
-      </UiBaseButton>
+        <span class="h-2 w-2 shrink-0 rounded-full" :class="TONE_DOT[entry.tone]" />
+        {{ entry.label }}
+        <span class="font-bold text-[#0F1F52]">{{ entry.count }}</span>
+      </span>
+    </div>
 
-      <UiBaseButton
-        v-if="selected.stockStatus !== 'FULL'"
-        full-width
-        :variant="selected.stockStatus === 'EMPTY' ? 'gradient' : 'secondary'"
-        :loading="submitting"
-        @click="correct('FULL')"
-      >
-        <PackageCheck class="mr-2 h-4 w-4" />
-        Set: {{ settings['bin.label.full'] }}
-      </UiBaseButton>
-    </template>
-
-    <p v-else-if="selected" class="text-center text-xs font-medium text-slate-400">
-      You do not have permission to change bin status.
+    <p v-if="loading && items.length === 0" class="py-12 text-center text-sm text-slate-400">
+      Loading…
     </p>
+
+    <p
+      v-else-if="items.length === 0"
+      class="rounded-2xl border border-dashed border-[#E2E8F0] py-12 text-center text-sm text-slate-400"
+    >
+      No warehouse locations configured.
+    </p>
+
+    <!-- Packed tight so a whole warehouse fits without a long scroll on a
+         phone: one short line per button, four to a row at phone width. -->
+    <div v-else class="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-8">
+      <button
+        v-for="row in items"
+        :key="row.id"
+        type="button"
+        class="rounded-xl border px-1 py-2.5 text-center transition-all active:scale-[0.97]"
+        :class="[
+          TONE_BUTTON[toneOf(row)],
+          selectedId === row.id ? 'ring-2 ring-[#01ADEF] ring-offset-1' : '',
+        ]"
+        :title="`${row.name} — ${rowLabel(row)}`"
+        @click="selectRow(row)"
+      >
+        <span class="block truncate font-mono text-[11px] font-bold leading-tight">
+          {{ row.iRaypleLocationCode }}
+        </span>
+      </button>
+    </div>
+
+    <!-- The detail panel only exists once something is chosen, so the
+         action buttons can never be tapped against nothing. -->
+    <template v-if="selected">
+      <UiBaseCard class="space-y-3">
+        <div class="flex items-baseline gap-2 text-sm">
+          <span class="w-16 shrink-0 font-medium text-slate-400">Name</span>
+          <span class="font-semibold text-[#0F1F52]">{{ selected.name }}</span>
+        </div>
+        <div class="flex items-baseline gap-2 text-sm">
+          <span class="w-16 shrink-0 font-medium text-slate-400">Node</span>
+          <span class="font-mono font-semibold text-[#0F1F52]">{{ selected.iRaypleLocationCode }}</span>
+        </div>
+        <div class="flex items-baseline gap-2 text-sm">
+          <span class="w-16 shrink-0 font-medium text-slate-400">Status</span>
+          <span class="font-semibold" :class="statusClass">{{ statusLabel }}</span>
+        </div>
+      </UiBaseCard>
+
+      <template v-if="hasPermission('checking-area.update')">
+        <!-- Only the opposite of what RCS holds is offered — resending the
+             status it already has would change nothing. A bin RCS says
+             nothing about gets both, since either could be the truth. -->
+        <UiBaseButton
+          v-if="selected.stockStatus !== 'EMPTY' || selected.hasFinishGood"
+          full-width
+          variant="gradient"
+          :loading="submitting"
+          @click="correct('EMPTY')"
+        >
+          <PackageOpen class="mr-2 h-4 w-4" />
+          Set: {{ settings['bin.label.empty'] }}
+        </UiBaseButton>
+
+        <UiBaseButton
+          v-if="selected.stockStatus !== 'FULL'"
+          full-width
+          :variant="selected.stockStatus === 'EMPTY' ? 'gradient' : 'secondary'"
+          :loading="submitting"
+          @click="correct('FULL')"
+        >
+          <PackageCheck class="mr-2 h-4 w-4" />
+          Set: {{ settings['bin.label.full'] }}
+        </UiBaseButton>
+      </template>
+
+      <p v-else class="text-center text-xs font-medium text-slate-400">
+        You do not have permission to change bin status.
+      </p>
+    </template>
   </div>
 </template>
