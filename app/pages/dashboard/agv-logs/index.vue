@@ -3,7 +3,7 @@ import { fetchAgvDeviceCodes, fetchAgvLogs } from '~/services/agv-log.service'
 import type { AgvLog, AgvLogListMeta } from '~/types/agv-log'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'ICS AGV Logs — YAZAKI' })
+useHead({ title: 'ICS AGV Logs — Ichii' })
 
 // Raw AGV reports RCS pushes to POST /agv-logs. Deliberately shows the
 // payload verbatim rather than mapping it into columns: the shape varies by

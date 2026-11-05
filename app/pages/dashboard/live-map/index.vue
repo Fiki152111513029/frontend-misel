@@ -2,7 +2,7 @@
 import { Maximize2, Minimize2 } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Live Map — YAZAKI' })
+useHead({ title: 'Live Map — Ichii' })
 
 // The Factory Map on its own, filling the screen. Same component the
 // Dashboard and Fleet Overview embed — the map is driven by realtime

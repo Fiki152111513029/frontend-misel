@@ -9,7 +9,7 @@ import {
 } from '~/utils/warehouseNotice'
 
 definePageMeta({ layout: 'dashboard' })
-useHead({ title: 'Checking Area — YAZAKI' })
+useHead({ title: 'Checking Area — Ichii' })
 
 // Every storage node as a button, colour-coded by what it holds.
 //
