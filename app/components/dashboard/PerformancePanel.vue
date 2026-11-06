@@ -4,6 +4,12 @@ import { fetchTaskStatusSummary } from '~/services/webhook-log.service'
 import { fetchTrolleyActivities } from '~/services/trolley-activity.service'
 import type { Robot } from '~/types/robot'
 
+// `fill` lets the panel stretch to whatever height its parent gives it,
+// instead of the fixed cap it uses when it sits beside the Dashboard's map.
+// Live Map pairs it with a full-height map, where a 600px cap would leave
+// the column ending halfway down the screen.
+const props = withDefaults(defineProps<{ fill?: boolean }>(), { fill: false })
+
 const { isDark } = useTheme()
 
 // Performance — the selected day's task breakdown read straight off RCS's
@@ -239,7 +245,8 @@ async function loadRequestQueue() {
 
 <template>
   <div
-    class="flex h-full max-h-[460px] flex-col overflow-y-auto rounded-2xl border border-[#E2E8F0] bg-white transition-colors duration-200 2xl:max-h-[600px]"
+    class="flex h-full flex-col overflow-y-auto rounded-2xl border border-[#E2E8F0] bg-white transition-colors duration-200"
+    :class="props.fill ? 'min-h-0' : 'max-h-[460px] 2xl:max-h-[600px]'"
   >
     <!-- Performance -->
     <section class="border-b border-[#E2E8F0] p-5">

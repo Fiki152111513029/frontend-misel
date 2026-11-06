@@ -99,18 +99,24 @@ const groupedTasks = computed(() => {
 })
 
 /**
- * Which headings are folded shut, by group name.
+ * Headings the operator has opened or shut by hand, by group name.
  *
- * Every group starts open — an operator opening the picker should see the
- * task they came for, not three closed lids. Folding is there for the
- * phone, where three stations' worth of buttons is a long scroll.
+ * Only the first group is open to begin with: the groups are stations, an
+ * operator works at one of them, and three open lids is a scroll past two
+ * stations' worth of buttons to reach the third. An absent entry means
+ * "never touched", which is why this is open/closed rather than a set of
+ * folded names — the default has to be able to differ per group.
  */
-const collapsedGroups = ref<Record<string, boolean>>({})
+const groupOpen = ref<Record<string, boolean>>({})
 
-function toggleGroup(name: string) {
-  collapsedGroups.value = {
-    ...collapsedGroups.value,
-    [name]: !collapsedGroups.value[name],
+function isGroupOpen(name: string, index: number): boolean {
+  return groupOpen.value[name] ?? index === 0
+}
+
+function toggleGroup(name: string, index: number) {
+  groupOpen.value = {
+    ...groupOpen.value,
+    [name]: !isGroupOpen(name, index),
   }
 }
 const submitting = ref(false)
@@ -131,7 +137,7 @@ function resetFlow() {
 async function loadMyTasks() {
   // Reopened fresh each time, so a group folded shut on the last task does
   // not hide the one being looked for now.
-  collapsedGroups.value = {}
+  groupOpen.value = {}
   loadingTasks.value = true
   try {
     myTasks.value = await fetchMyControlTasks()
@@ -253,24 +259,24 @@ async function handleSubmit() {
            are worked at separately, so keeping each one whole beats a
            single mixed list where the wrong task is one row away. -->
       <div v-else class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <section v-for="group in groupedTasks" :key="group.name" class="space-y-2.5">
+        <section v-for="(group, index) in groupedTasks" :key="group.name" class="space-y-2.5">
           <!-- Filled while open, outlined while folded, so the state reads
                from across the line without having to look for a chevron. -->
           <button
             type="button"
             class="flex w-full items-center justify-between gap-2 rounded-2xl border-2 px-4 py-3.5 text-left shadow-sm transition-all active:scale-[0.99]"
-            :style="collapsedGroups[group.name]
-              ? { borderColor: group.color, color: group.color, backgroundColor: '#FFFFFF' }
-              : { borderColor: group.color, backgroundColor: group.color, color: contrastText(group.color) }"
-            :aria-expanded="!collapsedGroups[group.name]"
-            @click="toggleGroup(group.name)"
+            :style="isGroupOpen(group.name, index)
+              ? { borderColor: group.color, backgroundColor: group.color, color: contrastText(group.color) }
+              : { borderColor: group.color, color: group.color, backgroundColor: '#FFFFFF' }"
+            :aria-expanded="isGroupOpen(group.name, index)"
+            @click="toggleGroup(group.name, index)"
           >
             <span class="min-w-0 flex-1 break-words text-center text-sm font-extrabold uppercase leading-tight tracking-wide">
               {{ group.name }}
             </span>
             <span class="flex shrink-0 items-center gap-1 text-xs font-bold opacity-80">
               {{ group.tasks.length }}
-              <component :is="collapsedGroups[group.name] ? ChevronDown : ChevronUp" class="h-4 w-4" />
+              <component :is="isGroupOpen(group.name, index) ? ChevronUp : ChevronDown" class="h-4 w-4" />
             </span>
           </button>
 
@@ -286,7 +292,7 @@ async function handleSubmit() {
                width; one per row from sm up, where the groups themselves
                have become columns and a second would be too narrow. -->
           <div
-            v-if="!collapsedGroups[group.name]"
+            v-if="isGroupOpen(group.name, index)"
             class="grid grid-cols-2 gap-2 sm:grid-cols-1"
           >
             <button
@@ -309,7 +315,11 @@ async function handleSubmit() {
                 >
                   {{ task.code }}
                 </span>
-                <span class="min-w-0 flex-1 break-words font-semibold leading-snug text-[#0F1F52]">
+                <!-- Deliberately below the body size: at two buttons to a
+                     row on a phone, 16px wraps a name like "Empty WRL31_LH"
+                     onto three lines and the button grows taller than the
+                     thumb that has to hit it. -->
+                <span class="min-w-0 flex-1 break-words text-[13px] font-semibold leading-snug text-[#0F1F52] sm:text-sm">
                   {{ task.name }}
                 </span>
               </span>
@@ -317,7 +327,7 @@ async function handleSubmit() {
                    wraps to four lines there and buries the name, which is
                    what the operator picks by. The confirm screen shows the
                    full route before anything is sent. -->
-              <span class="hidden break-all font-mono text-xs leading-snug text-slate-500 sm:block">
+              <span class="hidden break-all font-mono text-[11px] leading-snug text-slate-500 sm:block">
                 {{ task.route.join(' → ') }}
               </span>
             </button>

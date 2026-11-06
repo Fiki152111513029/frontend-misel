@@ -4,13 +4,17 @@ import { Maximize2, Minimize2 } from 'lucide-vue-next'
 definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'Live Map — Ichii' })
 
-// The Factory Map on its own, filling the screen. Same component the
-// Dashboard and Fleet Overview embed — the map is driven by realtime
-// signals inside it, so this page adds no fetching of its own and can
-// never disagree with those two about what it is showing.
+// The Factory Map with the Performance column beside it, and the fleet
+// table underneath. Same components the Dashboard embeds — each fetches and
+// subscribes to realtime on its own, so this page adds no fetching and can
+// never disagree with the Dashboard about what it is showing.
+//
+// The AMR Performance chart is deliberately left out: it is a day's history
+// of alarm minutes per robot, which is a thing to read at a desk. This page
+// is for what is happening right now, and the Dashboard still carries it.
 //
 // Meant to be left open on a wall display, which is what the fullscreen
-// control below is for: it takes the map edge to edge, past the sidebar
+// control below is for: it takes the page edge to edge, past the sidebar
 // and the browser chrome.
 // 2D = the realtime SVG map; 3D = the Three.js factory model.
 const viewMode = ref<'2d' | '3d'>('2d')
@@ -43,11 +47,13 @@ onBeforeUnmount(() => {
 
 <template>
   <!-- -m-* cancels the dashboard layout's padding so the map reaches the
-       edges, and the height is the viewport minus the header strip above. -->
+       edges. The page scrolls now that the fleet table sits below the fold;
+       in fullscreen it has to scroll inside the fullscreen element, since
+       the document behind it is not the one on screen. -->
   <div
     ref="shellRef"
-    class="animate-fade-in -m-4 flex flex-col bg-white md:-m-6"
-    :class="isFullscreen ? 'h-screen p-3' : 'h-[calc(100vh-5.5rem)] p-4 md:p-6'"
+    class="animate-fade-in -m-4 bg-white md:-m-6"
+    :class="isFullscreen ? 'h-screen overflow-y-auto p-3' : 'p-4 md:p-6'"
   >
     <div class="mb-3 flex shrink-0 items-center justify-between gap-3">
       <div>
@@ -83,11 +89,31 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- min-h-0 so the map shrinks inside the flex column rather than
-         pushing the page into a scrollbar. -->
-    <div class="min-h-0 flex-1">
-      <DashboardFactoryMap v-if="viewMode === '2d'" fill />
-      <DashboardFactoryMap3D v-else />
+    <!-- Map and Performance fill the first screenful between them, so the
+         pair reads as one board rather than two cards to scroll between.
+         The height is only set from lg up: stacked on a phone, a shared
+         height would squash both into strips. -->
+    <div
+      class="flex flex-col gap-4 lg:flex-row"
+      :class="isFullscreen ? 'lg:h-[calc(100vh-7.5rem)]' : 'lg:h-[calc(100vh-11.5rem)]'"
+    >
+      <!-- min-h-0 so the map shrinks to the row's height instead of
+           pushing it taller from the inside. -->
+      <div class="h-[60vh] min-h-[360px] lg:h-auto lg:min-h-0 lg:flex-1">
+        <DashboardFactoryMap v-if="viewMode === '2d'" fill />
+        <DashboardFactoryMap3D v-else />
+      </div>
+
+      <!-- Fixed width rather than a grid fraction: Performance is a column
+           of labelled rows, and it reads the same at 400px whether the map
+           beside it is on a laptop or a wall display. -->
+      <div class="w-full shrink-0 lg:w-[360px] xl:w-[420px]">
+        <DashboardPerformancePanel fill />
+      </div>
+    </div>
+
+    <div class="mt-4 rounded-2xl shadow-xl shadow-slate-300/70">
+      <DashboardFleetStatusTable />
     </div>
   </div>
 </template>
