@@ -51,10 +51,15 @@ function loadGltfCached(loader, url) {
  *   persis (allPath / chargeCoor / nodeArr / nodeKeys), jadi cukup berikan
  *   topologyUrl milik map tersebut. Model GLB dan decoder Draco tetap
  *   diambil dari baseUrl karena bukan bagian dari data map.
+ * @param initialView Sudut pandang awal, salah satu kunci `views` di bawah
+ *   ('reset' | 'top' | 'bottom' | 'front' | 'back' | 'left' | 'right').
+ *   Dipasang di sini, bukan dengan memanggil setView() dari komponen
+ *   setelah build: scene-nya dibangun asinkron, jadi panggilan dari luar
+ *   akan terlihat sebagai kamera yang melompat setelah peta muncul.
  */
 export function createFactoryMap3D(
   container,
-  { baseUrl = '/factory-3d', topologyUrl, onError, onReady } = {}
+  { baseUrl = '/factory-3d', topologyUrl, initialView = 'reset', onError, onReady } = {}
 ) {
   // 1. Ambil container HTML
 
@@ -570,10 +575,24 @@ export function createFactoryMap3D(
     // Robot yang sudah terdaftar mungkin sedang membawa rak tapi belum bisa
     // digambar karena modelnya belum ada — pasang sekarang.
     if (pendingRobots) setRobots(pendingRobots)
+    // Kode lokasi yang digambar peta ini. Dilaporkan dari sini karena di
+    // sinilah topologinya sudah ter-parse — memfetch ulang JSON-nya di
+    // komponen akan membuat sumber kebenaran kedua yang bisa menyimpang
+    // dari apa yang benar-benar tergambar. Panel di luar canvas yang
+    // disaring per kode lokasi (Charger Status, Request Queue) butuh ini;
+    // mereka tidak bisa pakai areaId karena Charger Area tidak punya.
+    const contentIdx = (keys || []).indexOf('content')
+    const nodeCodes = contentIdx === -1
+      ? []
+      : (topo.nodeArr || [])
+          .map((row) => String(row[contentIdx] ?? '').trim())
+          .filter(Boolean)
+
     onReady?.({
       nodes: (topo.nodeArr || []).length,
       paths: (topo.allPath || []).length,
       racks: slots.length,
+      nodeCodes,
       // Lebar dunia selalu dinormalkan ke 36 unit; kalau ini NaN berarti
       // koordinat topologinya tidak terbaca dan tidak ada yang tergambar.
       scale,
@@ -696,6 +715,11 @@ export function createFactoryMap3D(
     left: [-50, 8, 0],
     right: [50, 8, 0]
   }
+
+  // Kamera dibuat di atas dengan sudut isometrik; kalau pemanggil minta
+  // sudut lain, pasang sekarang — ini masih bagian sinkron dari init, jadi
+  // frame pertama sudah digambar dari sudut yang benar.
+  setView(...(views[initialView] ?? views.reset))
 
   // 11. Responsif ketika ukuran browser berubah
   function resizeRenderer() {

@@ -6,6 +6,7 @@
 //
 // The three.js module is imported dynamically in onMounted so nothing
 // WebGL-related is touched during SSR.
+import { fetchLocationCodes } from '~/services/factory-map.service'
 import { fetchRobots } from '~/services/robot.service'
 import { fetchActiveAlarmDeviceNames } from '~/services/robot-alarm.service'
 
@@ -41,7 +42,15 @@ const loadError = ref<{ message: string, url: string } | null>(null)
 // What the engine actually built. Null means the topology never arrived —
 // which looks identical on screen to geometry that loaded but is out of
 // the camera's view, so it has to be stated rather than guessed at.
-const built = ref<{ nodes: number, paths: number, racks: number, scale: number } | null>(null)
+interface BuiltInfo {
+  nodes: number
+  paths: number
+  racks: number
+  scale: number
+  /** Every `content` value in the topology, including unregistered ids. */
+  nodeCodes: string[]
+}
+const built = ref<BuiltInfo | null>(null)
 let api: MapApi | null = null
 // Two builds can overlap: onMounted starts one and the selectedMap watcher
 // starts another in the same tick. Without a token the slower one finishes
@@ -64,6 +73,41 @@ const VIEWS = [
 // and RCS stock status for which racks are occupied. Nothing here polls —
 // each load runs on the server signal that says its data changed.
 const dashboardFilters = useDashboardFiltersStore()
+
+// Real location codes (Charger Areas, Parking Areas, Line/EXIM/Quarantine
+// locations...) — the same lookup the 2D map filters its markers by. A
+// topology node only counts as a location if its `content` is one of
+// these; the rest are internal ids like "BASE0000".
+const registeredCodes = ref<Set<string>>(new Set())
+
+async function loadLocationCodes() {
+  try {
+    registeredCodes.value = new Set((await fetchLocationCodes()).codes)
+  } catch {
+    // Non-fatal — the scene still renders, and the publish below simply
+    // reports an empty set rather than hanging the panels on "loading".
+  }
+}
+
+// Publish the nodes this map draws, by exactly the rule the 2D map uses.
+// Without this, Charger Status and Request Queue sit at "Loading this
+// map…" forever in 3D: those two are scoped by location code rather than
+// areaId (a Charger Area has no areaId), setArea() below empties the set
+// so the previous map's nodes cannot leak into this one, and nothing
+// refilled it. Fires again when either side arrives, so the set converges
+// instead of being read once too early.
+//
+// `true` regardless of whether the code lookup landed, same as 2D: a
+// failed lookup should read as "no charger area on this map", not as a
+// panel still waiting for something that is not coming.
+watch([() => built.value?.nodeCodes, registeredCodes], ([nodeCodes]) => {
+  if (!nodeCodes) return
+  dashboardFilters.setMapLocationCodes(
+    new Set(nodeCodes.filter(code => registeredCodes.value.has(code))),
+    true,
+  )
+}, { immediate: true })
+
 const alarmDeviceNames = ref<Set<string>>(new Set())
 const robotCount = ref(0)
 // Positions carry ids, not names or device serials. These two lookups are
@@ -173,10 +217,14 @@ async function buildScene() {
 
   api = createFactoryMap3D(containerRef.value, {
     topologyUrl: selectedMap.value?.topologyUrl,
+    // Straight down. This view is what the floor is read from — an
+    // isometric start looks better in a screenshot but hides whichever
+    // aisle the racks in front happen to stand in.
+    initialView: 'top',
     onError: (message: string, url: string) => {
       if (token === buildToken) loadError.value = { message, url }
     },
-    onReady: (info: { nodes: number, paths: number, racks: number, scale: number }) => {
+    onReady: (info: BuiltInfo) => {
       if (token === buildToken) built.value = info
     },
   })
@@ -190,11 +238,18 @@ function selectMap(id: string) {
   selectedMapId.value = id
 }
 
+// Charger/Parking/Line codes only change when someone edits master data,
+// so this stays on a slow timer rather than earning a realtime topic — the
+// same cadence the 2D map uses, since this page is meant to be left open.
+const LOCATION_CODES_POLL_MS = 60_000
+let locationCodesPollTimer: ReturnType<typeof setInterval> | null = null
+
 onMounted(async () => {
-  await fetchFactoryMaps({ limit: 100 })
+  await Promise.all([fetchFactoryMaps({ limit: 100 }), loadLocationCodes()])
   if (unmounted) return
   if (factoryMaps.value[0]) selectedMapId.value = factoryMaps.value[0].id
   await buildScene()
+  locationCodesPollTimer = setInterval(loadLocationCodes, LOCATION_CODES_POLL_MS)
 })
 
 // Publish the chosen area the same way the 2D map does, so the robot and
@@ -211,6 +266,10 @@ watch(selectedMap, (map) => {
 
 onBeforeUnmount(() => {
   unmounted = true
+  if (locationCodesPollTimer) {
+    clearInterval(locationCodesPollTimer)
+    locationCodesPollTimer = null
+  }
   api?.dispose()
   api = null
 })

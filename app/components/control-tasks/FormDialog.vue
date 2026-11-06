@@ -34,6 +34,7 @@ const name = ref('')
 const groupName = ref('')
 const colorCode = ref('')
 const groupColor = ref('')
+const lineStatusEnabled = ref(false)
 const modelCodeProcessId = ref('')
 const route = ref<string[]>([])
 const isActive = ref(true)
@@ -60,6 +61,7 @@ function resetFields() {
   groupName.value = props.controlTask?.groupName ?? ''
   colorCode.value = props.controlTask?.colorCode ?? ''
   groupColor.value = props.controlTask?.groupColor ?? ''
+  lineStatusEnabled.value = props.controlTask?.lineStatusEnabled ?? false
   route.value = [...(props.controlTask?.route ?? [])]
   isActive.value = props.controlTask?.isActive ?? true
   userIds.value = (props.controlTask?.assignees ?? []).map(a => a.user.id)
@@ -141,6 +143,7 @@ function handleSubmit() {
     groupName: groupName.value.trim() || null,
     colorCode: colorCode.value.trim() || null,
     groupColor: groupColor.value.trim() || null,
+    lineStatusEnabled: lineStatusEnabled.value,
     modelCodeProcessId: modelCodeProcessId.value,
     route: route.value,
     isActive: isActive.value,
@@ -219,6 +222,21 @@ const selectClass
         <p v-else class="text-xs text-slate-500">
           Colours the whole group heading in Custom Task — setting it on any
           one task in the group is enough.
+        </p>
+      </div>
+
+      <!-- Asked per task but applied per group, exactly like Group Colour
+           above, and for the same reason: a group is a shared name with no
+           row of its own to store anything on. -->
+      <div class="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
+        <UiBaseCheckbox v-model="lineStatusEnabled" label="Line status buttons" />
+        <p class="mt-1 text-xs text-slate-500">
+          Adds four buttons below this group's tasks in Custom Task —
+          <span class="font-semibold">Saat Ini Running LH / RH</span> and
+          <span class="font-semibold">Request Ganti LH / RH</span>. Pressing
+          one announces it on the Checking Area board. Setting it on any one
+          task in the group is enough; leave it off and the group has no
+          such buttons.
         </p>
       </div>
 

@@ -19,6 +19,12 @@ export interface ControlTask {
   colorCode: string | null
   /** Colour of the group heading as #RRGGBB. Null = the default blue. */
   groupColor: string | null
+  /**
+   * Show the four line-status buttons at the foot of this task's group in
+   * Custom Task. Read per group: any one member turning it on shows them
+   * for the whole group, the same way groupColor works.
+   */
+  lineStatusEnabled: boolean
   modelCodeProcessId: string
   modelCodeProcess: ControlTaskModelCodeProcess | null
   /** The legs in the order the operator chose — repeats are allowed. */
@@ -39,6 +45,7 @@ export interface CreateControlTaskInput {
   groupName?: string | null
   colorCode?: string | null
   groupColor?: string | null
+  lineStatusEnabled?: boolean
   modelCodeProcessId: string
   route: string[]
   isActive?: boolean

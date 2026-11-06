@@ -16,9 +16,11 @@ useHead({ title: 'Live Map — Ichii' })
 // Meant to be left open on a wall display, which is what the fullscreen
 // control below is for: it takes the page edge to edge, past the sidebar
 // and the browser chrome.
-// 2D = the realtime SVG map; 3D = the Three.js factory model.
-const viewMode = ref<'2d' | '3d'>('2d')
-
+//
+// 3D only. There used to be a 2D/3D switch here, but the two draw the same
+// topology from the same realtime channels, and the Dashboard already
+// carries the 2D map — a toggle that lands on the same floor twice is one
+// more thing to leave on the wrong setting on a wall display.
 const shellRef = ref<HTMLElement | null>(null)
 const isFullscreen = ref(false)
 
@@ -64,19 +66,6 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="flex items-center gap-2">
-        <div class="inline-flex overflow-hidden rounded-xl border border-[#E2E8F0] bg-white text-sm font-semibold">
-          <button
-            v-for="mode in (['2d', '3d'] as const)"
-            :key="mode"
-            type="button"
-            class="px-4 py-2.5 transition-colors"
-            :class="viewMode === mode ? 'bg-[#01ADEF] text-white' : 'text-[#0F1F52] hover:text-[#01ADEF]'"
-            @click="viewMode = mode"
-          >
-            {{ mode.toUpperCase() }}
-          </button>
-        </div>
-
         <button
           type="button"
           class="inline-flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-semibold text-[#0F1F52] transition-colors hover:border-[#01ADEF] hover:text-[#01ADEF]"
@@ -100,8 +89,7 @@ onBeforeUnmount(() => {
       <!-- min-h-0 so the map shrinks to the row's height instead of
            pushing it taller from the inside. -->
       <div class="h-[60vh] min-h-[360px] lg:h-auto lg:min-h-0 lg:flex-1">
-        <DashboardFactoryMap v-if="viewMode === '2d'" fill />
-        <DashboardFactoryMap3D v-else />
+        <DashboardFactoryMap3D />
       </div>
 
       <!-- Fixed width rather than a grid fraction: Performance is a column

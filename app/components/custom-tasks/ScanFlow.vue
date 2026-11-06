@@ -1,8 +1,16 @@
 <script setup lang="ts">
 import { Ban, ChevronDown, ChevronUp, Clock, Route as RouteIcon } from 'lucide-vue-next'
+import { ApiError } from '~/types/api'
 import { fetchMyControlTasks } from '~/services/custom-task.service'
+import { raiseLineStatus } from '~/services/line-status.service'
 import { taskStatusLabel } from '~/utils/taskStatus'
+import {
+  LINE_STATUS_KINDS,
+  lineStatusButtonLabel,
+  lineStatusColor,
+} from '~/utils/lineStatus'
 import type { CustomTaskPreview, MyControlTask } from '~/types/custom-task'
+import type { LineStatusKind } from '~/types/line-status'
 
 // Two steps: pick one of the tasks registered to you, confirm what it
 // resolves to, send it.
@@ -74,13 +82,30 @@ function contrastText(hex: string): string {
   return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? '#0F1F52' : '#FFFFFF'
 }
 
+interface TaskGroup {
+  /** What the heading reads. Ungrouped tasks collect under "Other". */
+  name: string
+  /**
+   * The group as the server knows it, or null for the "Other" bucket.
+   * The line-status buttons key off this: "Other" is not a line, so a
+   * stray task with the flag on must not be able to announce for it.
+   */
+  rawName: string | null
+  color: string
+  /** Any member switching the four line buttons on turns them on here. */
+  lineStatus: boolean
+  tasks: MyControlTask[]
+}
+
 const groupedTasks = computed(() => {
-  const groups: { name: string, color: string, tasks: MyControlTask[] }[] = []
+  const groups: TaskGroup[] = []
   for (const task of myTasks.value) {
-    const name = task.groupName?.trim() || 'Other'
+    const rawName = task.groupName?.trim() || null
+    const name = rawName || 'Other'
     const last = groups[groups.length - 1]
     if (last && last.name === name) {
       last.tasks.push(task)
+      last.lineStatus = last.lineStatus || task.lineStatusEnabled
       // First one wins: the colour is stored on every task in the group
       // (there is no group row to hang it off), so a later member leaving
       // it blank must not blank out a heading already coloured.
@@ -90,7 +115,9 @@ const groupedTasks = computed(() => {
     } else {
       groups.push({
         name,
+        rawName,
         color: safeColor(task.groupColor) ?? DEFAULT_TASK_COLOR,
+        lineStatus: task.lineStatusEnabled,
         tasks: [task],
       })
     }
@@ -165,6 +192,40 @@ async function pickTask(task: MyControlTask) {
 
 function changeTask() {
   resetFlow()
+}
+
+/**
+ * One of the four buttons at the foot of a registered group.
+ *
+ * No confirm step, unlike dispatching a task: this announces a fact on a
+ * board, and the fix for a mis-press is pressing the right one a second
+ * later. A task gets a confirm screen because it sends an AMR somewhere.
+ *
+ * Only one in flight at a time so a double tap cannot race two presses
+ * into the same row — the server takes the last writer, and losing that
+ * race would leave the board saying the opposite of the last button hit.
+ */
+const pendingLineStatus = ref<string | null>(null)
+
+async function pressLineStatus(
+  // Nullable because the caller is a v-for row whose group may be the
+  // "Other" bucket. Guarded here rather than relying on the template's
+  // v-if to narrow it, which it does not do through an event handler.
+  groupName: string | null,
+  kind: LineStatusKind,
+) {
+  if (!groupName || pendingLineStatus.value) return
+  pendingLineStatus.value = `${groupName}:${kind}`
+  try {
+    await raiseLineStatus({ groupName, kind })
+    toast.success(`${groupName} — ${lineStatusButtonLabel(kind)}`)
+  } catch (e) {
+    toast.error(
+      e instanceof ApiError ? e.message : 'Gagal mengirim status line',
+    )
+  } finally {
+    pendingLineStatus.value = null
+  }
 }
 
 // Only one cancel at a time, so a double tap cannot fire two requests at
@@ -331,6 +392,32 @@ async function handleSubmit() {
                 {{ task.route.join(' → ') }}
               </span>
             </button>
+          </div>
+
+          <!-- The four line-status buttons, only for a group an admin
+               registered them on. Below the tasks and separated by a rule,
+               because they are a different act: a task sends an AMR, these
+               only tell the warehouse board what this line is doing.
+               Kept two to a row at every width — the labels are short and
+               the pairs read as LH beside RH, which is how the line thinks
+               about them. -->
+          <div
+            v-if="isGroupOpen(group.name, index) && group.lineStatus && group.rawName"
+            class="space-y-2 border-t border-dashed border-[#E2E8F0] pt-2.5"
+          >
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                v-for="kind in LINE_STATUS_KINDS"
+                :key="kind"
+                type="button"
+                class="rounded-xl px-3 py-3 text-center text-[13px] font-extrabold uppercase leading-tight tracking-wide text-white shadow-sm transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+                :style="{ backgroundColor: lineStatusColor(kind) }"
+                :disabled="pendingLineStatus !== null"
+                @click="pressLineStatus(group.rawName, kind)"
+              >
+                {{ lineStatusButtonLabel(kind) }}
+              </button>
+            </div>
           </div>
         </section>
       </div>
