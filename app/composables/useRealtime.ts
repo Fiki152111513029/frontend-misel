@@ -21,6 +21,10 @@ export type RealtimeTopic =
   // A PLC device or tag was added, edited or removed. The readings
   // themselves do not come this way — see PLC_VALUES_EVENT below.
   | 'plc'
+  // A production line announced something about itself, or the warehouse
+  // cleared it. A signal, not the data: unlike a warehouse notice this one
+  // is stored, so there is an endpoint to refetch.
+  | 'line-status'
 
 const REALTIME_EVENT = 'changed'
 

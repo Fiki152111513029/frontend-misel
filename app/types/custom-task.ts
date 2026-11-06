@@ -26,6 +26,12 @@ export interface MyControlTask {
    * only a shared `groupName` string, with no row of its own to carry it.
    */
   groupColor: string | null
+  /**
+   * Whether this task's group also shows the four line-status buttons.
+   * Repeated on every task in the group for the same reason as
+   * groupColor; the picker shows them if any one member says so.
+   */
+  lineStatusEnabled: boolean
   route: string[]
   modelProcessCode: string
 }

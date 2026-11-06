@@ -1,7 +1,14 @@
 <script setup lang="ts">
-import { PackageCheck, PackageOpen, RefreshCw, Truck } from 'lucide-vue-next'
+import { PackageCheck, PackageOpen, RefreshCw, Truck, X } from 'lucide-vue-next'
 import type { BinStatus, CheckingAreaRow } from '~/types/checking-area'
 import type { WarehouseNotice } from '~/composables/useRealtime'
+import type { LineStatus } from '~/types/line-status'
+import { clearLineStatus, fetchLineStatuses } from '~/services/line-status.service'
+import {
+  isLineStatusActionable,
+  lineStatusBoardText,
+  lineStatusColor,
+} from '~/utils/lineStatus'
 import {
   isWarehouseNoticeActionable,
   isWarehouseNoticeUrgent,
@@ -50,9 +57,7 @@ const MAX_NOTICES = 20
 // same task; only the first of each kind is worth showing.
 const seenNotices = new Set<string>()
 
-function playNoticeSound(notice: WarehouseNotice) {
-  const src = warehouseNoticeSound(notice)
-  if (!src) return
+function playSound(src: string) {
   try {
     // Browsers block audio until the page has been interacted with, and
     // that rejection is expected rather than a fault — the notice is still
@@ -61,6 +66,11 @@ function playNoticeSound(notice: WarehouseNotice) {
   } catch {
     // No Audio support at all; the visual notice stands on its own.
   }
+}
+
+function playNoticeSound(notice: WarehouseNotice) {
+  const src = warehouseNoticeSound(notice)
+  if (src) playSound(src)
 }
 
 useWarehouseNotices((notice) => {
@@ -103,6 +113,62 @@ const urgentCount = computed(
 function noticeTime(iso: string) {
   return new Date(iso).toLocaleTimeString('en-GB', { hour12: false })
 }
+
+// ---- Line status board --------------------------------------------------
+// What each production line is saying about itself, from the four buttons
+// at the foot of its group in Custom Task. Unlike the warehouse notices
+// above, this is state rather than events: it is fetched on load, so a
+// screen switched on mid-shift already knows WRL31 is running LH.
+const lineStatuses = ref<LineStatus[]>([])
+// Which announcements this screen has already rung for, so a refetch
+// triggered by something else does not sound the alarm a second time for
+// the same press. Keyed by line and timestamp — a new press of the SAME
+// button updates `at`, and that is a real repeat worth hearing.
+const heardLineStatuses = new Set<string>()
+const clearingLine = ref<string | null>(null)
+
+// Nothing rings on the first read. Those announcements were made before
+// this screen was even switched on, and opening the page to four alarms
+// would teach the floor to ignore the sound by the end of the shift.
+let boardLoaded = false
+
+async function loadLineStatuses() {
+  try {
+    const items = await fetchLineStatuses()
+    lineStatuses.value = items
+    for (const status of items) {
+      const key = `${status.groupName}:${status.at}`
+      if (heardLineStatuses.has(key)) continue
+      heardLineStatuses.add(key)
+      if (boardLoaded && isLineStatusActionable(status.kind)) {
+        playSound('/ringtone/amr.wav')
+      }
+    }
+    boardLoaded = true
+  } catch {
+    // Non-fatal — the bin grid below is the page's real job, and a failed
+    // board read must not take it down with it.
+  }
+}
+
+async function dismissLineStatus(groupName: string) {
+  if (clearingLine.value) return
+  clearingLine.value = groupName
+  try {
+    await clearLineStatus(groupName)
+    lineStatuses.value = lineStatuses.value.filter(
+      status => status.groupName !== groupName,
+    )
+  } catch {
+    // Left on screen on purpose: it is still true on the server, and
+    // hiding it here would only disagree with the next refetch.
+  } finally {
+    clearingLine.value = null
+  }
+}
+
+onMounted(() => loadLineStatuses())
+useRealtime('line-status', () => loadLineStatuses())
 
 // Pushed from the server instead of polled — see useRealtime.
 useRealtime(['stock', 'tasks'], () => fetchRows(null, { silent: true }))
@@ -240,6 +306,41 @@ const legend = computed(() => {
       >
         <RefreshCw class="h-4 w-4" :class="loading ? 'animate-spin' : ''" />
       </button>
+    </div>
+
+    <!-- What each line is saying about itself. Above the warehouse
+         notices because it is standing state rather than a stream of
+         events: the board answers "where is every line right now", and
+         burying that under the newest task notice would mean scrolling
+         for it. Full-width colour bars, blue for LH and red for RH, so
+         the side reads from across the warehouse without reading words. -->
+    <div v-if="lineStatuses.length > 0" class="space-y-2">
+      <div
+        v-for="status in lineStatuses"
+        :key="status.groupName"
+        class="flex items-center gap-3 rounded-xl px-4 py-3 shadow-sm"
+        :style="{ backgroundColor: lineStatusColor(status.kind) }"
+      >
+        <p class="min-w-0 flex-1 break-words text-center text-sm font-extrabold uppercase leading-tight tracking-wide text-white sm:text-base">
+          {{ lineStatusBoardText(status.groupName, status.kind) }}
+        </p>
+        <span class="shrink-0 text-[11px] font-semibold text-white/80">
+          {{ noticeTime(status.at) }}
+        </span>
+        <!-- Clearing is a correction, not an acknowledgement: it deletes
+             the line's current state, so it sits behind the same
+             permission as correcting a bin. -->
+        <button
+          v-if="hasPermission('checking-area.update')"
+          type="button"
+          class="shrink-0 rounded-lg p-1.5 text-white/80 transition-colors hover:bg-white/20 hover:text-white disabled:opacity-40"
+          :disabled="clearingLine !== null"
+          :aria-label="`Clear ${status.groupName}`"
+          @click="dismissLineStatus(status.groupName)"
+        >
+          <X class="h-4 w-4" />
+        </button>
+      </div>
     </div>
 
     <!-- Warehouse notices. Above the grid on purpose: they are the reason
