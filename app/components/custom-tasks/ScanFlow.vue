@@ -298,8 +298,13 @@ async function handleSubmit() {
               @click="pickTask(task)"
             >
               <span class="flex items-start gap-2">
+                <!-- Hidden on a phone: at two buttons to a row the chip
+                     takes a third of the width and pushes the name, which
+                     is what the operator reads, into a narrow column. The
+                     task's colour still shows on the left bar, and the
+                     code is on the confirm screen. -->
                 <span
-                  class="mt-0.5 shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold leading-tight"
+                  class="mt-0.5 hidden shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold leading-tight sm:block"
                   :style="{ backgroundColor: taskColor(task), color: contrastText(taskColor(task)) }"
                 >
                   {{ task.code }}
