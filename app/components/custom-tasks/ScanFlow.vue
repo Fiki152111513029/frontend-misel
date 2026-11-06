@@ -282,7 +282,13 @@ async function handleSubmit() {
                chip, not by flooding the whole button: the name has to stay
                readable whatever colour an admin picks, and white-on-yellow
                or black-on-navy would not be. -->
-          <div v-if="!collapsedGroups[group.name]" class="space-y-2">
+          <!-- Two to a row on a phone, where each group gets the full
+               width; one per row from sm up, where the groups themselves
+               have become columns and a second would be too narrow. -->
+          <div
+            v-if="!collapsedGroups[group.name]"
+            class="grid grid-cols-2 gap-2 sm:grid-cols-1"
+          >
             <button
               v-for="task in group.tasks"
               :key="task.id"
@@ -302,7 +308,11 @@ async function handleSubmit() {
                   {{ task.name }}
                 </span>
               </span>
-              <span class="break-all font-mono text-xs leading-snug text-slate-500">
+              <!-- Hidden in the two-column phone layout: a six-leg route
+                   wraps to four lines there and buries the name, which is
+                   what the operator picks by. The confirm screen shows the
+                   full route before anything is sent. -->
+              <span class="hidden break-all font-mono text-xs leading-snug text-slate-500 sm:block">
                 {{ task.route.join(' → ') }}
               </span>
             </button>

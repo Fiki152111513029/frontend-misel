@@ -3,7 +3,9 @@ import { PackageCheck, PackageOpen, RefreshCw, Truck } from 'lucide-vue-next'
 import type { BinStatus, CheckingAreaRow } from '~/types/checking-area'
 import type { WarehouseNotice } from '~/composables/useRealtime'
 import {
+  isWarehouseNoticeActionable,
   isWarehouseNoticeUrgent,
+  supersededKinds,
   warehouseNoticeSound,
   warehouseNoticeText,
 } from '~/utils/warehouseNotice'
@@ -66,7 +68,17 @@ useWarehouseNotices((notice) => {
   if (seenNotices.has(key)) return
   seenNotices.add(key)
 
-  notices.value = [notice, ...notices.value].slice(0, MAX_NOTICES)
+  // A task's later notice answers its earlier one — "no rack ready" stops
+  // being true once the AMR is on its way. Dropping the answered one keeps
+  // the list to things still outstanding.
+  const obsolete = supersededKinds(notice.kind)
+  notices.value = [
+    notice,
+    ...notices.value.filter(
+      n => !(n.orderId === notice.orderId && obsolete.includes(n.kind)),
+    ),
+  ].slice(0, MAX_NOTICES)
+
   playNoticeSound(notice)
 
   // A held task is waiting on a bin here, so the list behind this page is
@@ -79,6 +91,14 @@ function dismissNotice(orderId: string, kind: string) {
     n => !(n.orderId === orderId && n.kind === kind),
   )
 }
+
+function clearNotices() {
+  notices.value = []
+}
+
+const urgentCount = computed(
+  () => notices.value.filter(isWarehouseNoticeUrgent).length,
+)
 
 function noticeTime(iso: string) {
   return new Date(iso).toLocaleTimeString('en-GB', { hour12: false })
@@ -110,11 +130,21 @@ const submitting = ref(false)
 async function correct(status: BinStatus) {
   if (!selected.value || submitting.value) return
   submitting.value = true
-  const ok = await correctBin(selected.value.iRaypleLocationCode, status)
+  const code = selected.value.iRaypleLocationCode
+  const ok = await correctBin(code, status)
   submitting.value = false
+  if (!ok) return
+
+  // Setting the bin right is the answer to whatever was being asked about
+  // that node, so those notices go with it. The "AMR on its way" ones stay
+  // — correcting a bin does not stop a robot that is already moving.
+  notices.value = notices.value.filter(
+    n => !(n.nodeCode === code && isWarehouseNoticeActionable(n)),
+  )
+
   // Re-read rather than patching locally: RCS is the source of truth, and
   // this confirms it really took the change.
-  if (ok) await fetchRows(null, { silent: true })
+  await fetchRows(null, { silent: true })
 }
 
 // "full" and "empty" are RCS's words, and on the floor they read as the
@@ -214,8 +244,35 @@ const legend = computed(() => {
 
     <!-- Warehouse notices. Above the grid on purpose: they are the reason
          someone opens this page in a hurry, and the held ones are asking
-         for something to be done right now. -->
-    <div v-if="notices.length > 0" class="space-y-2">
+         for something to be done right now.
+
+         Boxed and scrolled rather than listed in full: a busy shift can
+         raise a dozen, and an unbounded list would push the node buttons
+         off the screen entirely. Three are visible, newest first, and the
+         count says how many are behind them. -->
+    <div v-if="notices.length > 0" class="rounded-2xl border border-[#E2E8F0] bg-white p-3">
+      <div class="mb-2 flex items-center justify-between gap-2 px-1">
+        <p class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-[#0F1F52]">
+          Notifikasi
+          <span
+            class="rounded-full px-2 py-0.5 text-[11px] font-bold"
+            :class="urgentCount > 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'"
+          >
+            {{ notices.length }}
+          </span>
+        </p>
+        <button
+          type="button"
+          class="rounded-lg px-2 py-1 text-xs font-semibold text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+          @click="clearNotices"
+        >
+          Hapus semua
+        </button>
+      </div>
+
+      <!-- Height of roughly three cards, so the fourth peeks out and the
+           list is visibly scrollable rather than looking truncated. -->
+      <div class="max-h-72 space-y-2 overflow-y-auto pr-1">
       <div
         v-for="notice in notices"
         :key="`${notice.orderId}:${notice.kind}`"
@@ -252,6 +309,7 @@ const legend = computed(() => {
           ✕
         </button>
       </div>
+      </div>
     </div>
 
     <!-- Legend and tally in one. Only the states actually present are
@@ -279,14 +337,15 @@ const legend = computed(() => {
       No warehouse locations configured.
     </p>
 
-    <!-- Packed tight so a whole warehouse fits without a long scroll on a
-         phone: one short line per button, four to a row at phone width. -->
-    <div v-else class="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-8">
+    <!-- Two to a row on a phone: wide enough for a gloved thumb, and wide
+         enough to carry the storage name under the code rather than making
+         the operator match bare codes. -->
+    <div v-else class="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
       <button
         v-for="row in items"
         :key="row.id"
         type="button"
-        class="rounded-xl border px-1 py-2.5 text-center transition-all active:scale-[0.97]"
+        class="rounded-xl border px-2 py-2.5 text-center transition-all active:scale-[0.97]"
         :class="[
           TONE_BUTTON[toneOf(row)],
           selectedId === row.id ? 'ring-2 ring-[#01ADEF] ring-offset-1' : '',
@@ -294,8 +353,16 @@ const legend = computed(() => {
         :title="`${row.name} — ${rowLabel(row)}`"
         @click="selectRow(row)"
       >
-        <span class="block truncate font-mono text-[11px] font-bold leading-tight">
+        <span class="block truncate font-mono text-xs font-bold leading-tight">
           {{ row.iRaypleLocationCode }}
+        </span>
+        <!-- Only when it adds something: in this data the name is often
+             the code repeated, and printing it twice helps nobody. -->
+        <span
+          v-if="row.name !== row.iRaypleLocationCode"
+          class="mt-0.5 block truncate text-[10px] font-medium opacity-70"
+        >
+          {{ row.name }}
         </span>
       </button>
     </div>

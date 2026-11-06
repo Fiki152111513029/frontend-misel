@@ -42,6 +42,44 @@ export function warehouseNoticeSound(notice: WarehouseNotice): string | null {
   return null
 }
 
+/**
+ * Earlier notices about the same order that this one makes obsolete.
+ *
+ * A task reports its progress as a sequence, and each step answers the one
+ * before it: "no empty rack ready" stops being true the moment the AMR is
+ * on its way. Keeping both would leave the warehouse reading a warning
+ * that has already been dealt with, and the real ones would get lost in
+ * the pile.
+ */
+const SUPERSEDES: Record<WarehouseNotice['kind'], WarehouseNotice['kind'][]> = {
+  'pickup-held': [],
+  'pickup-running': ['pickup-held'],
+  'drop-held': [],
+  'drop-running': ['drop-held'],
+  'drop-done': ['drop-held', 'drop-running'],
+}
+
+export function supersededKinds(
+  kind: WarehouseNotice['kind'],
+): WarehouseNotice['kind'][] {
+  return SUPERSEDES[kind]
+}
+
+/**
+ * Notices asking for something to be done at a node, as opposed to
+ * reporting an AMR on its way there.
+ *
+ * Correcting that bin by hand settles exactly these, so they are the ones
+ * cleared when an operator acts on the node.
+ */
+export function isWarehouseNoticeActionable(notice: WarehouseNotice): boolean {
+  return (
+    notice.kind === 'pickup-held'
+    || notice.kind === 'drop-held'
+    || notice.kind === 'drop-done'
+  )
+}
+
 /** Needs attention now, as opposed to being informational. */
 export function isWarehouseNoticeUrgent(notice: WarehouseNotice): boolean {
   return (
