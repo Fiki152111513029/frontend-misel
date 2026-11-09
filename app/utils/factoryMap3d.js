@@ -176,6 +176,11 @@ export function createFactoryMap3D(
   // Prototipe rak dari topologi, dipakai ulang untuk rak yang sedang
   // diangkat AMR. Baru terisi setelah model GLB selesai dimuat.
   let rackPrototype = null
+  // Setengah bentang peta di dunia 3D (x = lebar, z = kedalaman), dipakai
+  // untuk memaskan kamera ke container. Baru terisi setelah topologi dimuat
+  // — sebelum itu tidak ada yang bisa dipaskan dan kamera memakai jarak
+  // bawaan.
+  let fitHalf = null
   const liveRobots = new Map()
   let pendingRobots = null
 
@@ -381,6 +386,15 @@ export function createFactoryMap3D(
     const scale = 36 / (maxX - minX)
     const cx = (minX + maxX) / 2
     const cy = (minY + maxY) / 2
+
+    // Bentang peta sudah diketahui -> kamera bisa dipaskan. Diambil dari
+    // bbox jalur yang sama yang dipakai menormalkan koordinat, jadi tidak
+    // ada sumber kebenaran kedua soal seberapa besar lantainya.
+    fitHalf = {
+      x: ((maxX - minX) * scale) / 2,
+      z: ((maxY - minY) * scale) / 2
+    }
+    if (cameraAuto) viewTop()
 
     // koordinat topologi (x, y) -> dunia 3D (x, z)
     const toWorld = (x, y, h = 0.05) =>
@@ -706,9 +720,51 @@ export function createFactoryMap3D(
     controls.update()
   }
 
+  // Sisa ruang di tepi peta setelah dipaskan. Tanpa ini garis jalur paling
+  // luar menempel di bibir canvas dan terbaca seperti terpotong.
+  const FIT_MARGIN = 1.06
+
+  // Pemakai yang sudah memutar/zoom sendiri tidak boleh ditarik balik oleh
+  // resize. Begitu dia menyentuh kamera, pemaskasan otomatis berhenti sampai
+  // dia menekan tombol sudut pandang 'Atas' lagi.
+  let cameraAuto = true
+  controls.addEventListener('start', () => {
+    cameraAuto = false
+  })
+
+  /**
+   * Jarak kamera agar SELURUH peta muat di container, berapa pun ukurannya.
+   *
+   * Inilah yang membuat peta 3D sama "paten" dengan peta 2D di Dashboard. Di
+   * sana SVG memakai preserveAspectRatio, jadi viewBox selalu dipaskan ke
+   * kotaknya dan seluruh lantai selalu terlihat utuh di layar mana pun.
+   * Kamera perspektif tidak punya padanan otomatisnya: dengan jarak dipatok
+   * (dulu 60), ukuran peta di layar ditentukan TINGGI container lewat fov
+   * vertikal — bukan oleh peta itu sendiri. Akibatnya tiap layar memberi
+   * bingkai yang berbeda, dan di layar besar peta menyusut di tengah dengan
+   * lantai kosong di sekelilingnya.
+   *
+   * Dipaskan dua arah lalu diambil yang terjauh — itu arti "meet" pada
+   * preserveAspectRatio: muat lebar DAN muat kedalaman.
+   */
+  function fitDistance() {
+    if (!fitHalf) return null
+    const aspect = camera.aspect || 1
+    const t = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)
+    const forDepth = (fitHalf.z * FIT_MARGIN) / t
+    const forWidth = (fitHalf.x * FIT_MARGIN) / (t * aspect)
+    return Math.max(forDepth, forWidth)
+  }
+
+  function viewTop() {
+    // 0.01 di z, bukan 0: kamera tepat di atas target membuat arah "atas"
+    // kamera sejajar dengan arah pandang dan OrbitControls kehilangan acuan.
+    setView(0, fitDistance() ?? 60, 0.01)
+  }
+
+  // 'top' tidak ada di sini karena jaraknya dihitung, bukan dipatok.
   const views = {
     reset: [24, 24, 30],
-    top: [0, 60, 0.01],
     bottom: [0, -60, 0.01],
     front: [0, 8, 50],
     back: [0, 8, -50],
@@ -716,20 +772,45 @@ export function createFactoryMap3D(
     right: [50, 8, 0]
   }
 
-  // Kamera dibuat di atas dengan sudut isometrik; kalau pemanggil minta
-  // sudut lain, pasang sekarang — ini masih bagian sinkron dari init, jadi
-  // frame pertama sudah digambar dari sudut yang benar.
-  setView(...(views[initialView] ?? views.reset))
+  function applyView(name) {
+    // 'Reset' berarti kembali ke sudut pandang BAWAAN halaman ini, bukan
+    // selalu isometrik. Di Live Map bawaannya tampak atas yang dipaskan, dan
+    // tombol Reset yang melempar ke isometrik di sana terasa seperti rusak.
+    // Nama diselesaikan dulu, bukan dengan memanggil applyView lagi, supaya
+    // initialView 'reset' tidak memanggil dirinya sendiri tanpa henti.
+    const target = name === 'reset' ? initialView : name
+    if (target === 'top') {
+      cameraAuto = true
+      viewTop()
+      return
+    }
+    cameraAuto = false
+    setView(...(views[target] ?? views.reset))
+  }
+
+  // Kamera dibuat di atas dengan sudut isometrik; kalau pemanggil minta sudut
+  // lain, pasang sekarang — ini masih bagian sinkron dari init, jadi frame
+  // pertama sudah digambar dari sudut yang benar. Untuk 'top' jaraknya masih
+  // bawaan di sini dan dipaskan ulang begitu topologi selesai dimuat.
+  applyView(initialView)
 
   // 11. Responsif ketika ukuran browser berubah
   function resizeRenderer() {
     const width = container.clientWidth
     const height = container.clientHeight
+    // ResizeObserver juga menyalak saat container disembunyikan (pindah tab,
+    // v-if di induknya). Aspect 0 atau NaN merusak matriks proyeksi, dan
+    // petanya tidak kembali ketika container muncul lagi.
+    if (!width || !height) return
 
     camera.aspect = width / height
     camera.updateProjectionMatrix()
 
     renderer.setSize(width, height, false)
+
+    // Ini bagian yang dulu tidak ada: aspect diperbarui tapi jarak tidak,
+    // sehingga bingkainya berubah setiap kali ukuran container berubah.
+    if (cameraAuto) viewTop()
   }
 
   const resizeObserver = new ResizeObserver(
@@ -947,7 +1028,7 @@ export function createFactoryMap3D(
   }
 
   return {
-    setView: (name) => setView(...views[name]),
+    setView: (name) => applyView(name),
     setRobots,
     dispose
   }
