@@ -78,33 +78,43 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Tinggi baris ini dipatok dengan nilai yang sama persis dengan kartu
-         Factory Map di Dashboard (h-[460px] 2xl:h-[600px]), bukan diturunkan
-         dari 100vh.
+    <!-- Tinggi dipasang di BARIS ini, lalu kedua anaknya mengambilnya lewat
+         lg:h-full. Sebelumnya tinggi anak dibiarkan 'auto' dan hanya
+         mengandalkan align-items: stretch — itu menyisakan celah: begitu
+         salah satu kartu punya isi yang lebih tinggi, dia mendorong baris
+         dan tingginya tidak lagi sama. Dengan lg:items-stretch + lg:h-full,
+         kartu peta dan kartu Performance dipaksa setinggi barisnya, titik.
 
-         Versi 100vh dulu membuat peta memakan seluruh layar pertama, jadi
-         AMR Fleet Real-time Status di bawahnya tidak pernah ikut terlihat —
-         dan tingginya berbeda di tiap layar, sehingga halaman ini tidak
-         pernah terbaca sama dengan Dashboard. Fullscreen tetap memakai
-         viewport, karena di situ memang tujuannya mengisi layar dinding dan
-         tabel di bawah tinggal digulir.
+         Mode normal memakai angka yang sama persis dengan kartu Factory Map
+         di Dashboard (460px, 600px di 2xl), supaya AMR Fleet Real-time Status
+         di bawahnya tetap kelihatan tanpa digulir.
+
+         Fullscreen memakai sisa layar DIKURANGI 22rem, bukan 7.5rem seperti
+         dulu. Yang 7.5rem membuat baris ini memakan hampir seluruh layar —
+         petanya jadi jangkung dan tabel di bawahnya hilang lagi, persis
+         masalah yang sudah kita benahi di mode normal. 22rem menyisakan
+         ruang untuk judul halaman dan tabelnya.
 
          Tingginya hanya dipasang dari lg ke atas: kalau ditumpuk di ponsel,
          tinggi bersama justru memipihkan keduanya jadi strip. -->
     <div
-      class="flex flex-col gap-4 lg:flex-row"
-      :class="isFullscreen ? 'lg:h-[calc(100vh-7.5rem)]' : 'lg:h-[460px] 2xl:h-[600px]'"
+      class="flex flex-col gap-4 lg:flex-row lg:items-stretch"
+      :class="
+        isFullscreen
+          ? 'lg:h-[calc(100vh-22rem)] lg:min-h-[420px]'
+          : 'lg:h-[460px] 2xl:h-[600px]'
+      "
     >
       <!-- min-h-0 so the map shrinks to the row's height instead of
            pushing it taller from the inside. -->
-      <div class="h-[60vh] min-h-[360px] lg:h-auto lg:min-h-0 lg:flex-1">
+      <div class="h-[60vh] min-h-[360px] rounded-2xl shadow-xl shadow-slate-300/70 lg:h-full lg:min-h-0 lg:flex-1">
         <DashboardFactoryMap3D />
       </div>
 
       <!-- Fixed width rather than a grid fraction: Performance is a column
            of labelled rows, and it reads the same at 400px whether the map
            beside it is on a laptop or a wall display. -->
-      <div class="w-full shrink-0 lg:w-[360px] xl:w-[420px]">
+      <div class="w-full shrink-0 rounded-2xl shadow-xl shadow-slate-300/70 lg:h-full lg:w-[360px] xl:w-[420px]">
         <DashboardPerformancePanel fill />
       </div>
     </div>
