@@ -78,13 +78,22 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Map and Performance fill the first screenful between them, so the
-         pair reads as one board rather than two cards to scroll between.
-         The height is only set from lg up: stacked on a phone, a shared
-         height would squash both into strips. -->
+    <!-- Tinggi baris ini dipatok dengan nilai yang sama persis dengan kartu
+         Factory Map di Dashboard (h-[460px] 2xl:h-[600px]), bukan diturunkan
+         dari 100vh.
+
+         Versi 100vh dulu membuat peta memakan seluruh layar pertama, jadi
+         AMR Fleet Real-time Status di bawahnya tidak pernah ikut terlihat —
+         dan tingginya berbeda di tiap layar, sehingga halaman ini tidak
+         pernah terbaca sama dengan Dashboard. Fullscreen tetap memakai
+         viewport, karena di situ memang tujuannya mengisi layar dinding dan
+         tabel di bawah tinggal digulir.
+
+         Tingginya hanya dipasang dari lg ke atas: kalau ditumpuk di ponsel,
+         tinggi bersama justru memipihkan keduanya jadi strip. -->
     <div
       class="flex flex-col gap-4 lg:flex-row"
-      :class="isFullscreen ? 'lg:h-[calc(100vh-7.5rem)]' : 'lg:h-[calc(100vh-11.5rem)]'"
+      :class="isFullscreen ? 'lg:h-[calc(100vh-7.5rem)]' : 'lg:h-[460px] 2xl:h-[600px]'"
     >
       <!-- min-h-0 so the map shrinks to the row's height instead of
            pushing it taller from the inside. -->
