@@ -330,7 +330,11 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- The canvas fills this box; the module watches its size. -->
-    <div ref="containerRef" class="relative min-h-[420px] w-full flex-1 overflow-hidden bg-[#eaf0f6]">
+    <!-- min-h kecil: kepala kartu ini lebih tinggi daripada kepala peta 2D
+         (ada baris info topologi), jadi di dalam kartu setinggi 460px canvas
+         hanya kebagian ~375px. Nilai 420px yang lama membuat canvas mendorong
+         kartunya melar melewati tinggi barisnya. -->
+    <div ref="containerRef" class="relative min-h-[240px] w-full flex-1 overflow-hidden bg-[#eaf0f6]">
       <div
         v-if="loadError"
         class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-[#eaf0f6] px-6 text-center"
