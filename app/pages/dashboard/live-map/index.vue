@@ -78,33 +78,29 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Tinggi dipasang di BARIS ini, lalu kedua anaknya mengambilnya lewat
-         lg:h-full. Sebelumnya tinggi anak dibiarkan 'auto' dan hanya
-         mengandalkan align-items: stretch — itu menyisakan celah: begitu
-         salah satu kartu punya isi yang lebih tinggi, dia mendorong baris
-         dan tingginya tidak lagi sama. Dengan lg:items-stretch + lg:h-full,
-         kartu peta dan kartu Performance dipaksa setinggi barisnya, titik.
-
-         Mode normal memakai angka yang sama persis dengan kartu Factory Map
-         di Dashboard (460px, 600px di 2xl), supaya AMR Fleet Real-time Status
+    <!-- Tinggi baris ini angka tetap, dan SENGAJA tidak diturunkan dari
+         100vh — termasuk saat fullscreen. Versi vh membuat container ikut
+         meninggi begitu layarnya lebih tinggi, jadi halaman ini tidak pernah
+         terbaca sama di dua monitor yang berbeda dan peta kembali jangkung
+         di layar besar. Angkanya sama persis dengan kartu Factory Map di
+         Dashboard (460px, 600px dari 2xl), supaya AMR Fleet Real-time Status
          di bawahnya tetap kelihatan tanpa digulir.
 
-         Fullscreen memakai sisa layar DIKURANGI 22rem, bukan 7.5rem seperti
-         dulu. Yang 7.5rem membuat baris ini memakan hampir seluruh layar —
-         petanya jadi jangkung dan tabel di bawahnya hilang lagi, persis
-         masalah yang sudah kita benahi di mode normal. 22rem menyisakan
-         ruang untuk judul halaman dan tabelnya.
+         2xl itu titik pecah LEBAR, bukan tinggi, jadi tinggi container tidak
+         berubah karena tinggi layar — hanya karena lebarnya.
+
+         Fullscreen kini tidak lagi mengubah tinggi: yang dia berikan adalah
+         hilangnya sidebar dan chrome browser, jadi ruang itu jatuh ke tabel
+         di bawah, bukan ke petanya.
+
+         Kedua kartu mengambil tinggi dari baris ini lewat lg:h-full, bukan
+         mengandalkan align-items: stretch saja. Dengan stretch saja, kartu
+         yang isinya lebih tinggi bisa mendorong barisnya dan tinggi keduanya
+         jadi tidak sama lagi.
 
          Tingginya hanya dipasang dari lg ke atas: kalau ditumpuk di ponsel,
          tinggi bersama justru memipihkan keduanya jadi strip. -->
-    <div
-      class="flex flex-col gap-4 lg:flex-row lg:items-stretch"
-      :class="
-        isFullscreen
-          ? 'lg:h-[calc(100vh-22rem)] lg:min-h-[420px]'
-          : 'lg:h-[460px] 2xl:h-[600px]'
-      "
-    >
+    <div class="flex flex-col gap-4 lg:h-[460px] lg:flex-row lg:items-stretch 2xl:h-[600px]">
       <!-- min-h-0 so the map shrinks to the row's height instead of
            pushing it taller from the inside. -->
       <div class="h-[60vh] min-h-[360px] rounded-2xl shadow-xl shadow-slate-300/70 lg:h-full lg:min-h-0 lg:flex-1">
