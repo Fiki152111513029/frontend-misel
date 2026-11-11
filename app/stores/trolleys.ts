@@ -48,6 +48,10 @@ export const useTrolleysStore = defineStore('trolleys', () => {
     return trolleyService.deleteTrolley(id)
   }
 
+  async function removeTrolleys(ids: string[]) {
+    return trolleyService.bulkDeleteTrolleys(ids)
+  }
+
   function setFilters(patch: Partial<TrolleyQuery>) {
     filters.value = { ...filters.value, ...patch }
   }
@@ -62,6 +66,7 @@ export const useTrolleysStore = defineStore('trolleys', () => {
     addTrolley,
     editTrolley,
     removeTrolley,
+    removeTrolleys,
     setFilters,
   }
 })

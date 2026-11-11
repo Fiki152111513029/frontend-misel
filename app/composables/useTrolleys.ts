@@ -64,6 +64,25 @@ export function useTrolleys() {
     }
   }
 
+  async function bulkDeleteTrolleys(ids: string[]) {
+    try {
+      const result = await store.removeTrolleys(ids)
+      // The count comes from the server, not from how many were ticked: a
+      // trolley someone else removed while the selection sat on screen is
+      // reported as missing rather than counted as deleted.
+      toast.success(
+        result.missing > 0
+          ? `${result.deleted} of ${result.deleted + result.missing} trolleys deleted - the rest were already gone`
+          : `${result.deleted} trolleys deleted successfully`,
+      )
+      await fetchTrolleys()
+      return true
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to delete the selected trolleys')
+      return false
+    }
+  }
+
   return {
     items: computed(() => store.items),
     meta: computed(() => store.meta),
@@ -74,6 +93,7 @@ export function useTrolleys() {
     createTrolley,
     updateTrolley,
     deleteTrolley,
+    bulkDeleteTrolleys,
     setFilters: store.setFilters,
   }
 }

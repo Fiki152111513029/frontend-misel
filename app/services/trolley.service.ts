@@ -1,4 +1,5 @@
 import type {
+  BulkDeleteTrolleysResult,
   CreateTrolleyInput,
   Trolley,
   TrolleyListResult,
@@ -38,4 +39,13 @@ export async function updateTrolley(
 export async function deleteTrolley(id: string): Promise<null> {
   const { $http } = useNuxtApp()
   return (await $http.delete(`/trolleys/${id}`)) as null
+}
+
+// POST, not DELETE: a request body on DELETE is allowed by the spec but
+// dropped or refused by enough proxies and clients not to be worth it.
+export async function bulkDeleteTrolleys(
+  ids: string[],
+): Promise<BulkDeleteTrolleysResult> {
+  const { $http } = useNuxtApp()
+  return (await $http.post('/trolleys/bulk-delete', { ids })) as BulkDeleteTrolleysResult
 }
