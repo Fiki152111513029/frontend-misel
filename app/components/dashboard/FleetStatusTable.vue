@@ -70,21 +70,15 @@ const statusStyles: Record<Severity, string> = {
 
 // Paged rather than scrolled in the sidebar: a scroll area inside a column
 // that is itself in a scrolling page is a trap for a mouse wheel, and the
-// board is meant to be read from across the room, not interacted with.
+// board is meant to be read from across the room, not interacted with —
+// which is also why the pages turn themselves. See useAutoPager.
 const COMPACT_PAGE_SIZE = 5
-const page = ref(1)
-const pageCount = computed(() => Math.max(1, Math.ceil(rows.value.length / COMPACT_PAGE_SIZE)))
-const pagedRows = computed(() =>
-  rows.value.slice((page.value - 1) * COMPACT_PAGE_SIZE, page.value * COMPACT_PAGE_SIZE),
+const { page, pageCount, pagedItems: pagedRows, step: stepPage } = useAutoPager(
+  rows,
+  // intervalMs 0 switches the timer off: the Dashboard renders the full
+  // table, so a ticking pager there would be work nobody ever sees.
+  { pageSize: COMPACT_PAGE_SIZE, intervalMs: props.compact ? 5000 : 0 },
 )
-// Robots leaving the list must not strand the reader on a page that no
-// longer exists.
-watch(pageCount, (count) => {
-  if (page.value > count) page.value = count
-})
-function stepPage(delta: number) {
-  page.value = Math.min(pageCount.value, Math.max(1, page.value + delta))
-}
 
 function batteryColor(battery: number) {
   if (battery <= 20) return 'bg-red-500'
@@ -106,27 +100,7 @@ function batteryColor(battery: number) {
         </svg>
         <p class="truncate text-xs font-bold uppercase tracking-wide text-[#0F1F52]">AMR Status</p>
       </div>
-      <div v-if="pageCount > 1" class="flex flex-shrink-0 items-center gap-1 text-[11px] font-medium text-slate-500">
-        <button
-          type="button"
-          class="flex h-5 w-5 items-center justify-center rounded border border-[#E2E8F0] transition-colors hover:border-[#01ADEF] hover:text-[#01ADEF] disabled:opacity-40"
-          :disabled="page === 1"
-          aria-label="Previous page"
-          @click="stepPage(-1)"
-        >
-          &lsaquo;
-        </button>
-        <span class="tabular-nums">{{ page }} / {{ pageCount }}</span>
-        <button
-          type="button"
-          class="flex h-5 w-5 items-center justify-center rounded border border-[#E2E8F0] transition-colors hover:border-[#01ADEF] hover:text-[#01ADEF] disabled:opacity-40"
-          :disabled="page === pageCount"
-          aria-label="Next page"
-          @click="stepPage(1)"
-        >
-          &rsaquo;
-        </button>
-      </div>
+      <DashboardPanelsPageStepper :page="page" :page-count="pageCount" @step="stepPage" />
     </div>
 
     <div class="min-h-0 flex-1 overflow-y-auto p-4">
