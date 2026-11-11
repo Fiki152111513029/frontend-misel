@@ -2,6 +2,13 @@
 import { fetchFleetStatus } from '~/services/robot.service'
 import type { FleetStatusRow } from '~/types/robot'
 
+// `compact` is the sidebar form: the same rows and the same fetch, drawn
+// as a narrow three-column card with its own paging. A separate component
+// would have meant a second copy of the loading, scoping and realtime
+// wiring below — all of which must stay identical, since both forms are on
+// screen at once on Live Map.
+const props = withDefaults(defineProps<{ compact?: boolean }>(), { compact: false })
+
 const rows = ref<FleetStatusRow[]>([])
 const loading = ref(true)
 
@@ -61,6 +68,24 @@ const statusStyles: Record<Severity, string> = {
   error: 'bg-red-50 text-red-600',
 }
 
+// Paged rather than scrolled in the sidebar: a scroll area inside a column
+// that is itself in a scrolling page is a trap for a mouse wheel, and the
+// board is meant to be read from across the room, not interacted with.
+const COMPACT_PAGE_SIZE = 5
+const page = ref(1)
+const pageCount = computed(() => Math.max(1, Math.ceil(rows.value.length / COMPACT_PAGE_SIZE)))
+const pagedRows = computed(() =>
+  rows.value.slice((page.value - 1) * COMPACT_PAGE_SIZE, page.value * COMPACT_PAGE_SIZE),
+)
+// Robots leaving the list must not strand the reader on a page that no
+// longer exists.
+watch(pageCount, (count) => {
+  if (page.value > count) page.value = count
+})
+function stepPage(delta: number) {
+  page.value = Math.min(pageCount.value, Math.max(1, page.value + delta))
+}
+
 function batteryColor(battery: number) {
   if (battery <= 20) return 'bg-red-500'
   if (battery <= 60) return 'bg-amber-400'
@@ -69,7 +94,91 @@ function batteryColor(battery: number) {
 </script>
 
 <template>
-  <UiBaseCard padding="none">
+  <!-- Sidebar form -->
+  <div
+    v-if="props.compact"
+    class="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white"
+  >
+    <div class="flex flex-shrink-0 items-center justify-between gap-2 border-b border-[#E2E8F0] px-4 py-3">
+      <div class="flex min-w-0 items-center gap-2">
+        <svg class="h-4 w-4 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5h16.5v9H3.75zM7.5 16.5v2.25M16.5 16.5v2.25" />
+        </svg>
+        <p class="truncate text-xs font-bold uppercase tracking-wide text-[#0F1F52]">AMR Status</p>
+      </div>
+      <div v-if="pageCount > 1" class="flex flex-shrink-0 items-center gap-1 text-[11px] font-medium text-slate-500">
+        <button
+          type="button"
+          class="flex h-5 w-5 items-center justify-center rounded border border-[#E2E8F0] transition-colors hover:border-[#01ADEF] hover:text-[#01ADEF] disabled:opacity-40"
+          :disabled="page === 1"
+          aria-label="Previous page"
+          @click="stepPage(-1)"
+        >
+          &lsaquo;
+        </button>
+        <span class="tabular-nums">{{ page }} / {{ pageCount }}</span>
+        <button
+          type="button"
+          class="flex h-5 w-5 items-center justify-center rounded border border-[#E2E8F0] transition-colors hover:border-[#01ADEF] hover:text-[#01ADEF] disabled:opacity-40"
+          :disabled="page === pageCount"
+          aria-label="Next page"
+          @click="stepPage(1)"
+        >
+          &rsaquo;
+        </button>
+      </div>
+    </div>
+
+    <div class="min-h-0 flex-1 overflow-y-auto p-4">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+            <th class="pb-2 font-semibold">AMR</th>
+            <th class="pb-2 font-semibold">State</th>
+            <th class="pb-2 text-right font-semibold">Batt.</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="!loading && rows.length === 0">
+            <td colspan="3" class="py-6 text-center text-xs text-slate-400">
+              {{ dashboardFilters.isAreaResolved && dashboardFilters.areaNumber === null
+                ? 'This map has no area number'
+                : 'No robots found' }}
+            </td>
+          </tr>
+          <tr v-for="row in pagedRows" :key="row.unitId" class="align-middle">
+            <td class="py-1.5 pr-2 text-xs font-bold text-[#0F1F52]">{{ row.unitId }}</td>
+            <td class="py-1.5 pr-2">
+              <span
+                class="block truncate rounded-md px-2 py-1 text-center text-[11px] font-medium"
+                :class="statusStyles[severity(row.status)]"
+              >
+                {{ row.status ?? 'Unknown' }}
+              </span>
+            </td>
+            <td class="py-1.5 text-right">
+              <div v-if="row.battery !== null" class="flex items-center justify-end gap-1.5">
+                <span class="text-[11px] font-medium text-[#0F1F52]">{{ row.battery }}%</span>
+                <div class="h-1.5 w-8 overflow-hidden rounded-full bg-slate-100">
+                  <div class="h-full rounded-full" :class="batteryColor(row.battery)" :style="{ width: `${row.battery}%` }" />
+                </div>
+              </div>
+              <span v-else class="text-[11px] font-medium text-slate-400">-</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="flex flex-shrink-0 items-center gap-3 border-t border-[#E2E8F0] px-4 py-2.5 text-[11px] font-medium text-slate-500">
+      <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-emerald-500" /> {{ summary.normal }} Normal</span>
+      <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-amber-400" /> {{ summary.warning }} Warning</span>
+      <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-red-500" /> {{ summary.error }} Error</span>
+    </div>
+  </div>
+
+  <!-- Full-width table form -->
+  <UiBaseCard v-else padding="none">
     <div class="flex items-center justify-between border-b border-[#E2E8F0] px-5 py-4">
       <div class="flex items-center gap-2">
         <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
