@@ -64,6 +64,25 @@ export function useProductionLocations() {
     }
   }
 
+  async function bulkDeleteProductionLocations(ids: string[]) {
+    try {
+      const result = await store.removeProductionLocations(ids)
+      // The count comes from the server, not from how many were ticked:
+      // a row someone else removed while the selection sat on screen is
+      // reported as missing rather than counted as deleted.
+      toast.success(
+        result.missing > 0
+          ? `${result.deleted} of ${result.deleted + result.missing} production locations deleted — the rest were already gone`
+          : `${result.deleted} production locations deleted successfully`,
+      )
+      await fetchProductionLocations()
+      return true
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to delete the selected production locations')
+      return false
+    }
+  }
+
   return {
     items: computed(() => store.items),
     meta: computed(() => store.meta),
@@ -74,6 +93,7 @@ export function useProductionLocations() {
     createProductionLocation,
     updateProductionLocation,
     deleteProductionLocation,
+    bulkDeleteProductionLocations,
     setFilters: store.setFilters,
   }
 }

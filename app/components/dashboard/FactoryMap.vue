@@ -103,10 +103,67 @@ function flipY(y: number) {
   return -y
 }
 
+// Breathing room around the fitted content, as a fraction of its longer
+// side. Without it the outermost path sits on the edge of the frame and
+// reads as cut off.
+const FIT_MARGIN_RATIO = 0.03
+
+/**
+ * The view the map opens at, and the one "Reset view" returns to.
+ *
+ * Fitted to what is actually drawn, NOT to the canvas the topology
+ * declares. RCS exports a canvas far larger than the floor it describes —
+ * in the current export the paths fill 83% of its width but only 44% of its
+ * height, so opening on the declared canvas put the map in the middle of a
+ * screenful of nothing, at roughly half the size it could be.
+ *
+ * Falls back to the declared canvas when a file has no path points at all,
+ * since there is then nothing to fit and an empty box would divide by zero
+ * in the zoom maths below.
+ */
 const baseBox = computed<ViewBox | null>(() => {
   const topo = topology.value
   if (!topo) return null
-  return { x: topo.xAttrMin, y: flipY(topo.yAttrMin + topo.height), w: topo.width, h: topo.height }
+
+  const canvas = {
+    x: topo.xAttrMin,
+    y: flipY(topo.yAttrMin + topo.height),
+    w: topo.width,
+    h: topo.height,
+  }
+
+  let minX = Infinity
+  let maxX = -Infinity
+  let minY = Infinity
+  let maxY = -Infinity
+  const include = (x: number, y: number) => {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return
+    if (x < minX) minX = x
+    if (x > maxX) maxX = x
+    if (y < minY) minY = y
+    if (y > maxY) maxY = y
+  }
+
+  // Path points only. Every node sits on or beside a lane, so the lanes
+  // bound the floor on their own and the margin above covers the offset.
+  //
+  // Deliberately not namedNodes: that list is filtered against location
+  // codes fetched over the network, so the box would change shape once
+  // that call landed and snatch back any pan the operator had already
+  // made. The paths come from the topology file and never move.
+  for (const path of topo.allPath ?? []) {
+    for (const point of path) include(point[0] as number, flipY(point[1] as number))
+  }
+
+  if (!Number.isFinite(minX) || maxX <= minX || maxY <= minY) return canvas
+
+  const margin = Math.max(maxX - minX, maxY - minY) * FIT_MARGIN_RATIO
+  return {
+    x: minX - margin,
+    y: minY - margin,
+    w: maxX - minX + margin * 2,
+    h: maxY - minY + margin * 2,
+  }
 })
 
 // Current pan/zoom window, in the same coordinate space as baseBox. Starts

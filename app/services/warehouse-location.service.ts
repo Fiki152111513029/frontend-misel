@@ -1,4 +1,5 @@
 import type {
+  BulkDeleteWarehouseLocationsResult,
   CreateWarehouseLocationInput,
   UpdateWarehouseLocationInput,
   WarehouseLocation,
@@ -38,4 +39,13 @@ export async function updateWarehouseLocation(
 export async function deleteWarehouseLocation(id: string): Promise<null> {
   const { $http } = useNuxtApp()
   return (await $http.delete(`/warehouse-locations/${id}`)) as null
+}
+
+// POST, not DELETE: a request body on DELETE is allowed by the spec but
+// dropped or refused by enough proxies and clients not to be worth it.
+export async function bulkDeleteWarehouseLocations(
+  ids: string[],
+): Promise<BulkDeleteWarehouseLocationsResult> {
+  const { $http } = useNuxtApp()
+  return (await $http.post(`/warehouse-locations/bulk-delete`, { ids })) as BulkDeleteWarehouseLocationsResult
 }

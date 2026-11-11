@@ -64,6 +64,25 @@ export function useWarehouseLocations() {
     }
   }
 
+  async function bulkDeleteWarehouseLocations(ids: string[]) {
+    try {
+      const result = await store.removeWarehouseLocations(ids)
+      // The count comes from the server, not from how many were ticked:
+      // a row someone else removed while the selection sat on screen is
+      // reported as missing rather than counted as deleted.
+      toast.success(
+        result.missing > 0
+          ? `${result.deleted} of ${result.deleted + result.missing} warehouse locations deleted — the rest were already gone`
+          : `${result.deleted} warehouse locations deleted successfully`,
+      )
+      await fetchWarehouseLocations()
+      return true
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed to delete the selected warehouse locations')
+      return false
+    }
+  }
+
   return {
     items: computed(() => store.items),
     meta: computed(() => store.meta),
@@ -74,6 +93,7 @@ export function useWarehouseLocations() {
     createWarehouseLocation,
     updateWarehouseLocation,
     deleteWarehouseLocation,
+    bulkDeleteWarehouseLocations,
     setFilters: store.setFilters,
   }
 }

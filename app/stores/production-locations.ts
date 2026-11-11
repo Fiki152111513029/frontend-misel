@@ -48,6 +48,10 @@ export const useProductionLocationsStore = defineStore('production-locations', (
     return productionLocationService.deleteProductionLocation(id)
   }
 
+  async function removeProductionLocations(ids: string[]) {
+    return productionLocationService.bulkDeleteProductionLocations(ids)
+  }
+
   function setFilters(patch: Partial<ProductionLocationQuery>) {
     filters.value = { ...filters.value, ...patch }
   }
@@ -62,6 +66,7 @@ export const useProductionLocationsStore = defineStore('production-locations', (
     addProductionLocation,
     editProductionLocation,
     removeProductionLocation,
+    removeProductionLocations,
     setFilters,
   }
 })

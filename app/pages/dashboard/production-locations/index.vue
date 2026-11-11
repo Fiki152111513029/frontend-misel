@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus } from 'lucide-vue-next'
+import { Plus, Trash2, X } from 'lucide-vue-next'
 import type { ProductionLocationSortKey } from '~/components/production-locations/Table.vue'
 import type {
   CreateProductionLocationInput,
@@ -21,6 +21,7 @@ const {
   createProductionLocation,
   updateProductionLocation,
   deleteProductionLocation,
+  bulkDeleteProductionLocations,
   setFilters,
 } = useProductionLocations()
 
@@ -54,6 +55,14 @@ const deletingProductionLocation = ref<ProductionLocation | null>(null)
 const submitting = ref(false)
 const deleting = ref(false)
 
+// Ids ticked in the table, kept across pages. Cleared once a delete goes
+// through, and whenever the filter changes — a selection made against one
+// search is not a selection against the next one.
+const selectedIds = ref<string[]>([])
+// Set while the dialog is confirming a selection rather than one row; the
+// two share a dialog, and this is what tells them apart on confirm.
+const bulkDeleting = ref(false)
+
 onMounted(() => {
   fetchProductionLocations()
 })
@@ -69,7 +78,15 @@ function openEdit(productionLocation: ProductionLocation) {
 }
 
 function openDelete(productionLocation: ProductionLocation) {
+  bulkDeleting.value = false
   deletingProductionLocation.value = productionLocation
+  showDeleteDialog.value = true
+}
+
+function openBulkDelete() {
+  if (selectedIds.value.length === 0) return
+  bulkDeleting.value = true
+  deletingProductionLocation.value = null
   showDeleteDialog.value = true
 }
 
@@ -83,14 +100,26 @@ async function handleFormSubmit(input: CreateProductionLocationInput) {
 }
 
 async function handleDeleteConfirm() {
-  if (!deletingProductionLocation.value) return
   deleting.value = true
-  const ok = await deleteProductionLocation(deletingProductionLocation.value.id)
+  let ok = false
+  if (bulkDeleting.value) {
+    ok = await bulkDeleteProductionLocations(selectedIds.value)
+    // Cleared on success only: a failure leaves the ticks where they were
+    // so the operator can retry without picking everything again.
+    if (ok) selectedIds.value = []
+  } else if (deletingProductionLocation.value) {
+    const id = deletingProductionLocation.value.id
+    ok = await deleteProductionLocation(id)
+    if (ok) selectedIds.value = selectedIds.value.filter(selected => selected !== id)
+  }
   deleting.value = false
   if (ok) showDeleteDialog.value = false
 }
 
 function handleFilterChange(patch: Partial<typeof filters.value>) {
+  // The ticks were made against the previous result set. Carrying them
+  // into a different one means deleting rows nobody can see.
+  selectedIds.value = []
   setFilters({ ...patch, page: 1 })
   fetchProductionLocations()
 }
@@ -144,7 +173,39 @@ function handleLimitChange(limit: number) {
       </div>
     </div>
 
+    <!-- Only here when something is ticked: a toolbar that is permanently
+         on screen but usually inert reads as part of the furniture, and
+         this one deletes things. -->
+    <div
+      v-if="selectedIds.length > 0"
+      class="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#01ADEF]/30 bg-[#01ADEF]/5 px-4 py-2.5"
+    >
+      <p class="text-sm font-semibold text-[#0F1F52]">
+        {{ selectedIds.length }} selected
+      </p>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:border-slate-300"
+          @click="selectedIds = []"
+        >
+          <X class="h-3.5 w-3.5" />
+          Clear
+        </button>
+        <button
+          v-if="hasPermission('production-location.delete')"
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-red-600"
+          @click="openBulkDelete"
+        >
+          <Trash2 class="h-3.5 w-3.5" />
+          Delete selected
+        </button>
+      </div>
+    </div>
+
     <ProductionLocationsTable
+      v-model:selected="selectedIds"
       :items="sortedItems"
       :loading="loading"
       :sort-by="clientSort?.key ?? filters.sortBy"
@@ -176,6 +237,7 @@ function handleLimitChange(limit: number) {
     <ProductionLocationsDeleteDialog
       v-model="showDeleteDialog"
       :production-location="deletingProductionLocation"
+      :count="bulkDeleting ? selectedIds.length : null"
       :deleting="deleting"
       @confirm="handleDeleteConfirm"
       @cancel="showDeleteDialog = false"

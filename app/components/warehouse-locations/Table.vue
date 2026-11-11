@@ -13,17 +13,53 @@ interface Props {
   loading: boolean
   sortBy?: WarehouseLocationSortKey
   sortOrder?: WarehouseLocationSortOrder
+  /** Ids ticked for the bulk action, across every page visited. */
+  selected?: string[]
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), { selected: () => [] })
 
 const emit = defineEmits<{
   edit: [warehouseLocation: WarehouseLocation]
   delete: [warehouseLocation: WarehouseLocation]
   sort: [patch: { sortBy: WarehouseLocationSortKey, sortOrder: WarehouseLocationSortOrder }]
+  'update:selected': [ids: string[]]
 }>()
 
 const { hasPermission } = useAuth()
+
+// The tick column only exists for someone who could act on it. Offering a
+// selection and then no way to delete it is worse than no column at all.
+const selectable = computed(() => hasPermission('warehouse-location.delete'))
+
+const selectedSet = computed(() => new Set(props.selected))
+const pageIds = computed(() => props.items.map(item => item.id))
+const allOnPageSelected = computed(
+  () => pageIds.value.length > 0 && pageIds.value.every(id => selectedSet.value.has(id)),
+)
+// Drives the header box's dash: some of this page ticked, but not all.
+const someOnPageSelected = computed(
+  () => !allOnPageSelected.value && pageIds.value.some(id => selectedSet.value.has(id)),
+)
+
+function toggleOne(id: string) {
+  const next = new Set(selectedSet.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  emit('update:selected', [...next])
+}
+
+// Only this page's rows, added to or removed from what is already ticked.
+// Selecting across pages is the point — a cleanup of thirty rows spread
+// over three pages should not lose its ticks on every Next.
+function toggleAll() {
+  const next = new Set(selectedSet.value)
+  for (const id of pageIds.value) {
+    if (allOnPageSelected.value) next.delete(id)
+    else next.add(id)
+  }
+  emit('update:selected', [...next])
+}
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -65,6 +101,17 @@ function openQr(item: WarehouseLocation) {
   <UiBaseCard padding="none">
     <UiBaseTable :columns="columns" :loading="loading">
       <template #header>
+        <th v-if="selectable" style="width: 44px" class="px-4 py-3">
+          <input
+            type="checkbox"
+            class="h-4 w-4 cursor-pointer accent-[#01ADEF]"
+            :checked="allOnPageSelected"
+            :indeterminate="someOnPageSelected"
+            :disabled="items.length === 0"
+            aria-label="Select all on this page"
+            @change="toggleAll"
+          >
+        </th>
         <th
           v-for="col in sortableColumns"
           :key="col.key"
@@ -88,7 +135,7 @@ function openQr(item: WarehouseLocation) {
       </template>
 
       <tr v-if="!loading && items.length === 0">
-        <td :colspan="columns.length" class="py-12 text-center text-slate-400">
+        <td :colspan="columns.length + (selectable ? 1 : 0)" class="py-12 text-center text-slate-400">
           No warehouse locations found
         </td>
       </tr>
@@ -97,7 +144,17 @@ function openQr(item: WarehouseLocation) {
           v-for="item in items"
           :key="item.id"
           class="border-b border-[#E2E8F0] last:border-0"
+          :class="selectedSet.has(item.id) ? 'bg-[#01ADEF]/5' : ''"
         >
+          <td v-if="selectable" class="px-4 py-3">
+            <input
+              type="checkbox"
+              class="h-4 w-4 cursor-pointer accent-[#01ADEF]"
+              :checked="selectedSet.has(item.id)"
+              :aria-label="`Select ${item.name}`"
+              @change="toggleOne(item.id)"
+            >
+          </td>
           <td class="px-4 py-3 text-sm font-medium text-[#0F1F52]">
             {{ item.name }}
           </td>
