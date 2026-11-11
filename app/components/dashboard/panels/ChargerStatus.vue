@@ -38,6 +38,18 @@ const hubs = computed<ChargerHub[]>(() => {
     })
 })
 
+// Two slots at a time on the board, turning themselves — see the same
+// reasoning in Abnormality.vue. Stacked on the Dashboard the tiles are two
+// across and scrolled by hand, so the whole list is one page there.
+const HUBS_PER_PAGE = 2
+const { page, pageCount, pagedItems: pagedHubs, step: stepPage } = useAutoPager(
+  hubs,
+  {
+    pageSize: props.standalone ? HUBS_PER_PAGE : Number.MAX_SAFE_INTEGER,
+    intervalMs: props.standalone ? 5000 : 0,
+  },
+)
+
 onMounted(async () => {
   await Promise.all([fetchChargerAreaOptions(), loadRobots()])
 })
@@ -59,9 +71,16 @@ useRealtime(['robots', 'stock'], loadRobots)
     </template>
 
     <template #badge>
-      <span class="whitespace-nowrap rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
+      <span
+        v-if="!props.standalone"
+        class="whitespace-nowrap rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500"
+      >
         {{ hubs.length }} Slots Total
       </span>
+      <div v-else class="flex items-center gap-2">
+        <span class="whitespace-nowrap text-[11px] font-medium text-slate-400">{{ hubs.length }} slots</span>
+        <DashboardPanelsPageStepper :page="page" :page-count="pageCount" @step="stepPage" />
+      </div>
     </template>
 
     <div v-if="hubs.length === 0" class="text-center text-xs text-slate-400" :class="props.standalone ? 'py-6' : 'mt-4'">
@@ -83,7 +102,7 @@ useRealtime(['robots', 'stock'], loadRobots)
         </tr>
       </thead>
       <tbody>
-        <tr v-for="hub in hubs" :key="hub.id" class="align-middle">
+        <tr v-for="hub in pagedHubs" :key="hub.id" class="align-middle">
           <td class="py-1.5 pr-2 text-xs font-bold text-[#0F1F52]">{{ hub.id }}</td>
           <td class="py-1.5 pr-2">
             <span

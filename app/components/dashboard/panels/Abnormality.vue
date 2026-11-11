@@ -53,6 +53,19 @@ function barColor(percent: number) {
   return 'bg-[#2F6FED]'
 }
 
+// Standalone the panel is one tile on a board nobody touches, so it shows
+// two zones at a time and turns the page itself. Stacked on the Dashboard
+// it is scrolled by hand and shows the lot — pageSize there is the whole
+// list, which useAutoPager reads as a single page and leaves alone.
+const ZONES_PER_PAGE = 2
+const { page, pageCount, pagedItems: pagedZones, step: stepPage } = useAutoPager(
+  zones,
+  {
+    pageSize: props.standalone ? ZONES_PER_PAGE : Number.MAX_SAFE_INTEGER,
+    intervalMs: props.standalone ? 5000 : 0,
+  },
+)
+
 onMounted(loadAlarmStats)
 useRealtime('alarms', loadAlarmStats)
 watch(() => dashboardFilters.areaNumber, loadAlarmStats)
@@ -76,10 +89,11 @@ watch(() => dashboardFilters.areaNumber, loadAlarmStats)
       </p>
     </template>
 
-    <template v-if="!props.standalone" #badge>
-      <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+    <template #badge>
+      <svg v-if="!props.standalone" class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
       </svg>
+      <DashboardPanelsPageStepper v-else :page="page" :page-count="pageCount" @step="stepPage" />
     </template>
 
     <div v-if="zones.length === 0" class="text-center text-xs text-slate-400" :class="props.standalone ? 'py-6' : 'mt-4'">
@@ -88,7 +102,7 @@ watch(() => dashboardFilters.areaNumber, loadAlarmStats)
         : 'No active alarms on this map right now.' }}
     </div>
     <div v-else class="space-y-4" :class="props.standalone ? '' : 'mt-4'">
-      <div v-for="zone in zones" :key="zone.label">
+      <div v-for="zone in pagedZones" :key="zone.label">
         <div class="mb-1.5 flex items-center justify-between text-xs">
           <span class="text-slate-500">{{ zone.label }}</span>
           <span class="font-medium text-[#0F1F52]">{{ zone.percent }}%</span>
