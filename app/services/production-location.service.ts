@@ -1,4 +1,5 @@
 import type {
+  BulkDeleteProductionLocationsResult,
   CreateProductionLocationInput,
   ProductionLocation,
   ProductionLocationListResult,
@@ -38,4 +39,13 @@ export async function updateProductionLocation(
 export async function deleteProductionLocation(id: string): Promise<null> {
   const { $http } = useNuxtApp()
   return (await $http.delete(`/production-locations/${id}`)) as null
+}
+
+// POST, not DELETE: a request body on DELETE is allowed by the spec but
+// dropped or refused by enough proxies and clients not to be worth it.
+export async function bulkDeleteProductionLocations(
+  ids: string[],
+): Promise<BulkDeleteProductionLocationsResult> {
+  const { $http } = useNuxtApp()
+  return (await $http.post(`/production-locations/bulk-delete`, { ids })) as BulkDeleteProductionLocationsResult
 }

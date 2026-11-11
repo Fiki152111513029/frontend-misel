@@ -9,7 +9,11 @@ export interface FactoryMap {
   createdAt: string
   updatedAt: string
   deletedAt: string | null
-  /** Only present on the create response — what got imported from the topology file's nodes. Null if that import itself errored (the map was still saved). */
+  /**
+   * What got imported from the topology file's nodes. Present on create,
+   * and on an update that replaced the topology file. Null if that import
+   * itself errored — the map is saved either way.
+   */
   locationSync?: TopologySyncResult | null
 }
 
@@ -48,12 +52,22 @@ export interface UpdateFactoryMapInput {
   areaNumber?: number
   imageFile?: File
   topologyFile?: File
-}
-
-/** What the Add/Edit dialog emits — rackAssignments only ever applies when creating. */
-export interface FactoryMapFormInput extends UpdateFactoryMapInput {
+  /**
+   * Drop the background image and keep only the topology. Ignored when
+   * imageFile is set in the same request — a replacement wins over a
+   * removal, since that throws nothing away.
+   */
+  removeImage?: boolean
+  /**
+   * Where each type-1 rack node goes. Applies when replacing the topology
+   * too, not only on create: a newer export can carry nodes that no
+   * Production or Warehouse Location backs yet.
+   */
   rackAssignments?: RackAssignment[]
 }
+
+/** What the Add/Edit dialog emits. */
+export type FactoryMapFormInput = UpdateFactoryMapInput
 
 export type FactoryMapSortBy = 'name' | 'createdAt'
 export type FactoryMapSortOrder = 'asc' | 'desc'

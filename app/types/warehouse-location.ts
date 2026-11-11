@@ -34,6 +34,13 @@ export interface WarehouseLocationListMeta {
   totalPages: number
 }
 
+/** What a bulk delete actually did. See the backend use-case for why it reports rather than refuses. */
+export interface BulkDeleteWarehouseLocationsResult {
+  deleted: number
+  /** Ids that matched nothing — already deleted, or never there. */
+  missing: number
+}
+
 export interface WarehouseLocationListResult {
   items: WarehouseLocation[]
   meta: WarehouseLocationListMeta

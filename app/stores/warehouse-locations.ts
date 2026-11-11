@@ -48,6 +48,10 @@ export const useWarehouseLocationsStore = defineStore('warehouse-locations', () 
     return warehouseLocationService.deleteWarehouseLocation(id)
   }
 
+  async function removeWarehouseLocations(ids: string[]) {
+    return warehouseLocationService.bulkDeleteWarehouseLocations(ids)
+  }
+
   function setFilters(patch: Partial<WarehouseLocationQuery>) {
     filters.value = { ...filters.value, ...patch }
   }
@@ -62,6 +66,7 @@ export const useWarehouseLocationsStore = defineStore('warehouse-locations', () 
     addWarehouseLocation,
     editWarehouseLocation,
     removeWarehouseLocation,
+    removeWarehouseLocations,
     setFilters,
   }
 })

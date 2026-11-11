@@ -36,6 +36,12 @@ export async function updateFactoryMap(id: string, input: UpdateFactoryMapInput)
   if (input.areaNumber !== undefined) formData.append('areaNumber', String(input.areaNumber))
   if (input.imageFile) formData.append('image', input.imageFile)
   if (input.topologyFile) formData.append('topology', input.topologyFile)
+  // Only sent when true: multipart has no types, so leaving the field out
+  // is the only way to say "don't touch the image".
+  if (input.removeImage) formData.append('removeImage', 'true')
+  if (input.rackAssignments?.length) {
+    formData.append('rackAssignments', JSON.stringify(input.rackAssignments))
+  }
   return (await $http.put(`/factory-maps/${id}`, formData)) as FactoryMap
 }
 
@@ -49,6 +55,16 @@ export interface LocationCodesResult {
   chargerCodes: string[]
   parkingCodes: string[]
   warehouseLocationStatuses: { code: string, status: 'EMPTY' | 'FULL' }[]
+  productionLocationStatuses: { code: string, status: 'EMPTY' | 'FULL' }[]
+  /**
+   * Every registered Warehouse Location code, with or without a status.
+   * The `...Statuses` lists drop rows whose status was never set, so they
+   * cannot answer "is this code already registered?" — which is what the
+   * Factory Map form asks before offering a rack for import.
+   */
+  warehouseCodes: string[]
+  /** Same, for Production Location. */
+  productionCodes: string[]
 }
 
 // Real location codes (Quarantine Areas, EXIM Locations, Empty Pallet

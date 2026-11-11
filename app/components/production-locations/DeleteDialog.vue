@@ -5,11 +5,20 @@ interface Props {
   modelValue: boolean
   productionLocation: ProductionLocation | null
   deleting?: boolean
+  /**
+   * Set to delete a ticked selection instead of one row. The same dialog
+   * handles both so there is one place that says "this cannot be undone"
+   * — two of them drift apart the first time one is reworded.
+   */
+  count?: number | null
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   deleting: false,
+  count: null,
 })
+
+const isBulk = computed(() => props.count != null)
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
@@ -21,11 +30,15 @@ const emit = defineEmits<{
 <template>
   <UiBaseModal
     :model-value="modelValue"
-    title="Delete Production Location"
+    :title="isBulk ? 'Delete selected production locations' : 'Delete Production Location'"
     size="sm"
     @update:model-value="emit('update:modelValue', $event)"
   >
-    <p class="font-medium text-sm text-slate-600">
+    <p v-if="isBulk" class="font-medium text-sm text-slate-600">
+      Are you sure you want to delete <strong>{{ props.count }}</strong> selected
+      production locations? This action cannot be undone.
+    </p>
+    <p v-else class="font-medium text-sm text-slate-600">
       Are you sure you want to delete <strong>{{ productionLocation?.name }}</strong>? This
       action cannot be undone.
     </p>
