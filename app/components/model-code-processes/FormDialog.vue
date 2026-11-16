@@ -28,7 +28,11 @@ const isActive = ref(true)
 // 8 fixed comment slots shown to Operator and Admin, explaining what each
 // task status stage means for this Model Code Process.
 const statusComments = reactive<string[]>(Array.from({ length: 8 }, () => ''))
-const errors = reactive<{ name?: string }>({})
+// Held as a string, not a number: an empty box has to stay empty and mean
+// "no timer". v-model.number turns '' into '' and a half-typed '-' into
+// NaN, both of which would be sent as a number and rejected by the server.
+const continueTaskDelaySec = ref('')
+const errors = reactive<{ name?: string, continueTaskDelaySec?: string }>({})
 
 function resetFields() {
   name.value = props.modelCodeProcess?.name ?? ''
@@ -42,7 +46,10 @@ function resetFields() {
   statusComments[5] = props.modelCodeProcess?.statusComment6 ?? ''
   statusComments[6] = props.modelCodeProcess?.statusComment7 ?? ''
   statusComments[7] = props.modelCodeProcess?.statusComment8 ?? ''
+  continueTaskDelaySec.value =
+    props.modelCodeProcess?.continueTaskDelaySec?.toString() ?? ''
   errors.name = undefined
+  errors.continueTaskDelaySec = undefined
 }
 
 watch(
@@ -57,12 +64,29 @@ const isEditMode = computed(() => !!props.modelCodeProcess)
 
 function validate(): boolean {
   errors.name = undefined
+  errors.continueTaskDelaySec = undefined
+
   if (!name.value.trim()) {
     errors.name = 'Name is required'
   } else if (name.value.trim().length > 100) {
     errors.name = 'Name must be at most 100 characters'
   }
-  return !errors.name
+
+  // Checked here as well as on the server so a typo is caught before the
+  // round trip — the bounds are the server's, repeated deliberately.
+  const raw = continueTaskDelaySec.value.trim()
+  if (raw !== '') {
+    const parsed = Number(raw)
+    if (!Number.isInteger(parsed)) {
+      errors.continueTaskDelaySec = 'Enter a whole number of seconds'
+    } else if (parsed < 1) {
+      errors.continueTaskDelaySec = 'Must be at least 1 second — leave it empty for no timer'
+    } else if (parsed > 86400) {
+      errors.continueTaskDelaySec = 'Must be at most 86400 seconds (24 hours)'
+    }
+  }
+
+  return !errors.name && !errors.continueTaskDelaySec
 }
 
 function handleSubmit() {
@@ -79,6 +103,12 @@ function handleSubmit() {
     statusComment6: statusComments[5],
     statusComment7: statusComments[6],
     statusComment8: statusComments[7],
+    // null, not undefined: on an edit, undefined would leave an existing
+    // timer in place, so clearing the box could never turn one off.
+    continueTaskDelaySec:
+      continueTaskDelaySec.value.trim() === ''
+        ? null
+        : Number(continueTaskDelaySec.value.trim()),
   })
 }
 
@@ -112,6 +142,21 @@ const selectClass =
       </div>
 
       <UiBaseCheckbox v-model="isActive" label="Active" />
+
+      <div>
+        <UiBaseInput
+          v-model="continueTaskDelaySec"
+          type="number"
+          label="Continue Task Timer (seconds)"
+          placeholder="Leave empty for no timer"
+          :error="errors.continueTaskDelaySec"
+        />
+        <p class="mt-1 text-xs text-slate-500">
+          How long to wait before a task on this Model Code Process is
+          continued automatically. Leave empty and nothing is continued on
+          its own.
+        </p>
+      </div>
 
       <div class="space-y-3 border-t border-[#E2E8F0] pt-4">
         <p class="text-xs font-bold uppercase tracking-wide text-[#0F1F52]">

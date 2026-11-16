@@ -28,6 +28,9 @@ const clientSort = ref<{ key: ModelCodeProcessSortKey, order: 'asc' | 'desc' } |
 const CLIENT_SORT_ACCESSORS: Record<string, (item: ModelCodeProcess) => string | number> = {
   fromSystem: item => item.fromSystem,
   status: item => (item.isActive ? 1 : 0),
+  // -1 for "no timer" so the rows with one actually set group together at
+  // one end, instead of 0 putting them next to a 1-second timer.
+  continueTaskDelaySec: item => item.continueTaskDelaySec ?? -1,
 }
 
 const sortedItems = computed(() => {

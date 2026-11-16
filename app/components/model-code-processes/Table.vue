@@ -24,6 +24,7 @@ const { hasPermission } = useAuth()
 const columns = [
   { key: 'name', label: 'Name' },
   { key: 'fromSystem', label: 'From System', width: '110px' },
+  { key: 'continueTaskDelaySec', label: 'Continue Timer', width: '130px' },
   { key: 'status', label: 'Status', width: '110px' },
   { key: 'createdAt', label: 'Created' },
   { key: 'actions', label: 'Actions', width: '120px' },
@@ -32,6 +33,7 @@ const columns = [
 const sortableColumns = [
   { key: 'name', label: 'Name' },
   { key: 'fromSystem', label: 'From System', width: '110px' },
+  { key: 'continueTaskDelaySec', label: 'Continue Timer', width: '130px' },
   { key: 'status', label: 'Status', width: '110px' },
   { key: 'createdAt', label: 'Created' },
 ]
@@ -101,6 +103,14 @@ function formatDate(value: string) {
               class="rounded-full px-2 py-0.5 text-xs font-medium bg-[#01ADEF]/10 text-[#01ADEF]"
             >
               {{ item.fromSystem }}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-sm">
+            <span v-if="item.continueTaskDelaySec == null" class="text-slate-400">
+              No timer
+            </span>
+            <span v-else class="font-medium text-[#0F1F52]">
+              {{ item.continueTaskDelaySec }}s
             </span>
           </td>
           <td class="px-4 py-3">

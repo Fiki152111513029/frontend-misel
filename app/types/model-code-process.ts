@@ -13,6 +13,8 @@ export interface ModelCodeProcess {
   statusComment6: string
   statusComment7: string
   statusComment8: string
+  /** Seconds to wait before continuing a task; null means no timer. */
+  continueTaskDelaySec: number | null
   createdAt: string
   updatedAt: string
   deletedAt: string | null
@@ -30,6 +32,8 @@ export interface CreateModelCodeProcessInput {
   statusComment6?: string
   statusComment7?: string
   statusComment8?: string
+  /** Seconds, 1-86400. null clears the timer; omitted leaves it unchanged. */
+  continueTaskDelaySec?: number | null
 }
 
 export type UpdateModelCodeProcessInput = Partial<CreateModelCodeProcessInput>
