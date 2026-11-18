@@ -33,6 +33,9 @@ const RCS_STATUS_LABEL: Record<string, string> = {
   '21': 'Picked',
   '22': 'Placing',
   '23': 'Placed',
+  // Parked at a Trolley Task's transit stop, waiting to be told to carry
+  // on. Without this the card would show a bare "25".
+  '25': 'Waiting at transit',
 }
 
 const RCS_STATUS_STYLE: Record<string, string> = {
@@ -50,11 +53,15 @@ const RCS_STATUS_STYLE: Record<string, string> = {
   '21': 'bg-[#01ADEF]/10 text-[#01ADEF]',
   '22': 'bg-[#01ADEF]/10 text-[#01ADEF]',
   '23': 'bg-[#01ADEF]/10 text-[#01ADEF]',
+  // Amber, like the countdown it goes with: stopped on purpose, not an
+  // error and not progress.
+  '25': 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400',
 }
 
 // A task has reached a terminal state (RCS won't move it further) once it's
 // either our own COMPLETED/FAILED, or the matching RCS codes: 8 = success,
-// 3/5/7 = stopped/failed.
+// 3/5/7 = stopped/failed. Note 25 (parked at a transit stop) is NOT one of
+// these — the order is still running, it is just waiting to be continued.
 const RCS_COMPLETED_STATUS = '8'
 const RCS_FAILED_STATUSES = ['3', '5', '7']
 const TERMINAL_STATUSES = ['COMPLETED', 'FAILED', RCS_COMPLETED_STATUS, ...RCS_FAILED_STATUSES]
