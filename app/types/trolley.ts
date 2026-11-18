@@ -13,8 +13,10 @@ export interface Trolley {
   /**
    * An optional stop between the scanned pickup and the dropping point.
    *
-   * Set, a Warehouse Trolley Task goes out as three legs instead of two
-   * and the AMR waits here until the Model Code Process timer releases it.
+   * Set, a Warehouse Trolley Task goes out as four legs instead of two
+   * (scan, transit, transit, dropping — the stop is named twice because
+   * the trolley is put down there and picked up again after the wait), and
+   * the AMR waits here until the Model Code Process timer releases it.
    * Null and nothing changes.
    */
   transitLocationCode: string | null

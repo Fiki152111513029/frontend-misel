@@ -212,9 +212,10 @@ const selectClass =
         </select>
         <p class="text-xs text-slate-500">
           A stop on the way to the Dropping Location. Set, a Warehouse
-          Trolley Task sends three legs (scan, transit, dropping) and the
-          AMR waits here until the Model Code Process Continue Task Timer
-          runs out. Leave as None for the usual two-leg route.
+          Trolley Task sends four legs (scan, transit, transit, dropping)
+          and the AMR puts the trolley down here and waits until the Model
+          Code Process Continue Task Timer runs out, then picks it up again
+          and carries on. Leave as None for the usual two-leg route.
         </p>
       </div>
 
