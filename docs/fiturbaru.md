@@ -1,6 +1,1 @@
-tambahkan dibagian table trolley transit location seperti drop location dari add dan edit 
-jadi nantinya kalau misalnya warehouse trolley task send trolley yang ada transi location dan drop location nantinya ada 3 path 
-"taskPath":"scan area, transit location, transit location, drop location"
-lalu kan program saya ini waktu transit ini kan amr diam dan saya di modelcodeprocess itu sudah saya sediakan timer kalau misalnya timernya habis triger
-CONTINUE_TASK="http://${RCS_HOST}:${RCS_PORT}/ics/out/task/continueTask "
-request yang diminta dari endpoint tersebut orderID
+jadi ketika subtasseq 25 maka timer berjalan bukan waktu berangkat berjalannya ketika waktu habis baru triger endpointnya kenapa qurent que que ketika selesai masih ada kok ngga ngikutin yang tanpa transit

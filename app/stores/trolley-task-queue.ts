@@ -74,25 +74,39 @@ function defineTrolleyTaskQueueStore(role: string) {
      * The countdown itself is not refreshed here — the card computes it
      * against transitArrivedAt with its own ticker.
      */
-    async function refreshTransit() {
-      if (items.value.length === 0) return
+    /**
+     * Re-reads the transit wait of every card, and returns the set of
+     * activity ids the server still considers in flight.
+     *
+     * One request for the whole queue rather than one per card: the
+     * endpoint already returns all of this user's in-flight tasks, so the
+     * same response answers both "how long is left on the wait" and "is
+     * this task still running".
+     *
+     * Returns null when the request failed, which the caller must treat as
+     * "no information" rather than "nothing is active" — otherwise one
+     * flaky request would wipe the whole queue.
+     */
+    async function refreshTransit(): Promise<Set<string> | null> {
+      if (items.value.length === 0) return null
       try {
         const activities = await fetchMyActiveTrolleyActivities()
         const byId = new Map(activities.map(a => [a.activityId, a]))
         for (const item of items.value) {
           const fresh = byId.get(item.activityId)
           // Missing means the task is no longer in flight. Its own fields
-          // are left alone — the card is about to be removed on its
-          // terminal status anyway, and blanking the wait first would make
-          // it flicker back to "no transit" on the way out.
+          // are left alone — the card is on its way out, and blanking the
+          // wait first would make it flicker back to "no transit".
           if (!fresh) continue
           item.transitLocationCode = fresh.transitLocationCode
           item.continueTaskDelaySec = fresh.continueTaskDelaySec
           item.transitArrivedAt = fresh.transitArrivedAt
           item.continuedAt = fresh.continuedAt
         }
+        return new Set(byId.keys())
       } catch {
         // Non-fatal — the cards keep the wait they last knew about.
+        return null
       }
     }
 
@@ -100,21 +114,40 @@ function defineTrolleyTaskQueueStore(role: string) {
      * Re-reads every card's status. Driven by the realtime signal rather
      * than a timer — the page rendering the queue subscribes and calls
      * this, so nothing runs while no task is in flight.
+     *
+     * A card goes when EITHER signal says the task is over:
+     *
+     *   - its latest webhook carries a terminal status, which is also what
+     *     tells us whether to congratulate the operator; or
+     *   - the server no longer lists it among this user's in-flight tasks,
+     *     meaning the activity row itself has been marked COMPLETED or
+     *     FAILED.
+     *
+     * The second one exists because the first is not always reached. The
+     * webhook status is read off the raw payload of the LAST call RCS made
+     * for that order, and an order that ends on a step rather than on 8 --
+     * which a route with a transit stop can do, since its last events are
+     * about legs — leaves a card that nothing would ever remove. The
+     * activity's own status is set by our webhook handler regardless, so it
+     * is the reliable half; the webhook payload is kept only for the toast
+     * and for being the faster of the two.
      */
     async function refreshAll() {
-      await refreshTransit()
+      const stillActive = await refreshTransit()
       await Promise.all(
         items.value.map(async (item) => {
           await refreshItem(item)
           const status = item.webhookStatus?.status
-          if (status && isTaskTerminal(status)) {
-            if (!removalTimers.has(item.activityId)) {
-              if (isTaskCompleted(status)) {
-                toast.success(`Trolley task ${item.trolleyCode} completed`)
-              }
-              scheduleRemoval(item.activityId)
-            }
+          const terminal = !!status && isTaskTerminal(status)
+          const noLongerActive = stillActive !== null && !stillActive.has(item.activityId)
+          if (!terminal && !noLongerActive) return
+          if (removalTimers.has(item.activityId)) return
+          // Only on a status we can actually read as success. Dropping off
+          // the active list tells us the task ended, not how.
+          if (status && isTaskCompleted(status)) {
+            toast.success(`Trolley task ${item.trolleyCode} completed`)
           }
+          scheduleRemoval(item.activityId)
         }),
       )
     }
@@ -151,6 +184,9 @@ function defineTrolleyTaskQueueStore(role: string) {
       await refreshItem(item)
       // A task submitted with a transit stop has its wait recorded
       // server-side at submit, which the submit response does not carry.
+      // Only the transit fields are wanted here, never the removal pass --
+      // the row was created moments ago and a card must not be reaped on
+      // the same tick that added it.
       await refreshTransit()
     }
 
