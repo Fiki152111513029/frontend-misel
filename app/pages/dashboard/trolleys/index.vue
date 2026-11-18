@@ -34,6 +34,7 @@ const CLIENT_SORT_ACCESSORS: Record<string, (item: Trolley) => string | number> 
   code: item => item.code.toLowerCase(),
   category: item => (item.category?.name ?? '').toLowerCase(),
   droppingLocationCode: item => (item.droppingLocationCode ?? '').toLowerCase(),
+  transitLocationCode: item => (item.transitLocationCode ?? '').toLowerCase(),
   modelCodeProcess: item => (item.modelCodeProcess?.name ?? '').toLowerCase(),
   status: item => (item.status === 'FULL' ? 1 : 0),
 }

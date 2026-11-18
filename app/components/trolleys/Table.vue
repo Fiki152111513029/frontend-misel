@@ -6,7 +6,7 @@ import type {
   TrolleySortOrder,
 } from '~/types/trolley'
 
-export type TrolleySortKey = TrolleySortBy | 'code' | 'status' | 'type' | 'category' | 'droppingLocationCode' | 'modelCodeProcess' | 'customer'
+export type TrolleySortKey = TrolleySortBy | 'code' | 'status' | 'type' | 'category' | 'droppingLocationCode' | 'transitLocationCode' | 'modelCodeProcess' | 'customer'
 
 interface Props {
   items: Trolley[]
@@ -68,6 +68,7 @@ const columns = [
   { key: 'category', label: 'Category' },
   { key: 'customer', label: 'Customer' },
   { key: 'droppingLocationCode', label: 'Dropping Location Code' },
+  { key: 'transitLocationCode', label: 'Transit Location Code' },
   { key: 'modelCodeProcess', label: 'Model Code Process' },
   { key: 'status', label: 'Status', width: '110px' },
   { key: 'actions', label: 'Actions', width: '120px' },
@@ -80,6 +81,7 @@ const sortableColumns = [
   { key: 'category', label: 'Category' },
   { key: 'customer', label: 'Customer' },
   { key: 'droppingLocationCode', label: 'Dropping Location Code' },
+  { key: 'transitLocationCode', label: 'Transit Location Code' },
   { key: 'modelCodeProcess', label: 'Model Code Process' },
   { key: 'status', label: 'Status', width: '110px' },
 ]
@@ -181,6 +183,9 @@ function openQr(trolley: Trolley) {
           </td>
           <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52]">
             {{ item.droppingLocationCode ?? '-' }}
+          </td>
+          <td class="px-4 py-3 text-sm font-mono font-medium text-[#0F1F52]">
+            {{ item.transitLocationCode ?? '-' }}
           </td>
           <td class="px-4 py-3 text-sm text-slate-600">
             {{ item.modelCodeProcess?.name ?? '-' }}

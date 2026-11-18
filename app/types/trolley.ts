@@ -10,6 +10,14 @@ export interface Trolley {
   trolleyCategoryId: string | null
   category: { id: string, name: string } | null
   droppingLocationCode: string | null
+  /**
+   * An optional stop between the scanned pickup and the dropping point.
+   *
+   * Set, a Warehouse Trolley Task goes out as three legs instead of two
+   * and the AMR waits here until the Model Code Process timer releases it.
+   * Null and nothing changes.
+   */
+  transitLocationCode: string | null
   modelCodeProcessId: string | null
   modelCodeProcess: { id: string, name: string } | null
   customerId: string | null
@@ -26,6 +34,8 @@ export interface CreateTrolleyInput {
   trolleyTypeId: string
   trolleyCategoryId?: string
   droppingLocationCode?: string
+  /** null clears the stop; omitted leaves it unchanged. */
+  transitLocationCode?: string | null
   modelCodeProcessId?: string
   customerId?: string
 }

@@ -27,6 +27,10 @@ const activeTrolleyTypes = computed(() => trolleyTypes.value.filter(type => type
 const { items: trolleyCategories, fetchTrolleyCategories } = useTrolleyCategories()
 const { items: productionLocations, fetchProductionLocations } = useProductionLocations()
 const activeProductionLocations = computed(() => productionLocations.value.filter(location => location.isActive))
+// A transit stop can be registered as either kind of node depending on how
+// the floor was mapped, so both are offered rather than guessing which.
+const { items: warehouseLocations, fetchWarehouseLocations } = useWarehouseLocations()
+const activeWarehouseLocations = computed(() => warehouseLocations.value.filter(location => location.isActive))
 const { items: modelCodeProcesses, fetchModelCodeProcesses } = useModelCodeProcesses()
 const activeModelCodeProcesses = computed(() => modelCodeProcesses.value.filter(process => process.isActive))
 const { items: customers, fetchCustomers } = useCustomers()
@@ -38,6 +42,7 @@ const status = ref<TrolleyStatus>('EMPTY')
 const trolleyTypeId = ref('')
 const trolleyCategoryId = ref('')
 const droppingLocationCode = ref('')
+const transitLocationCode = ref('')
 const modelCodeProcessId = ref('')
 const customerId = ref('')
 const errors = reactive<{ name?: string; code?: string; trolleyTypeId?: string }>({})
@@ -49,6 +54,7 @@ function resetFields() {
   trolleyTypeId.value = props.trolley?.trolleyTypeId ?? ''
   trolleyCategoryId.value = props.trolley?.trolleyCategoryId ?? ''
   droppingLocationCode.value = props.trolley?.droppingLocationCode ?? ''
+  transitLocationCode.value = props.trolley?.transitLocationCode ?? ''
   modelCodeProcessId.value = props.trolley?.modelCodeProcessId ?? ''
   customerId.value = props.trolley?.customerId ?? ''
   errors.name = undefined
@@ -64,6 +70,7 @@ watch(
       fetchTrolleyTypes({ limit: 100 })
       fetchTrolleyCategories({ limit: 100 })
       fetchProductionLocations({ limit: 100 })
+      fetchWarehouseLocations({ limit: 100 })
       fetchModelCodeProcesses({ limit: 100 })
       fetchCustomers({ limit: 100 })
     }
@@ -104,6 +111,10 @@ function handleSubmit() {
     trolleyTypeId: trolleyTypeId.value,
     trolleyCategoryId: trolleyCategoryId.value || undefined,
     droppingLocationCode: droppingLocationCode.value || undefined,
+    // null, not undefined: on an edit, undefined would leave an existing
+    // stop in place, so picking None could never turn a three-leg route
+    // back into a two-leg one.
+    transitLocationCode: transitLocationCode.value || null,
     modelCodeProcessId: modelCodeProcessId.value || undefined,
     customerId: customerId.value || undefined,
   })
@@ -180,6 +191,31 @@ const selectClass =
             {{ location.name }} ({{ location.iRaypleLocationCode }})
           </option>
         </select>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-slate-700">
+          Transit Location Code
+        </label>
+        <select v-model="transitLocationCode" :class="selectClass">
+          <option value="">None</option>
+          <optgroup label="Production Locations">
+            <option v-for="location in activeProductionLocations" :key="`p-${location.id}`" :value="location.iRaypleLocationCode">
+              {{ location.name }} ({{ location.iRaypleLocationCode }})
+            </option>
+          </optgroup>
+          <optgroup label="Warehouse Locations">
+            <option v-for="location in activeWarehouseLocations" :key="`w-${location.id}`" :value="location.iRaypleLocationCode">
+              {{ location.name }} ({{ location.iRaypleLocationCode }})
+            </option>
+          </optgroup>
+        </select>
+        <p class="text-xs text-slate-500">
+          A stop on the way to the Dropping Location. Set, a Warehouse
+          Trolley Task sends three legs (scan, transit, dropping) and the
+          AMR waits here until the Model Code Process Continue Task Timer
+          runs out. Leave as None for the usual two-leg route.
+        </p>
       </div>
 
       <div class="space-y-1.5">
