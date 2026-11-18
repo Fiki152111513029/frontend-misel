@@ -1,9 +1,22 @@
 import { fetchLatestWebhookStatus } from '~/services/webhook-log.service'
-import { fetchTrolleyActivitySequence } from '~/services/trolley-activity.service'
+import {
+  fetchMyActiveTrolleyActivities,
+  fetchTrolleyActivitySequence,
+} from '~/services/trolley-activity.service'
 import { isTaskCompleted, isTaskTerminal } from '~/utils/taskStatus'
 import type { LatestWebhookStatus } from '~/types/webhook-log'
 
-export interface TrolleyQueueItem {
+/** The transit wait as the card needs to render it. */
+export interface TrolleyQueueTransit {
+  transitLocationCode: string | null
+  continueTaskDelaySec: number | null
+  /** ISO; null until the AMR is seen at the stop. */
+  transitArrivedAt: string | null
+  /** ISO; set once RCS has accepted the continue. */
+  continuedAt: string | null
+}
+
+export interface TrolleyQueueItem extends TrolleyQueueTransit {
   activityId: string
   taskId: string
   trolleyCode: string
@@ -11,6 +24,13 @@ export interface TrolleyQueueItem {
   trolleyTypeName: string
   queueNumber: number | null
   webhookStatus: LatestWebhookStatus | null
+}
+
+const NO_TRANSIT: TrolleyQueueTransit = {
+  transitLocationCode: null,
+  continueTaskDelaySec: null,
+  transitArrivedAt: null,
+  continuedAt: null,
 }
 
 function defineTrolleyTaskQueueStore(role: string) {
@@ -43,11 +63,46 @@ function defineTrolleyTaskQueueStore(role: string) {
     }
 
     /**
+     * Re-reads the transit wait of every card from the server.
+     *
+     * One request for the whole queue rather than one per card: the
+     * endpoint already returns all of this user's in-flight tasks, and
+     * these fields only ever change at two moments (the AMR reaching the
+     * stop, and the continue being accepted), both of which publish the
+     * realtime signal this runs on.
+     *
+     * The countdown itself is not refreshed here — the card computes it
+     * against transitArrivedAt with its own ticker.
+     */
+    async function refreshTransit() {
+      if (items.value.length === 0) return
+      try {
+        const activities = await fetchMyActiveTrolleyActivities()
+        const byId = new Map(activities.map(a => [a.activityId, a]))
+        for (const item of items.value) {
+          const fresh = byId.get(item.activityId)
+          // Missing means the task is no longer in flight. Its own fields
+          // are left alone — the card is about to be removed on its
+          // terminal status anyway, and blanking the wait first would make
+          // it flicker back to "no transit" on the way out.
+          if (!fresh) continue
+          item.transitLocationCode = fresh.transitLocationCode
+          item.continueTaskDelaySec = fresh.continueTaskDelaySec
+          item.transitArrivedAt = fresh.transitArrivedAt
+          item.continuedAt = fresh.continuedAt
+        }
+      } catch {
+        // Non-fatal — the cards keep the wait they last knew about.
+      }
+    }
+
+    /**
      * Re-reads every card's status. Driven by the realtime signal rather
      * than a timer — the page rendering the queue subscribes and calls
      * this, so nothing runs while no task is in flight.
      */
     async function refreshAll() {
+      await refreshTransit()
       await Promise.all(
         items.value.map(async (item) => {
           await refreshItem(item)
@@ -70,13 +125,21 @@ function defineTrolleyTaskQueueStore(role: string) {
       trolleyCode: string
       trolleyName: string
       trolleyTypeName: string
-    }) {
+    } & Partial<TrolleyQueueTransit>) {
       // Idempotent — restoring from the backend on mount (see
       // fetchMyActiveTrolleyActivities) must not duplicate a card that a
       // live submit in this same session already added.
       if (items.value.some(item => item.activityId === input.activityId)) return
 
-      const item: TrolleyQueueItem = { ...input, queueNumber: null, webhookStatus: null }
+      // NO_TRANSIT first, so a live submit that does not know the transit
+      // fields yet still gets well-defined nulls rather than undefined —
+      // the card tests these for null.
+      const item: TrolleyQueueItem = {
+        ...NO_TRANSIT,
+        ...input,
+        queueNumber: null,
+        webhookStatus: null,
+      }
       items.value.push(item)
 
       try {
@@ -86,6 +149,9 @@ function defineTrolleyTaskQueueStore(role: string) {
         // Non-fatal — "No urut" just stays blank.
       }
       await refreshItem(item)
+      // A task submitted with a transit stop has its wait recorded
+      // server-side at submit, which the submit response does not carry.
+      await refreshTransit()
     }
 
     // Wipes this role's queue and stops its polling — called on logout so a
@@ -99,7 +165,7 @@ function defineTrolleyTaskQueueStore(role: string) {
       removalTimers.clear()
     }
 
-    return { items, addTask, refreshAll, clear }
+    return { items, addTask, refreshAll, refreshTransit, clear }
   })
 }
 

@@ -88,6 +88,15 @@ export interface MyActiveTrolleyActivity {
   // Current Queue (Warehouse Trolley Task vs Operator Trolley Task) without
   // mixing the two.
   pickupSource: 'WAREHOUSE' | 'PRODUCTION'
+  // The transit wait, for the Current Queue countdown. Sent as the arrival
+  // timestamp plus the length of the wait rather than "seconds remaining",
+  // so the card can tick down against its own clock without re-asking.
+  transitLocationCode: string | null
+  continueTaskDelaySec: number | null
+  /** ISO; null until the AMR is seen at the stop. */
+  transitArrivedAt: string | null
+  /** ISO; set once RCS has accepted the continue. */
+  continuedAt: string | null
 }
 
 export async function fetchMyActiveTrolleyActivities(): Promise<MyActiveTrolleyActivity[]> {

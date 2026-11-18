@@ -153,6 +153,90 @@ function backToChoice() {
 // component mounts, not just after a real reload.
 const expectedPickupSource = props.roleLabel === 'Warehouse' ? 'WAREHOUSE' : 'PRODUCTION'
 
+// Drives the transit countdown. One ticker for the whole queue rather than
+// one per card, and only while a card is actually waiting at a stop — an
+// idle page does no work at all.
+const now = ref(Date.now())
+let ticker: ReturnType<typeof setInterval> | null = null
+
+const anyWaitingAtTransit = computed(() =>
+  queue.items.some(item => item.transitArrivedAt && !item.continuedAt),
+)
+
+watch(
+  anyWaitingAtTransit,
+  (waiting) => {
+    if (waiting && !ticker) {
+      now.value = Date.now()
+      ticker = setInterval(() => {
+        now.value = Date.now()
+      }, 1000)
+      return
+    }
+    if (!waiting && ticker) {
+      clearInterval(ticker)
+      ticker = null
+    }
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(() => {
+  if (ticker) clearInterval(ticker)
+})
+
+/**
+ * What the transit row says for one card, or null when that card has no
+ * stop and the row is left out entirely.
+ *
+ * Computed from the arrival stamp against this browser's clock, so it ticks
+ * every second without asking the server. That also means it inherits any
+ * clock skew between the two — a few seconds out is harmless here, since
+ * the actual continue is decided server-side and this row is only telling
+ * the operator roughly how much longer to expect.
+ */
+function transitLabel(item: {
+  transitLocationCode: string | null
+  continueTaskDelaySec: number | null
+  transitArrivedAt: string | null
+  continuedAt: string | null
+}): { text: string, tone: 'waiting' | 'counting' | 'done' } | null {
+  if (!item.transitLocationCode) return null
+
+  if (item.continuedAt) {
+    return { text: `${item.transitLocationCode} — selesai, AMR lanjut`, tone: 'done' }
+  }
+
+  if (!item.transitArrivedAt) {
+    // On its way to the stop. The timer has not started, and saying the
+    // full duration here would read as a countdown that has stalled.
+    return {
+      text: item.continueTaskDelaySec == null
+        ? `${item.transitLocationCode} — menuju transit`
+        : `${item.transitLocationCode} — menuju transit, tunggu ${item.continueTaskDelaySec}s setibanya`,
+      tone: 'waiting',
+    }
+  }
+
+  if (item.continueTaskDelaySec == null) {
+    return { text: `${item.transitLocationCode} — di transit, tanpa timer`, tone: 'waiting' }
+  }
+
+  const elapsedMs = now.value - new Date(item.transitArrivedAt).getTime()
+  const remaining = Math.ceil((item.continueTaskDelaySec * 1000 - elapsedMs) / 1000)
+
+  // The watcher polls every 5s, so the continue lands a moment after zero.
+  // Holding at "0s" would look stuck; this says what is actually happening.
+  if (remaining <= 0) {
+    return { text: `${item.transitLocationCode} — waktu habis, mengirim continue…`, tone: 'done' }
+  }
+
+  return {
+    text: `${item.transitLocationCode} — ${remaining}s / ${item.continueTaskDelaySec}s`,
+    tone: 'counting',
+  }
+}
+
 async function restoreActiveQueue() {
   try {
     const activities = await fetchMyActiveTrolleyActivities()
@@ -164,6 +248,10 @@ async function restoreActiveQueue() {
         trolleyCode: activity.trolleyCode,
         trolleyName: activity.trolleyName,
         trolleyTypeName: activity.trolleyTypeName,
+        transitLocationCode: activity.transitLocationCode,
+        continueTaskDelaySec: activity.continueTaskDelaySec,
+        transitArrivedAt: activity.transitArrivedAt,
+        continuedAt: activity.continuedAt,
       })
     }
   } catch {
@@ -456,6 +544,19 @@ async function handleSubmit() {
             {{ item.webhookStatus?.subTaskSeq ?? '-' }}
             <template v-if="item.webhookStatus?.statusComment"> — {{ item.webhookStatus.statusComment }}</template>
           </span>
+        </p>
+        <!-- Only for a task that actually has a transit stop; the row is
+             absent entirely otherwise rather than showing an empty one. -->
+        <p v-if="transitLabel(item)" class="font-medium text-slate-500">
+          Transit :
+          <span
+            class="font-semibold"
+            :class="{
+              'text-amber-600': transitLabel(item)!.tone === 'counting',
+              'text-slate-500': transitLabel(item)!.tone === 'waiting',
+              'text-emerald-600': transitLabel(item)!.tone === 'done',
+            }"
+          >{{ transitLabel(item)!.text }}</span>
         </p>
       </div>
     </div>
